@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
+import Calls from './pages/Calls';
 import './i18n';
 
 const queryClient = new QueryClient();
@@ -110,12 +111,20 @@ function AppRoutes() {
         }
       />
 
-      {/* Placeholder routes - will be implemented */}
+      {/* Calls routes */}
       <Route
         path="/calls"
         element={
           <ProtectedRoute>
-            <div className="text-center py-8">Calls page coming soon</div>
+            <Calls />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calls/:id"
+        element={
+          <ProtectedRoute>
+            <div className="text-center py-8">Call detail page coming soon</div>
           </ProtectedRoute>
         }
       />
