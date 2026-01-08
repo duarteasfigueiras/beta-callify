@@ -58,3 +58,87 @@ export const authApi = {
     return response.data;
   },
 };
+
+// Dashboard API
+export const dashboardApi = {
+  getOverview: async (params?: { date_from?: string; date_to?: string }) => {
+    const response = await api.get('/dashboard/overview', { params });
+    return response.data;
+  },
+  getRecentCalls: async (limit?: number) => {
+    const response = await api.get('/dashboard/recent-calls', { params: { limit } });
+    return response.data;
+  },
+  getAlerts: async (limit?: number) => {
+    const response = await api.get('/dashboard/alerts', { params: { limit } });
+    return response.data;
+  },
+  getScoreEvolution: async (days?: number) => {
+    const response = await api.get('/dashboard/score-evolution', { params: { days } });
+    return response.data;
+  },
+};
+
+// Calls API
+export const callsApi = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    agent_id?: number;
+    date_from?: string;
+    date_to?: string;
+    score_min?: number;
+    score_max?: number;
+  }) => {
+    const response = await api.get('/calls', { params });
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/calls/${id}`);
+    return response.data;
+  },
+};
+
+// Users API
+export const usersApi = {
+  getAll: async () => {
+    const response = await api.get('/users');
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/users/${id}`);
+    return response.data;
+  },
+  invite: async (role: 'admin_manager' | 'agent') => {
+    const response = await api.post('/users/invite', { role });
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
+  },
+};
+
+// Criteria API
+export const criteriaApi = {
+  getAll: async () => {
+    const response = await api.get('/criteria');
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/criteria/${id}`);
+    return response.data;
+  },
+  create: async (data: { name: string; description: string; weight?: number }) => {
+    const response = await api.post('/criteria', data);
+    return response.data;
+  },
+  update: async (id: number, data: { name?: string; description?: string; weight?: number; is_active?: boolean }) => {
+    const response = await api.put(`/criteria/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/criteria/${id}`);
+    return response.data;
+  },
+};

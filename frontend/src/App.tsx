@@ -31,6 +31,28 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <Layout>{children}</Layout>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'admin_manager') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Layout>{children}</Layout>;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -100,25 +122,25 @@ function AppRoutes() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <div className="text-center py-8">Reports page coming soon</div>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route
         path="/criteria"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <div className="text-center py-8">Criteria page coming soon</div>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route
         path="/users"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <div className="text-center py-8">Users page coming soon</div>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route

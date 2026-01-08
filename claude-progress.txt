@@ -1,236 +1,137 @@
 # Callify Project - Development Progress
 
-## Session 1 - Initializer Agent
+## Session 3 - Coding Agent (Continued)
 
-**Date**: January 2025
-**Agent Type**: Initializer
-**Status**: COMPLETED
-
----
-
-## Accomplishments This Session
-
-### 1. Features Created
-- **Total Features**: 173 (target was 167, slightly over for comprehensive coverage)
-- **All features stored in**: features.db (SQLite database)
-- **Categories covered**: All 20 mandatory test categories
-
-#### Feature Distribution by Category:
-- Security & Access Control: ~12 features
-- Navigation Integrity: ~15 features
-- Real Data Verification: ~12 features
-- Workflow Completeness: ~8 features
-- Error Handling: ~8 features
-- UI-Backend Integration: ~8 features
-- State & Persistence: ~6 features
-- URL & Direct Access: ~8 features
-- Double-Action & Idempotency: ~4 features
-- Data Cleanup & Cascade: ~4 features
-- Default & Reset: ~5 features
-- Search & Filter Edge Cases: ~8 features
-- Form Validation: ~8 features
-- Feedback & Notification: ~8 features
-- Responsive & Layout: ~8 features
-- Accessibility: ~7 features
-- Temporal & Timezone: ~5 features
-- Concurrency & Race Conditions: ~4 features
-- Performance: ~4 features
-- Style: ~10 features
-
-### 2. Project Structure Created
-
-```
-callify/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/     (empty - to be implemented)
-│   │   ├── db/              (empty - to be implemented)
-│   │   ├── middleware/      (empty - to be implemented)
-│   │   ├── routes/          (empty - to be implemented)
-│   │   ├── services/        (empty - to be implemented)
-│   │   ├── types/
-│   │   │   └── index.ts     (CREATED - all type definitions)
-│   │   └── utils/           (empty - to be implemented)
-│   ├── uploads/
-│   │   └── .gitkeep
-│   ├── .env.example         (CREATED)
-│   ├── package.json         (CREATED)
-│   └── tsconfig.json        (CREATED)
-├── frontend/
-│   ├── src/
-│   │   ├── components/      (empty - to be implemented)
-│   │   ├── contexts/        (empty - to be implemented)
-│   │   ├── hooks/           (empty - to be implemented)
-│   │   ├── i18n/            (empty - to be implemented)
-│   │   ├── pages/           (empty - to be implemented)
-│   │   ├── services/        (empty - to be implemented)
-│   │   ├── styles/          (empty - to be implemented)
-│   │   ├── types/
-│   │   │   └── index.ts     (CREATED - all type definitions)
-│   │   └── utils/           (empty - to be implemented)
-│   ├── public/              (empty - to be implemented)
-│   ├── index.html           (CREATED)
-│   ├── package.json         (CREATED)
-│   ├── postcss.config.js    (CREATED)
-│   ├── tailwind.config.js   (CREATED)
-│   ├── tsconfig.json        (CREATED)
-│   ├── tsconfig.node.json   (CREATED)
-│   └── vite.config.ts       (CREATED)
-├── .gitignore               (CREATED)
-├── README.md                (CREATED - comprehensive documentation)
-├── init.sh                  (CREATED - environment setup script)
-├── features.db              (CREATED - feature tracking database)
-└── app_spec.txt             (PROVIDED - project specification)
-```
-
-### 3. Files Created
-1. **init.sh** - Environment setup script with:
-   - Node.js/npm version checking
-   - Dependency installation for backend and frontend
-   - Database initialization support
-   - Development server startup
-   - Helpful instructions and commands
-
-2. **README.md** - Comprehensive documentation including:
-   - Project overview and features
-   - Technology stack details
-   - Quick start guide
-   - Project structure explanation
-   - User roles and permissions
-   - API endpoints documentation
-   - Environment variables reference
-
-3. **Backend Configuration**:
-   - package.json with all required dependencies
-   - tsconfig.json for TypeScript
-   - .env.example with all environment variables
-   - types/index.ts with all data model types
-
-4. **Frontend Configuration**:
-   - package.json with React, Tailwind, Shadcn, etc.
-   - tsconfig.json and tsconfig.node.json
-   - vite.config.ts with path aliases and proxy
-   - tailwind.config.js with green primary color scheme
-   - postcss.config.js
-   - index.html entry point
-   - types/index.ts with all frontend types
-
-5. **.gitignore** - Configured for Node.js, TypeScript, uploads, etc.
-
-### 4. Git Repository
-- Initialized Git repository
-- Created initial commit with all files
-- Commit message documents all work done
+**Date**: January 8, 2026
+**Agent Type**: Coding Agent
+**Status**: IN PROGRESS
 
 ---
 
-## What Next Agent Should Do
+## Current Progress
 
-### Immediate Priority
-1. Run `./init.sh` to install dependencies
-2. Get next feature using `feature_get_next` tool
-3. Start implementing features in priority order
+**Features Passing**: 12/173 (6.9%)
 
-### Recommended Implementation Order
-Based on feature priorities (lower number = higher priority):
+### Features Completed This Session
 
-1. **Authentication System** (Features 1-12)
-   - Login/logout functionality
-   - JWT token management
-   - Session handling
-   - Route protection
+6. **Feature 6: Unauthenticated user cannot access dashboard** ✅
+   - Protected routes redirect to login
+   - No dashboard content visible without auth
 
-2. **Core Data Models & API** (Features 13-50)
-   - Database schema creation
-   - Express routes setup
-   - CRUD operations for all entities
+7. **Feature 7: Agent cannot access admin routes** ✅
+   - AdminRoute wrapper component for /users, /criteria, /reports
+   - Agents redirected to dashboard when accessing admin routes
 
-3. **Frontend Pages** (Features 51-100)
-   - Layout components (sidebar, header)
-   - Login page
-   - Dashboard
-   - Calls list and detail
-   - Settings
+8. **Feature 8: API returns 401 for unauthenticated requests** ✅
+   - /api/calls and /api/users require authentication
+   - Returns "Access token required" with 401 status
 
-4. **Advanced Features** (Features 100+)
-   - Reports and charts
-   - Criteria management
-   - User management
-   - Alerts system
+9. **Feature 9: API returns 403 for unauthorized role access** ✅
+   - requireRole middleware for admin-only endpoints
+   - Agent cannot POST to /api/users/invite
+   - Agent cannot DELETE /api/criteria/:id
 
-### Key Files to Create Next
-1. `backend/src/index.ts` - Express server entry point
-2. `backend/src/db/init.ts` - Database initialization
-3. `backend/src/db/schema.sql` - SQLite schema
-4. `backend/src/middleware/auth.ts` - JWT authentication
-5. `frontend/src/main.tsx` - React entry point
-6. `frontend/src/App.tsx` - Main app component
+10. **Feature 10: Agent sees only navigation items for their role** ✅
+    - Agent sees: Dashboard, Calls, Settings
+    - Agent doesn't see: Users, Criteria, Reports
 
----
+11. **Feature 11: Admin sees all navigation items** ✅
+    - Admin sees all 6 navigation items
+    - Full access to all routes
 
-## Notes for Future Sessions
+12. **Feature 12: Data isolation between agents** ⏭️ SKIPPED
+    - Requires calls data to test
+    - Moved to end of queue, will test later
 
-### Database Schema
-All tables are defined in app_spec.txt:
-- companies, users, criteria, calls
-- call_criteria_results, call_feedback
-- alerts, invitations
-
-### API Endpoints
-All endpoints defined in app_spec.txt under <api_endpoints_summary>
-
-### Multi-Tenant Architecture
-- All data must be filtered by company_id
-- Agents can only see their own calls
-- Admin/Managers see all company data
-
-### Default Evaluation Criteria
-Seed these for new companies:
-1. Saudacao/Abertura (Peso 1)
-2. Identificacao da necessidade (Peso 2)
-3. Escuta ativa (Peso 1)
-4. Apresentacao de solucao (Peso 3)
-5. Tratamento de objecoes (Peso 2)
-6. Clareza na comunicacao (Peso 1)
-7. Tom profissional (Peso 1)
-8. Proximo passo definido (Peso 3)
-9. Fecho da chamada (Peso 1)
-10. Ausencia de palavras de risco (Peso 2)
-
-### Risk Words (System-level)
-- cancelar, cancelamento
-- reclamacao, reclamar
-- advogado, processo, tribunal
-- insatisfeito, insatisfacao
-- devolver, devolucao
-- reembolso
-- nunca mais, pessimo
+13. **Feature 13: Dashboard displays overview metrics** ✅
+    - API endpoint for dashboard stats
+    - Real-time data fetching
+    - Date range selector (7d, 30d, 90d, all)
+    - Metrics update when range changes
 
 ---
 
-## Feature Tracking
+## New Implementation This Session
 
-To check progress:
-```
-Use feature_get_stats tool
-```
+### Backend Routes Created
+- `src/routes/users.ts` - User management (list, invite, delete)
+- `src/routes/calls.ts` - Call listing with filters and pagination
+- `src/routes/criteria.ts` - Criteria CRUD (admin only)
+- `src/routes/dashboard.ts` - Dashboard stats and recent data
 
-To get next feature to implement:
-```
-Use feature_get_next tool
-```
+### Frontend Updates
+- `src/App.tsx` - Added AdminRoute for role-based protection
+- `src/pages/Dashboard.tsx` - Real API integration with date filtering
+- `src/services/api.ts` - Added dashboardApi, callsApi, usersApi, criteriaApi
+- `src/i18n/index.ts` - Added "all" translation
 
-To mark feature as complete:
-```
-Use feature_mark_passing tool with feature_id
-```
+### API Endpoints Added
+- GET /api/dashboard/overview - Dashboard statistics
+- GET /api/dashboard/recent-calls - Recent calls list
+- GET /api/dashboard/alerts - Recent alerts
+- GET /api/dashboard/score-evolution - Score over time
+- GET /api/calls - Paginated call list
+- GET /api/calls/:id - Single call with details
+- GET /api/users - User list (admin only)
+- POST /api/users/invite - Create invitation (admin only)
+- DELETE /api/users/:id - Remove user (admin only)
+- GET /api/criteria - Criteria list
+- POST /api/criteria - Create criterion (admin only)
+- PUT /api/criteria/:id - Update criterion (admin only)
+- DELETE /api/criteria/:id - Delete criterion (admin only)
 
 ---
 
-## Environment Ready
-- Git repository initialized with clean commit
-- All configuration files in place
-- Dependencies defined (need `npm install`)
-- Ready for implementation phase
+## Previous Sessions Summary
 
-**Session 1 Complete - Ready for Coding Agent**
+### Session 2 (Features 1-5)
+- Login with valid/invalid credentials
+- Logout functionality
+- Password recovery and reset flow
+- Base authentication system
+
+### Session 1 (Initializer)
+- Created 173 features in features.db
+- Set up project structure
+- Created package.json files
+- TypeScript configurations
+
+---
+
+## Technical Notes
+
+### Demo Users
+- Admin: username=admin, password=admin123
+- Agent: username=agent, password=agent123
+
+### Servers
+- Backend: http://localhost:3001
+- Frontend: http://localhost:5173
+
+---
+
+## What Next Session Should Do
+
+### Continue with Dashboard Features
+- Feature 14+: Dashboard with real call data
+- Charts and visualizations
+- Recent calls with clickable details
+
+### User Management Features
+- List users
+- Invite new users
+- Remove users
+
+### Criteria Management
+- List evaluation criteria
+- Add/edit/delete criteria
+
+### Calls List
+- Display calls with filters
+- Call detail page with transcription
+- Audio playback
+
+---
+
+**Session 3 - Security & Dashboard Complete**
+**Next: Continue with Features 14+**

@@ -8,6 +8,10 @@ dotenv.config();
 
 // Import routes
 import authRoutes from './routes/auth';
+import usersRoutes from './routes/users';
+import callsRoutes from './routes/calls';
+import criteriaRoutes from './routes/criteria';
+import dashboardRoutes from './routes/dashboard';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -35,6 +39,10 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/calls', callsRoutes);
+app.use('/api/criteria', criteriaRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
