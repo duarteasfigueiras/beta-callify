@@ -1,0 +1,222 @@
+// User Roles
+export type UserRole = 'admin_manager' | 'agent';
+
+// Language preferences
+export type Language = 'pt' | 'en';
+
+// Theme preferences
+export type Theme = 'light' | 'dark';
+
+// Call direction
+export type CallDirection = 'inbound' | 'outbound';
+
+// Alert types
+export type AlertType = 'low_score' | 'risk_words' | 'long_duration' | 'no_next_step';
+
+// User model (without password)
+export interface User {
+  id: number;
+  company_id: number;
+  username: string;
+  role: UserRole;
+  language_preference: Language;
+  theme_preference: Theme;
+  created_at: string;
+  updated_at: string;
+}
+
+// Criterion model
+export interface Criterion {
+  id: number;
+  company_id: number;
+  name: string;
+  description: string;
+  weight: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Call model
+export interface Call {
+  id: number;
+  company_id: number;
+  agent_id: number;
+  agent_username?: string;
+  phone_number: string;
+  direction: CallDirection;
+  duration_seconds: number;
+  audio_file_path: string;
+  transcription: string | null;
+  transcription_timestamps: TranscriptionTimestamp[] | null;
+  summary: string | null;
+  next_step_recommendation: string | null;
+  final_score: number | null;
+  score_justification: string | null;
+  what_went_well: TimestampedItem[] | null;
+  what_went_wrong: TimestampedItem[] | null;
+  risk_words_detected: string[] | null;
+  call_date: string;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface TranscriptionTimestamp {
+  start: number;
+  end: number;
+  text: string;
+  speaker?: string;
+}
+
+export interface TimestampedItem {
+  timestamp: number;
+  text: string;
+}
+
+// Call criterion result
+export interface CallCriterionResult {
+  id: number;
+  call_id: number;
+  criterion_id: number;
+  criterion_name?: string;
+  passed: boolean;
+  justification: string;
+  timestamp_reference: string | null;
+}
+
+// Call feedback
+export interface CallFeedback {
+  id: number;
+  call_id: number;
+  author_id: number;
+  author_username?: string;
+  content: string;
+  created_at: string;
+}
+
+// Alert model
+export interface Alert {
+  id: number;
+  company_id: number;
+  call_id: number;
+  agent_id: number;
+  type: AlertType;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// Invitation model
+export interface Invitation {
+  id: number;
+  company_id: number;
+  invited_by: number;
+  token: string;
+  role: UserRole;
+  used: boolean;
+  expires_at: string;
+  created_at: string;
+}
+
+// Auth types
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+// API Response types
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: Record<string, string>;
+}
+
+// Filter types
+export interface CallFilters {
+  agent_id?: number;
+  date_from?: string;
+  date_to?: string;
+  score_min?: number;
+  score_max?: number;
+  duration_min?: number;
+  duration_max?: number;
+  sort_by?: 'date' | 'score' | 'duration';
+  sort_order?: 'asc' | 'desc';
+}
+
+// Report types
+export interface DashboardOverview {
+  total_calls: number;
+  average_score: number;
+  alerts_count: number;
+  calls_with_next_step_percentage: number;
+}
+
+export interface ScoreByAgent {
+  agent_id: number;
+  agent_username: string;
+  average_score: number;
+  total_calls: number;
+}
+
+export interface ScoreEvolution {
+  date: string;
+  average_score: number;
+  total_calls: number;
+}
+
+export interface CallsByPeriod {
+  period: string;
+  count: number;
+}
+
+export interface TopReason {
+  reason: string;
+  count: number;
+}
+
+export interface TopObjection {
+  objection: string;
+  count: number;
+}
+
+// Form types
+export interface CriterionFormData {
+  name: string;
+  description: string;
+  weight: number;
+}
+
+export interface UserFormData {
+  username: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface InvitationFormData {
+  role: UserRole;
+}
+
+export interface FeedbackFormData {
+  content: string;
+}
+
+export interface SettingsFormData {
+  language_preference: Language;
+  theme_preference: Theme;
+}

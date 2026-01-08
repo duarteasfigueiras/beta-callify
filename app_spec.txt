@@ -1,0 +1,650 @@
+<project_specification>
+  <project_name>Callify</project_name>
+
+  <overview>
+    Callify é uma plataforma de qualificação inteligente de chamadas para empresas. O sistema grava chamadas telefónicas, transcreve automaticamente, analisa com IA usando critérios personalizáveis, e gera scores, insights e próximos passos acionáveis. Permite que equipas de vendas, atendimento ao cliente e gestores melhorem a performance com base em dados reais, sem precisar ouvir horas de áudio manualmente.
+  </overview>
+
+  <technology_stack>
+    <frontend>
+      <framework>React with TypeScript</framework>
+      <styling>Tailwind CSS</styling>
+      <state_management>React Context + hooks</state_management>
+      <routing>React Router</routing>
+      <ui_components>Shadcn/ui components</ui_components>
+    </frontend>
+    <backend>
+      <runtime>Node.js with Express</runtime>
+      <language>TypeScript</language>
+      <database>SQLite (via better-sqlite3)</database>
+      <authentication>JWT tokens with username/password</authentication>
+      <file_storage>Local filesystem for audio files</file_storage>
+    </backend>
+    <communication>
+      <api>REST API</api>
+      <format>JSON</format>
+    </communication>
+    <external_services>
+      <transcription>Whisper API (OpenAI) or local Whisper</transcription>
+      <ai_analysis>OpenAI GPT-4 for call analysis and scoring</ai_analysis>
+      <telephony>Manual setup with Twilio/Telnyx (webhooks)</telephony>
+    </external_services>
+  </technology_stack>
+
+  <prerequisites>
+    <environment_setup>
+      - Node.js 18+ installed
+      - npm or yarn package manager
+      - OpenAI API key for transcription and analysis
+      - Twilio/Telnyx account configured separately (manual setup)
+    </environment_setup>
+  </prerequisites>
+
+  <feature_count>167</feature_count>
+
+  <multi_tenant_architecture>
+    <description>Each company has completely isolated data</description>
+    <isolation>
+      - Separate users per company
+      - Separate evaluation criteria per company
+      - Separate calls and recordings per company
+      - Separate configurations per company
+    </isolation>
+    <onboarding>Manual/invite-based (no public self-signup)</onboarding>
+  </multi_tenant_architecture>
+
+  <security_and_access_control>
+    <user_roles>
+      <role name="admin_manager">
+        <description>Full control over company account (Admin and Manager are the same role)</description>
+        <permissions>
+          - View all calls from all agents
+          - Listen to all audio recordings
+          - View all transcriptions and AI analysis
+          - Add feedback/notes to any call
+          - View team-wide metrics and reports
+          - Manage evaluation criteria (create, edit, delete)
+          - Manage users (invite, remove, change role)
+          - Configure retention policies
+          - Delete calls manually
+          - Access all dashboard features
+          - View all alerts (score baixo, palavras risco, etc.)
+        </permissions>
+        <protected_routes>
+          - /settings/* (full access)
+          - /users/* (full access)
+          - /criteria/* (full access)
+          - /reports/* (full access)
+          - /calls/* (full access to all)
+        </protected_routes>
+      </role>
+      <role name="agent">
+        <description>Limited access to own calls only</description>
+        <permissions>
+          - View only their own calls
+          - Listen to their own audio recordings
+          - View their own transcriptions and AI analysis
+          - See what they did well and what they did wrong (with timestamps)
+          - View feedback from Manager (read-only, cannot respond)
+          - View their own alerts
+          - View their own performance metrics
+          - Cannot manage users or criteria
+          - Cannot delete calls
+        </permissions>
+        <protected_routes>
+          - /calls/* (only own calls)
+          - /dashboard (own metrics only)
+        </protected_routes>
+      </role>
+    </user_roles>
+    <authentication>
+      <method>Username and password (no email association)</method>
+      <password_recovery>Yes, password recovery flow available</password_recovery>
+      <session_management>JWT tokens</session_management>
+    </authentication>
+    <compliance>
+      <retention_policy>Maximum 60 days for recordings</retention_policy>
+      <manual_deletion>Admin can delete calls manually at any time</manual_deletion>
+      <recording_consent>Configured at telephony provider level</recording_consent>
+    </compliance>
+  </security_and_access_control>
+
+  <core_features>
+    <authentication_users>
+      - Login with username and password
+      - Password recovery flow
+      - Logout functionality
+      - Session management with JWT
+      - Invite new users (Admin only)
+      - Remove users (Admin only)
+      - Change user role (Admin only)
+      - View user list (Admin only)
+    </authentication_users>
+
+    <dashboard_principal>
+      - Overview summary (today/week): total calls, average score, alerts count
+      - Trend charts: score evolution over time
+      - Recent calls requiring attention
+      - Quick access to alerts
+      - Top motivos de contacto
+      - Top objeções
+      - Percentage of calls with defined next step
+      - Agent can see only their own metrics
+    </dashboard_principal>
+
+    <calls_list>
+      - List all calls (Admin sees all, Agent sees own)
+      - Filter by date range
+      - Filter by agent
+      - Filter by score (above/below threshold)
+      - Filter by duration
+      - Filter by tags/themes
+      - Sort by date, score, duration
+      - Pagination
+      - Click to open call detail
+    </calls_list>
+
+    <call_detail>
+      - Audio player with playback controls
+      - Full transcription with timestamps
+      - AI-generated summary: motivo, contexto, perguntas-chave, objeções, decisões, valores, datas
+      - Next step recommendation (enviar orçamento, marcar visita, etc.)
+      - Evaluation checklist: each criterion with pass/fail and justification
+      - Final score (0-10) with overall justification
+      - What went well (with timestamps)
+      - What went wrong (with timestamps)
+      - Manager feedback section (Admin can add, Agent can only view)
+      - Call metadata: date, time, duration, agent, phone number
+    </call_detail>
+
+    <alerts_system>
+      - Alert for calls with low score (below threshold)
+      - Alert for calls with risk words detected
+      - Alert for calls that are too long
+      - Alert for calls without defined next step
+      - Alerts visible in dashboard section
+      - Admin sees all alerts
+      - Agent sees only their own alerts
+    </alerts_system>
+
+    <reports_page>
+      - Average score by agent
+      - Score evolution over time (line chart)
+      - Total calls by period (bar chart)
+      - Top motivos de contacto (pie/bar chart)
+      - Top objeções (list/chart)
+      - Percentage of calls with next step defined
+      - Filter reports by date range
+      - Filter reports by agent (Admin only)
+    </reports_page>
+
+    <evaluation_criteria>
+      - List all criteria (Admin only)
+      - Create new criterion with name, description, weight
+      - Edit existing criterion
+      - Delete criterion
+      - Default criteria provided:
+        * Saudação/Abertura (Peso 1)
+        * Identificação da necessidade (Peso 2)
+        * Escuta ativa (Peso 1)
+        * Apresentação de solução (Peso 3)
+        * Tratamento de objeções (Peso 2)
+        * Clareza na comunicação (Peso 1)
+        * Tom profissional (Peso 1)
+        * Próximo passo definido (Peso 3)
+        * Fecho da chamada (Peso 1)
+        * Ausência de palavras de risco (Peso 2)
+    </evaluation_criteria>
+
+    <risk_words>
+      - Pre-defined list of risk words (system-level):
+        * cancelar, cancelamento
+        * reclamação, reclamar
+        * advogado, processo, tribunal
+        * insatisfeito, insatisfação
+        * devolver, devolução
+        * reembolso
+        * nunca mais, péssimo
+      - AI detects these during analysis
+      - Triggers alert when detected
+    </risk_words>
+
+    <settings_configuration>
+      - User management (invite, remove, change role) - Admin only
+      - Retention policy display (60 days max)
+      - Manual call deletion - Admin only
+      - Language preference (Portuguese/English)
+      - Theme preference (dark/light mode)
+    </settings_configuration>
+
+    <internationalization>
+      - Full interface in Portuguese
+      - Full interface in English
+      - Language switcher in settings/header
+      - Transcription and analysis in call's language
+    </internationalization>
+
+    <ui_theme>
+      - Light mode
+      - Dark mode
+      - Theme toggle in header or settings
+      - Green as primary/accent color
+      - Clean and modern design
+      - Fully responsive (desktop, tablet, mobile)
+    </ui_theme>
+  </core_features>
+
+  <call_processing_pipeline>
+    <step number="1">
+      <name>Call Reception</name>
+      <description>Webhook receives call event from Twilio/Telnyx</description>
+    </step>
+    <step number="2">
+      <name>Audio Storage</name>
+      <description>Download and store audio file locally</description>
+    </step>
+    <step number="3">
+      <name>Transcription</name>
+      <description>Send audio to Whisper API, receive timestamped transcription</description>
+    </step>
+    <step number="4">
+      <name>AI Analysis</name>
+      <description>Send transcription + company criteria to GPT-4 for analysis</description>
+    </step>
+    <step number="5">
+      <name>Score Calculation</name>
+      <description>Calculate weighted score based on criteria evaluation</description>
+    </step>
+    <step number="6">
+      <name>Storage</name>
+      <description>Store all results in database, associate with agent</description>
+    </step>
+    <step number="7">
+      <name>Alert Generation</name>
+      <description>Check for alert conditions and create alerts if needed</description>
+    </step>
+  </call_processing_pipeline>
+
+  <database_schema>
+    <tables>
+      <companies>
+        - id (PRIMARY KEY)
+        - name
+        - created_at
+        - updated_at
+      </companies>
+
+      <users>
+        - id (PRIMARY KEY)
+        - company_id (FOREIGN KEY)
+        - username (unique within company)
+        - password_hash
+        - role (admin_manager | agent)
+        - language_preference (pt | en)
+        - theme_preference (light | dark)
+        - created_at
+        - updated_at
+      </users>
+
+      <criteria>
+        - id (PRIMARY KEY)
+        - company_id (FOREIGN KEY)
+        - name
+        - description
+        - weight (integer 1-5)
+        - is_active
+        - created_at
+        - updated_at
+      </criteria>
+
+      <calls>
+        - id (PRIMARY KEY)
+        - company_id (FOREIGN KEY)
+        - agent_id (FOREIGN KEY to users)
+        - phone_number
+        - direction (inbound | outbound)
+        - duration_seconds
+        - audio_file_path
+        - transcription (TEXT)
+        - transcription_timestamps (JSON)
+        - summary (TEXT - AI generated)
+        - next_step_recommendation (TEXT)
+        - final_score (DECIMAL 0-10)
+        - score_justification (TEXT)
+        - what_went_well (JSON with timestamps)
+        - what_went_wrong (JSON with timestamps)
+        - risk_words_detected (JSON array)
+        - call_date
+        - created_at
+        - expires_at (for retention policy)
+      </calls>
+
+      <call_criteria_results>
+        - id (PRIMARY KEY)
+        - call_id (FOREIGN KEY)
+        - criterion_id (FOREIGN KEY)
+        - passed (boolean)
+        - justification (TEXT)
+        - timestamp_reference (TEXT - when in call this was evaluated)
+      </call_criteria_results>
+
+      <call_feedback>
+        - id (PRIMARY KEY)
+        - call_id (FOREIGN KEY)
+        - author_id (FOREIGN KEY to users - the manager)
+        - content (TEXT)
+        - created_at
+      </call_feedback>
+
+      <alerts>
+        - id (PRIMARY KEY)
+        - company_id (FOREIGN KEY)
+        - call_id (FOREIGN KEY)
+        - agent_id (FOREIGN KEY)
+        - type (low_score | risk_words | long_duration | no_next_step)
+        - message (TEXT)
+        - is_read (boolean)
+        - created_at
+      </alerts>
+
+      <invitations>
+        - id (PRIMARY KEY)
+        - company_id (FOREIGN KEY)
+        - invited_by (FOREIGN KEY to users)
+        - token (unique)
+        - role (admin_manager | agent)
+        - used (boolean)
+        - expires_at
+        - created_at
+      </invitations>
+    </tables>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <auth>
+      - POST /api/auth/login
+      - POST /api/auth/logout
+      - POST /api/auth/recover-password
+      - POST /api/auth/reset-password
+      - GET /api/auth/me
+    </auth>
+
+    <users>
+      - GET /api/users (Admin: list company users)
+      - POST /api/users/invite (Admin: create invitation)
+      - POST /api/users/register (use invitation token)
+      - PUT /api/users/:id (update user)
+      - DELETE /api/users/:id (Admin: remove user)
+      - PUT /api/users/:id/role (Admin: change role)
+    </users>
+
+    <calls>
+      - GET /api/calls (list with filters, pagination)
+      - GET /api/calls/:id (call detail)
+      - DELETE /api/calls/:id (Admin: manual delete)
+      - GET /api/calls/:id/audio (stream audio file)
+    </calls>
+
+    <feedback>
+      - POST /api/calls/:id/feedback (Admin: add feedback)
+      - GET /api/calls/:id/feedback (list feedback for call)
+    </feedback>
+
+    <criteria>
+      - GET /api/criteria (list company criteria)
+      - POST /api/criteria (Admin: create)
+      - PUT /api/criteria/:id (Admin: update)
+      - DELETE /api/criteria/:id (Admin: delete)
+    </criteria>
+
+    <alerts>
+      - GET /api/alerts (list alerts for user)
+      - PUT /api/alerts/:id/read (mark as read)
+    </alerts>
+
+    <reports>
+      - GET /api/reports/overview (dashboard summary)
+      - GET /api/reports/score-by-agent
+      - GET /api/reports/score-evolution
+      - GET /api/reports/calls-by-period
+      - GET /api/reports/top-reasons
+      - GET /api/reports/top-objections
+      - GET /api/reports/next-step-percentage
+    </reports>
+
+    <settings>
+      - GET /api/settings (user preferences)
+      - PUT /api/settings (update preferences)
+    </settings>
+
+    <webhooks>
+      - POST /api/webhooks/twilio (receive call events)
+      - POST /api/webhooks/telnyx (receive call events)
+    </webhooks>
+  </api_endpoints_summary>
+
+  <ui_layout>
+    <main_structure>
+      - Sidebar navigation (collapsible on mobile)
+      - Header with logo, language toggle, theme toggle, user menu
+      - Main content area
+    </main_structure>
+
+    <navigation_items_admin>
+      - Dashboard (home icon)
+      - Chamadas / Calls (phone icon)
+      - Relatórios / Reports (chart icon)
+      - Critérios / Criteria (checklist icon)
+      - Utilizadores / Users (people icon)
+      - Definições / Settings (gear icon)
+    </navigation_items_admin>
+
+    <navigation_items_agent>
+      - Dashboard (home icon)
+      - As Minhas Chamadas / My Calls (phone icon)
+      - Definições / Settings (gear icon)
+    </navigation_items_agent>
+
+    <key_pages>
+      - Login page
+      - Dashboard (with metrics cards, charts, alerts section, recent calls)
+      - Calls list (table with filters, pagination)
+      - Call detail (tabs or sections for audio, transcription, analysis, feedback)
+      - Reports page (multiple charts and metrics)
+      - Criteria management (table with CRUD)
+      - Users management (table with invite, remove, role change)
+      - Settings (preferences form)
+    </key_pages>
+  </ui_layout>
+
+  <design_system>
+    <color_palette>
+      <primary>Green (base color for brand, buttons, accents)</primary>
+      <primary_shades>50-900 green scale</primary_shades>
+      <neutral>Gray scale for text, backgrounds, borders</neutral>
+      <semantic>
+        - Success: Green
+        - Error: Red
+        - Warning: Amber/Yellow
+        - Info: Blue
+      </semantic>
+    </color_palette>
+
+    <themes>
+      <light>
+        - Background: white/gray-50
+        - Text: gray-900
+        - Cards: white with subtle shadow
+      </light>
+      <dark>
+        - Background: gray-900/gray-950
+        - Text: gray-100
+        - Cards: gray-800 with subtle border
+      </dark>
+    </themes>
+
+    <typography>
+      <font_family>Inter or system fonts</font_family>
+      <style>Clean, modern, readable</style>
+    </typography>
+
+    <components>
+      - Consistent button styles (primary green, secondary gray)
+      - Card-based layouts for metrics
+      - Data tables with sorting and filtering
+      - Form inputs with clear labels and validation states
+      - Modal dialogs for confirmations
+      - Toast notifications for feedback
+      - Loading spinners and skeletons
+    </components>
+  </design_system>
+
+  <implementation_steps>
+    <step number="1">
+      <title>Project Setup & Authentication</title>
+      <tasks>
+        - Initialize React + TypeScript frontend
+        - Initialize Node.js + Express + TypeScript backend
+        - Setup SQLite database with schema
+        - Implement authentication (login, logout, JWT)
+        - Create basic layout (sidebar, header)
+        - Implement theme toggle (dark/light)
+        - Implement language toggle (PT/EN)
+      </tasks>
+    </step>
+
+    <step number="2">
+      <title>User Management</title>
+      <tasks>
+        - User invitation flow
+        - User registration with invite token
+        - User listing (Admin)
+        - Role management
+        - User deletion
+        - Password recovery
+      </tasks>
+    </step>
+
+    <step number="3">
+      <title>Criteria Management</title>
+      <tasks>
+        - CRUD for evaluation criteria
+        - Default criteria seeding
+        - Weight configuration
+        - Criteria listing
+      </tasks>
+    </step>
+
+    <step number="4">
+      <title>Call Processing Pipeline</title>
+      <tasks>
+        - Webhook endpoints for Twilio/Telnyx
+        - Audio file download and storage
+        - Whisper integration for transcription
+        - GPT-4 integration for analysis
+        - Score calculation logic
+        - Call record creation
+      </tasks>
+    </step>
+
+    <step number="5">
+      <title>Calls Interface</title>
+      <tasks>
+        - Calls list with filters and pagination
+        - Call detail page
+        - Audio player component
+        - Transcription display with timestamps
+        - Analysis display (summary, criteria, score)
+        - What went well/wrong with timestamps
+      </tasks>
+    </step>
+
+    <step number="6">
+      <title>Feedback System</title>
+      <tasks>
+        - Add feedback form (Admin)
+        - Display feedback (Agent view)
+        - Feedback notifications
+      </tasks>
+    </step>
+
+    <step number="7">
+      <title>Alerts System</title>
+      <tasks>
+        - Alert generation logic
+        - Alerts display in dashboard
+        - Mark alerts as read
+        - Alert filtering by type
+      </tasks>
+    </step>
+
+    <step number="8">
+      <title>Dashboard & Reports</title>
+      <tasks>
+        - Dashboard overview metrics
+        - Charts (score evolution, calls by period)
+        - Reports page with detailed analytics
+        - Top reasons and objections
+        - Performance by agent
+      </tasks>
+    </step>
+
+    <step number="9">
+      <title>Settings & Compliance</title>
+      <tasks>
+        - User preferences (language, theme)
+        - Retention policy enforcement (60 days)
+        - Manual call deletion
+        - Data cleanup job
+      </tasks>
+    </step>
+
+    <step number="10">
+      <title>Responsive Design & Polish</title>
+      <tasks>
+        - Mobile-responsive layouts
+        - Tablet optimization
+        - Loading states and skeletons
+        - Error handling and messages
+        - Final UI polish
+      </tasks>
+    </step>
+  </implementation_steps>
+
+  <success_criteria>
+    <functionality>
+      - All calls are processed automatically (receive, transcribe, analyze, score)
+      - Managers can view all calls and add feedback
+      - Agents can view only their own calls with performance insights
+      - Reports show accurate, real-time metrics
+      - Alerts are generated correctly for all trigger conditions
+      - User management works correctly (invite, remove, role change)
+      - Criteria are fully customizable with weights
+    </functionality>
+
+    <user_experience>
+      - Clean, modern, professional interface
+      - Intuitive navigation for both Admin and Agent
+      - Fast page loads and responsive interactions
+      - Clear feedback for all actions (success, error, loading)
+      - Works well on desktop, tablet, and mobile
+      - Dark and light mode both look polished
+    </user_experience>
+
+    <technical_quality>
+      - All data is real (no mock data)
+      - Data persists correctly across sessions
+      - Proper error handling throughout
+      - Secure authentication and authorization
+      - Clean, maintainable code structure
+      - API responses are consistent and well-documented
+    </technical_quality>
+
+    <compliance>
+      - Data isolation between companies (multi-tenant)
+      - Retention policy enforced (60 days max)
+      - Role-based access control working correctly
+      - No data leaks between users or companies
+    </compliance>
+  </success_criteria>
+</project_specification>
