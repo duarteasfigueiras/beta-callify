@@ -17,6 +17,9 @@ import alertsRoutes from './routes/alerts';
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
 
+// Import retention service
+import { startRetentionScheduler, getRetentionPolicy } from './services/retention';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -51,6 +54,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Retention policy endpoint
+app.get('/api/retention-policy', (req, res) => {
+  res.json(getRetentionPolicy());
+});
+
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server error:', err);
@@ -66,6 +74,9 @@ async function startServer() {
     await initDatabase();
     await seedDatabase();
 
+    // Start retention policy scheduler
+    startRetentionScheduler();
+
     // Start server
     app.listen(PORT, () => {
       console.log(`\n========================================`);
@@ -73,6 +84,7 @@ async function startServer() {
       console.log(`========================================`);
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`API available at http://localhost:${PORT}/api`);
+      console.log(`Retention policy: 60 days (auto-cleanup enabled)`);
       console.log(`========================================\n`);
       console.log(`Demo credentials:`);
       console.log(`  Admin: username=admin, password=admin123`);
