@@ -13,6 +13,7 @@ import callsRoutes from './routes/calls';
 import criteriaRoutes from './routes/criteria';
 import dashboardRoutes from './routes/dashboard';
 import alertsRoutes from './routes/alerts';
+import webhooksRoutes from './routes/webhooks';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -48,6 +49,7 @@ app.use('/api/calls', callsRoutes);
 app.use('/api/criteria', criteriaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertsRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
