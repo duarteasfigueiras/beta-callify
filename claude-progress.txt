@@ -1,6 +1,6 @@
 # Callify Project - Development Progress
 
-## Session 8 - Coding Agent (Continuation)
+## Session 9 - Coding Agent (Continuation)
 
 **Date**: January 9, 2026
 **Agent Type**: Coding Agent
@@ -10,40 +10,36 @@
 
 ## Final Progress
 
-**Features Passing**: 170/173 (98.3%)
+**Features Passing**: 172/173 (99.4%)
 
 ### Features Implemented This Session
 
-#### Feature 65: After login redirect to intended page
-- Modified Login.tsx to use location state from ProtectedRoute
-- Updated AdminRoute to also pass location state for redirect
-- After login, user is redirected to the page they originally tried to access
+#### Feature 147: Today/This Week filters work correctly
+- Added "Today" and "This Week" quick filter buttons to the Calls page
+- Buttons automatically set the date range filter when clicked
+- Active filter is highlighted in green
+- Added translations for both Portuguese (Hoje, Esta Semana) and English (Today, This Week)
+- Week starts on Monday (European standard)
+- URL is updated to reflect the filter selection
 
-#### Feature 97: Unsaved changes warning on Criteria page
-- Added dirty state tracking when form is modified
-- Shows warning dialog when clicking Cancel with unsaved changes
-- User can choose to stay on page or leave without saving
-- Also added beforeunload handler for browser navigation
-
-#### Feature 103: Filter params reflected in UI (URL sync)
-- Initialize filter state from URL search params on page load
-- Update URL when filters change via UI
-- Auto-open filters panel when URL has active filters
-- Support for: page, date_from, date_to, agent, score_min, score_max, sort_by, sort_order
-
-#### Feature 118: Filter persists after viewing detail
-- Changed back button in CallDetail to use navigate(-1) instead of navigate('/calls')
-- This preserves the URL query params (filters) when returning to the calls list
+#### Feature 167: Retention policy 60 days enforced
+- Created retention service (backend/src/services/retention.ts)
+- Automatic cleanup runs on server startup and daily (24-hour intervals)
+- Deletes calls older than 60 days
+- Removes audio files from filesystem before deleting records
+- Cascade deletes related data (criteria results, feedback, alerts)
+- Added /api/retention-policy endpoint for policy information
+- Server logs cleanup activity
 
 ---
 
-## Features Skipped (Not Implemented - 3 remaining)
+## Features Skipped (External Dependencies - 1 remaining)
 
-1. **Feature 78: Complete call processing workflow** - Requires Twilio webhooks and OpenAI API integration (external services not configured)
-
-2. **Feature 147: Today/This Week filters** - App uses 7d/30d/90d/All period filters instead of Today/This Week on Calls page
-
-3. **Feature 167: Retention policy 60 days enforced** - Requires implementing a background cleanup job for deleting old calls/recordings
+1. **Feature 78: Complete call processing workflow** - Requires external services:
+   - Twilio/Telnyx webhooks for telephony
+   - OpenAI Whisper API for transcription
+   - OpenAI GPT-4 for AI analysis
+   - These services require API keys and account setup that are not configured
 
 ---
 
@@ -61,24 +57,30 @@
 
 ### Database
 - SQLite database at backend/data/callify.db
-- 9 sample calls
+- 9 sample calls (after retention cleanup)
 - 2 alerts
 - 6+ users
+
+### Retention Policy
+- 60-day retention period enforced
+- Automatic cleanup on server startup
+- Daily scheduled cleanup (every 24 hours)
+- Endpoint: GET /api/retention-policy
 
 ---
 
 ## Key Accomplishments
 
 ### This Session
-- Implemented redirect after login to intended page
-- Added unsaved changes warning on edit forms
-- Implemented URL filter synchronization (filters persist in URL)
-- Fixed filter persistence when navigating back from call detail
+- Implemented Today/This Week quick date filters on Calls page
+- Implemented 60-day retention policy with automatic cleanup
+- Progress increased from 170/173 (98.3%) to 172/173 (99.4%)
 
 ### Overall Project
-- 170/173 features passing (98.3%)
+- 172/173 features passing (99.4%)
 - Complete authentication and user management
 - Full call list with filtering, sorting, pagination
+- Quick date filters (Today, This Week)
 - Call detail with audio, transcription, evaluation, feedback
 - Dashboard with metrics and charts
 - Reports page with analytics
@@ -88,12 +90,14 @@
 - Dark/light theme toggle
 - Portuguese/English language support
 - Responsive design
+- 60-day retention policy enforced
 
 ### Security
 - SQL injection protected (parameterized queries)
 - Authorization prevents cross-user data access
 - Multi-tenant data isolation via company_id
 - Invitation token expiry and single-use
+- Retention policy auto-cleanup
 
 ### UI/UX
 - Consistent green primary color (green-600)
@@ -102,20 +106,25 @@
 - Toast notifications with auto-dismiss
 - Loading spinners and disabled buttons during submission
 - URL filter synchronization for shareable links
+- Quick date filter buttons (Today, This Week)
 
 ---
 
 ## Session Summary
 
-This session implemented 4 features:
-- Feature 65: After login redirect to intended page
-- Feature 97: Unsaved changes warning
-- Feature 103: Filter params reflected in UI
-- Feature 118: Filter persists after viewing detail
+This session implemented 2 features:
+- Feature 147: Today/This Week filters work correctly
+- Feature 167: Retention policy 60 days enforced
 
-Progress increased from 166/173 (96.0%) to 170/173 (98.3%).
+Progress increased from 170/173 (98.3%) to 172/173 (99.4%).
 
-Total features passing: 170
-Total features skipped: 3 (require external services or infrastructure changes)
+Total features passing: 172
+Total features skipped: 1 (requires external services - Twilio, OpenAI)
 
-**Final Status: 170/173 features (98.3%) - NEAR COMPLETE**
+**Final Status: 172/173 features (99.4%) - NEARLY COMPLETE**
+
+The only remaining feature (#78 - Complete call processing workflow) requires:
+- Twilio/Telnyx account and API credentials for webhooks
+- OpenAI API key for Whisper transcription and GPT-4 analysis
+
+These are external dependencies that cannot be implemented without the actual service accounts.
