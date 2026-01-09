@@ -1,5 +1,71 @@
 # Callify Project - Development Progress
 
+## Session 37 - Regression Testing Verification
+
+**Date**: January 9, 2026
+**Agent Type**: Coding Agent
+**Status**: VERIFIED - 100% FEATURES PASSING (173/173)
+
+---
+
+### Regression Testing Completed
+
+Performed regression testing on 3 randomly selected features:
+
+1. **Feature #73 (Alert read status persists)** - ✅ PASSED
+   - Logged in as admin user
+   - Dashboard showed "1" alert count initially
+   - Clicked on "Long Duration" alert - navigated to call detail
+   - Returned to dashboard - alert count changed to "0" (marked as read)
+   - Refreshed page - count still "0" (persisted)
+   - Logged out and logged back in - count still "0" (persisted across sessions)
+   - Alert read status correctly stored in database
+
+2. **Feature #128 (Toast notifications auto-dismiss)** - ✅ PASSED
+   - Navigated to Criteria page
+   - Created criterion "TEST_TOAST_128_REGRESSION" with description
+   - Success toast "Criterion created successfully" appeared
+   - Waited 5 seconds
+   - Toast auto-dismissed (no longer visible in page)
+   - Auto-dismiss functionality working correctly
+
+3. **Feature #41 (Edit existing criterion)** - ✅ PASSED
+   - Clicked edit on test criterion
+   - Changed name to "TEST_EDIT_41_MODIFIED"
+   - Changed weight from 1x to 4x
+   - Saved changes - success toast appeared
+   - Criterion updated immediately in table (moved to top due to higher weight)
+   - Refreshed page - changes persisted
+   - Full edit workflow verified end-to-end
+
+### Test Data Cleanup
+- Deleted test criterion after verification
+- Confirmation dialog appeared and worked correctly
+- Success toast "Criterion deleted successfully" appeared
+
+### Visual Verification
+- Screenshots captured:
+  - `regression_session37_toast_dismissed.png` - Criteria page after toast auto-dismiss
+  - `regression_session37_edit_criterion.png` - Edited criterion with 4x weight
+  - `regression_session37_dashboard_final.png` - Final dashboard state
+- Light mode appearance: Clean, professional with excellent contrast
+- Green branding consistent throughout (Callify logo, navigation highlights, buttons)
+- Score badges color-coded (green for high, amber for medium)
+
+### Server Status
+- Both servers running correctly:
+  - Backend: http://localhost:3001
+  - Frontend: http://localhost:5173
+
+### Console Status
+- Zero JavaScript errors during all testing
+- React Router deprecation warnings only (not bugs)
+
+### All Features Verified
+The application continues to function correctly. All 173 features passing.
+
+---
+
 ## Session 36 - Regression Testing Verification
 
 **Date**: January 9, 2026
