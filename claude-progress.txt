@@ -1,5 +1,64 @@
 # Callify Project - Development Progress
 
+## Session 36 - Regression Testing Verification
+
+**Date**: January 9, 2026
+**Agent Type**: Coding Agent
+**Status**: VERIFIED - 100% FEATURES PASSING (173/173)
+
+---
+
+### Regression Testing Completed
+
+Performed regression testing on 3 randomly selected features:
+
+1. **Feature #59 (Criteria page navigation works)** - ✅ PASSED
+   - Logged in as admin user
+   - Clicked "Criterios" in sidebar
+   - URL correctly navigated to `/criteria`
+   - Criteria page loaded with 11 criteria
+   - Table displays: Nome, Descricao, Peso, Status, Actions columns
+   - All default criteria present with correct weights (1x, 2x, 3x)
+   - Edit and Delete buttons visible for each criterion
+
+2. **Feature #63 (Back button works correctly)** - ✅ PASSED
+   - Navigated: Dashboard → Calls → Call detail (`/calls/15`)
+   - Clicked browser back → Returned to calls list (`/calls`) with 10 calls
+   - Clicked browser back again → Returned to dashboard (`/`)
+   - Navigation history preserved correctly
+   - All pages loaded with correct data after back navigation
+
+3. **Feature #122 (Username uniqueness validation)** - ✅ PASSED
+   - Created new invitation from Users page (6 team members displayed)
+   - Generated invite token: `MToxNzY3OTQzNzk3NTk2`
+   - Logged out and navigated to registration page with token
+   - Attempted to register with existing username "admin"
+   - **Error message displayed: "Username already taken"** ✓
+   - Server correctly returned 400 Bad Request
+   - Duplicate user was not created - security enforced
+
+### Visual Verification
+- Screenshots captured:
+  - `regression_session36_username_uniqueness.png` - Username validation error
+  - `regression_session36_dashboard_final.png` - Dashboard with metrics
+- Light mode appearance: Clean, professional with excellent contrast
+- Green branding consistent throughout (Callify logo, navigation highlights, buttons)
+- Score badges color-coded (green for high, amber for medium)
+
+### Server Status
+- Both servers running correctly:
+  - Backend: http://localhost:3001
+  - Frontend: http://localhost:5173
+
+### Console Status
+- Zero JavaScript errors during all testing
+- React Router deprecation warnings only (not bugs)
+
+### All Features Verified
+The application continues to function correctly. All 173 features passing.
+
+---
+
 ## Session 35 - Regression Testing Verification
 
 **Date**: January 9, 2026
