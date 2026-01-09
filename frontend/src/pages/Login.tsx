@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Phone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,10 +7,21 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+}
+
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+
+  // Get the intended destination from location state (set by ProtectedRoute)
+  const state = location.state as LocationState;
+  const from = state?.from?.pathname || '/';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +35,8 @@ export default function Login() {
 
     try {
       await login({ username, password });
-      navigate('/');
+      // Redirect to the intended page or home
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       console.error('Login error:', err);
       setError(t('auth.invalidCredentials'));

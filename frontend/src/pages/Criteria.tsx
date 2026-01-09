@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit, Trash2, Scale } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Edit, Trash2, Scale, AlertTriangle } from 'lucide-react';
 import { criteriaApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
@@ -16,13 +17,70 @@ interface Criterion {
 
 export default function Criteria() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCriterion, setEditingCriterion] = useState<Criterion | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '', weight: 1 });
+  const [originalFormData, setOriginalFormData] = useState({ name: '', description: '', weight: 1 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Track if form has unsaved changes
+  const isDirty = useCallback(() => {
+    if (!showCreateModal && !showEditModal) return false;
+    return (
+      formData.name !== originalFormData.name ||
+      formData.description !== originalFormData.description ||
+      formData.weight !== originalFormData.weight
+    );
+  }, [formData, originalFormData, showCreateModal, showEditModal]);
+
+  // Handle beforeunload for browser navigation/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Function to handle navigation with unsaved changes check
+  const handleNavigation = useCallback((path: string) => {
+    if (isDirty()) {
+      setPendingNavigation(path);
+      setShowUnsavedWarning(true);
+    } else {
+      navigate(path);
+    }
+  }, [isDirty, navigate]);
+
+  // Confirm leaving without saving
+  const confirmLeave = useCallback(() => {
+    setShowUnsavedWarning(false);
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setEditingCriterion(null);
+    setFormData({ name: '', description: '', weight: 1 });
+    setOriginalFormData({ name: '', description: '', weight: 1 });
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  }, [navigate, pendingNavigation]);
+
+  // Cancel leaving
+  const cancelLeave = useCallback(() => {
+    setShowUnsavedWarning(false);
+    setPendingNavigation(null);
+  }, []);
 
   const fetchCriteria = async () => {
     try {
@@ -101,11 +159,13 @@ export default function Criteria() {
 
   const openEditModal = (criterion: Criterion) => {
     setEditingCriterion(criterion);
-    setFormData({
+    const editForm = {
       name: criterion.name,
       description: criterion.description || '',
       weight: criterion.weight,
-    });
+    };
+    setFormData(editForm);
+    setOriginalFormData(editForm);
     setShowEditModal(true);
   };
 
@@ -138,7 +198,9 @@ export default function Criteria() {
         </div>
         <button
           onClick={() => {
-            setFormData({ name: '', description: '', weight: 1 });
+            const emptyForm = { name: '', description: '', weight: 1 };
+            setFormData(emptyForm);
+            setOriginalFormData(emptyForm);
             setShowCreateModal(true);
           }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -289,7 +351,13 @@ export default function Criteria() {
             </div>
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  if (isDirty()) {
+                    setShowUnsavedWarning(true);
+                  } else {
+                    setShowCreateModal(false);
+                  }
+                }}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 disabled={isSubmitting}
               >
@@ -359,8 +427,12 @@ export default function Criteria() {
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
                 onClick={() => {
-                  setShowEditModal(false);
-                  setEditingCriterion(null);
+                  if (isDirty()) {
+                    setShowUnsavedWarning(true);
+                  } else {
+                    setShowEditModal(false);
+                    setEditingCriterion(null);
+                  }
                 }}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 disabled={isSubmitting}
@@ -374,6 +446,41 @@ export default function Criteria() {
               >
                 {isSubmitting ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsaved Changes Warning Dialog */}
+      {showUnsavedWarning && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {t('common.unsavedChanges', 'Unsaved Changes')}
+                </h2>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                {t('common.unsavedChangesMessage', 'You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost.')}
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelLeave}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  {t('common.stayOnPage', 'Stay on Page')}
+                </button>
+                <button
+                  onClick={confirmLeave}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  {t('common.leaveWithoutSaving', 'Leave Without Saving')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
