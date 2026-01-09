@@ -1,5 +1,72 @@
 # Callify Project - Development Progress
 
+## Session 34 - Regression Testing Verification
+
+**Date**: January 9, 2026
+**Agent Type**: Coding Agent
+**Status**: VERIFIED - 100% FEATURES PASSING (173/173)
+
+---
+
+### Regression Testing Completed
+
+Performed regression testing on 3 randomly selected features:
+
+1. **Feature #134 (Mobile layout correct at 375px)** - ✅ PASSED
+   - Resized viewport to 375x667 (mobile)
+   - Hamburger menu visible in header
+   - Content fits screen width perfectly
+   - Metric cards stack vertically
+   - Navigation accessible via mobile menu
+   - Calls page table adapts to mobile (shows essential columns)
+   - Forms and buttons usable on mobile
+   - Clean, readable mobile design
+
+2. **Feature #163 (Alert for low score calls generated)** - ✅ PASSED
+   - Alert system working correctly
+   - Dashboard shows 3 alert types:
+     - Long Duration: "Chamada com duracao excessiva: 33 minutos"
+     - No Next Step: "Proximo passo nao definido claramente na chamada"
+     - Risk Words: "Palavras de risco detetadas: reembolso, advogado, devolucao"
+   - Low score alert code verified in callProcessor.ts (threshold < 5.0)
+   - Alert generation logic correctly implemented for all types
+
+3. **Feature #108 (Delete call updates statistics)** - ✅ PASSED
+   - Dashboard showed 9 calls (30d filter) / 11 calls (all time)
+   - Navigated to Calls page - showed 11 total calls
+   - Opened call detail for +351950235171 (score 9.4)
+   - Clicked Delete button - confirmation dialog appeared
+   - Confirmed with "Eliminar" button
+   - Success toast: "Call deleted successfully"
+   - Redirected to calls list - now shows 10 total calls
+   - Dashboard updated: 10 Total Calls (with "Todos" filter)
+   - Statistics correctly reflect deletion
+
+### Visual Verification
+- Screenshots captured:
+  - `regression_mobile_layout.png` - Mobile layout at 375px
+  - `regression_mobile_calls.png` - Calls page on mobile
+  - `regression_before_delete.png` - Dashboard before deletion
+  - `regression_after_delete.png` - Dashboard after deletion
+  - `regression_session34_final.png` - Final dashboard state
+- Light mode appearance: Clean, professional with excellent contrast
+- Green branding consistent throughout (Callify logo, navigation highlights, buttons)
+- Mobile layout responsive and functional
+
+### Server Status
+- Both servers running correctly:
+  - Backend: http://localhost:3001
+  - Frontend: http://localhost:5173
+
+### Console Status
+- Zero JavaScript errors during all testing
+- React Router deprecation warnings only (not bugs)
+
+### All Features Verified
+The application continues to function correctly. All 173 features passing.
+
+---
+
 ## Session 33 - Regression Testing Verification
 
 **Date**: January 9, 2026
