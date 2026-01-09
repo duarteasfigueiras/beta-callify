@@ -10,7 +10,7 @@
 
 ## Current Progress
 
-**Features Passing**: 73/173 (42.2%)
+**Features Passing**: 76/173 (43.9%)
 
 ### Features Completed This Session
 
@@ -42,6 +42,23 @@
     - Restored backend server
     - Verified full recovery - all data loaded correctly
 
+83. **Feature 83: Invalid form input shows field errors** ✅
+    - Navigated to create criterion form
+    - Left name field empty and clicked save
+    - Verified "Criterion name is required" error toast displayed
+    - Form not submitted, dialog remained open
+
+84. **Feature 84: API error displays meaningful message** ✅
+    - Attempted to delete non-existent criterion via API
+    - API returned 404 with "Criterion not found" message
+    - Application continued working normally after error
+
+85. **Feature 85: Empty search shows no results message** ✅
+    - Navigated to calls page
+    - Searched for "XYZNONEXISTENT123"
+    - Verified "Nenhuma chamada encontrada" empty state with phone icon
+    - Confirmed clean empty state, not error state
+
 ---
 
 ## Technical Notes
@@ -65,6 +82,12 @@
 
 ## Key Observations This Session
 
+### Error Handling
+- Form validation shows toast error messages
+- API errors return meaningful JSON responses
+- Empty search results show clean empty states
+- Network failures handled gracefully with recovery
+
 ### Criteria Management
 - Full CRUD workflow working correctly
 - Criteria sorted by weight (highest first)
@@ -75,13 +98,6 @@
 - Admin can add feedback to any call
 - Agent can view feedback but cannot respond/edit
 - Feedback displays with author name and timestamp
-- Multiple feedbacks per call supported
-
-### Error Handling
-- App handles network failures gracefully
-- Shows empty states instead of crashing
-- Recovers fully when network restored
-- Console errors logged but UI remains functional
 
 ### Role-Based Access Control
 - Agent view has no delete button on calls
@@ -94,15 +110,10 @@
 ## What Next Session Should Do
 
 ### Immediate Priority
-- Continue with features 83+
-- Test more error handling scenarios
+- Continue with features 86+
 - Test responsive design features
-
-### Features to Consider
-- More UI/UX polish features
-- Validation testing
-- Security testing
-- Performance testing
+- Test accessibility features
+- Test more UI polish features
 
 ### Technical Debt
 - Clean up test screenshots in .playwright-mcp/
@@ -112,17 +123,16 @@
 
 ## Session Summary
 
-This session successfully verified 3 workflow features:
+This session successfully verified 6 features:
 1. Criterion CRUD lifecycle (create, edit, delete)
 2. Feedback workflow (admin creates, agent views)
 3. Network error handling and recovery
+4. Form validation errors
+5. API error messages
+6. Empty search state
 
-The application demonstrates:
-- Robust error handling
-- Proper role-based access control
-- Clean UI with appropriate feedback
-- Data persistence and recovery
+Progress increased from 70 to 76 features (40.5% to 43.9%)
 
 ---
 
-**Session 5 Complete - Progress: 73/173 features (42.2%)**
+**Session 5 Complete - Progress: 76/173 features (43.9%)**
