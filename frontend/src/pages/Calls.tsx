@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Phone, Search, Filter, ChevronLeft, ChevronRight, Calendar, X, User, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { callsApi, usersApi } from '../services/api';
@@ -12,24 +12,60 @@ import { Call, PaginatedResponse, User as UserType } from '../types';
 export default function Calls() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin_manager';
 
   const [calls, setCalls] = useState<Call[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState<UserType[]>([]);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
-  const [scoreMin, setScoreMin] = useState<string>('');
-  const [scoreMax, setScoreMax] = useState<string>('');
-  const [sortBy, setSortBy] = useState<string>('call_date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Initialize state from URL params
+  const [page, setPage] = useState(() => {
+    const p = searchParams.get('page');
+    return p ? parseInt(p, 10) : 1;
+  });
+  const [dateFrom, setDateFrom] = useState(() => searchParams.get('date_from') || '');
+  const [dateTo, setDateTo] = useState(() => searchParams.get('date_to') || '');
+  const [selectedAgentId, setSelectedAgentId] = useState(() => searchParams.get('agent') || '');
+  const [scoreMin, setScoreMin] = useState(() => searchParams.get('score_min') || '');
+  const [scoreMax, setScoreMax] = useState(() => searchParams.get('score_max') || '');
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort_by') || 'call_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() =>
+    (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc'
+  );
+
+  // Update URL when filters change
+  const updateURLParams = useCallback(() => {
+    const params = new URLSearchParams();
+
+    if (page > 1) params.set('page', page.toString());
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (selectedAgentId) params.set('agent', selectedAgentId);
+    if (scoreMin) params.set('score_min', scoreMin);
+    if (scoreMax) params.set('score_max', scoreMax);
+    if (sortBy !== 'call_date') params.set('sort_by', sortBy);
+    if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+
+    setSearchParams(params, { replace: true });
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, setSearchParams]);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    updateURLParams();
+  }, [updateURLParams]);
+
+  // Show filters panel if there are active filters in URL
+  useEffect(() => {
+    if (dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax) {
+      setShowFilters(true);
+    }
+  }, []);
 
   // Fetch agents list for admin filter
   useEffect(() => {
@@ -137,6 +173,7 @@ export default function Calls() {
     setScoreMin('');
     setScoreMax('');
     setPage(1);
+    // URL will be updated automatically via the useEffect
   };
 
   const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax;
