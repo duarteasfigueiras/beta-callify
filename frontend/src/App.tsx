@@ -10,6 +10,12 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Calls from './pages/Calls';
+import CallDetail from './pages/CallDetail';
+import Criteria from './pages/Criteria';
+import Users from './pages/Users';
+import Register from './pages/Register';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 import './i18n';
 
 const queryClient = new QueryClient();
@@ -100,6 +106,14 @@ function AppRoutes() {
           </PublicRoute>
         }
       />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
 
       {/* Protected routes */}
       <Route
@@ -124,7 +138,7 @@ function AppRoutes() {
         path="/calls/:id"
         element={
           <ProtectedRoute>
-            <div className="text-center py-8">Call detail page coming soon</div>
+            <CallDetail />
           </ProtectedRoute>
         }
       />
@@ -132,7 +146,7 @@ function AppRoutes() {
         path="/reports"
         element={
           <AdminRoute>
-            <div className="text-center py-8">Reports page coming soon</div>
+            <Reports />
           </AdminRoute>
         }
       />
@@ -140,7 +154,7 @@ function AppRoutes() {
         path="/criteria"
         element={
           <AdminRoute>
-            <div className="text-center py-8">Criteria page coming soon</div>
+            <Criteria />
           </AdminRoute>
         }
       />
@@ -148,7 +162,7 @@ function AppRoutes() {
         path="/users"
         element={
           <AdminRoute>
-            <div className="text-center py-8">Users page coming soon</div>
+            <Users />
           </AdminRoute>
         }
       />
@@ -156,7 +170,7 @@ function AppRoutes() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <div className="text-center py-8">Settings page coming soon</div>
+            <Settings />
           </ProtectedRoute>
         }
       />

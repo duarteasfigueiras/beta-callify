@@ -12,6 +12,7 @@ import usersRoutes from './routes/users';
 import callsRoutes from './routes/calls';
 import criteriaRoutes from './routes/criteria';
 import dashboardRoutes from './routes/dashboard';
+import alertsRoutes from './routes/alerts';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -43,6 +44,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/calls', callsRoutes);
 app.use('/api/criteria', criteriaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/alerts', alertsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -84,3 +86,5 @@ async function startServer() {
 }
 
 startServer();
+
+

@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { dashboardApi } from '../services/api';
+import { dashboardApi, alertsApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { DashboardOverview, Call, Alert } from '../types';
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin_manager';
 
   const [stats, setStats] = useState<DashboardOverview>({
@@ -88,9 +90,52 @@ export default function Dashboard() {
         return <TrendingUp className="w-4 h-4 text-red-500" />;
       case 'risk_words':
         return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+      case 'long_duration':
+        return <Phone className="w-4 h-4 text-orange-500" />;
+      case 'no_next_step':
+        return <CheckCircle className="w-4 h-4 text-purple-500" />;
       default:
         return <AlertTriangle className="w-4 h-4 text-gray-500" />;
     }
+  };
+
+  const getAlertTypeLabel = (type: string) => {
+    switch (type) {
+      case 'low_score':
+        return t('alerts.types.lowScore', 'Low Score');
+      case 'risk_words':
+        return t('alerts.types.riskWords', 'Risk Words');
+      case 'long_duration':
+        return t('alerts.types.longDuration', 'Long Duration');
+      case 'no_next_step':
+        return t('alerts.types.noNextStep', 'No Next Step');
+      default:
+        return type;
+    }
+  };
+
+  const handleAlertClick = async (alert: Alert) => {
+    // Mark alert as read if not already
+    if (!alert.is_read) {
+      try {
+        await alertsApi.markAsRead(alert.id);
+        // Update local state to reflect the change
+        setAlerts(prevAlerts =>
+          prevAlerts.map(a =>
+            a.id === alert.id ? { ...a, is_read: 1 } : a
+          )
+        );
+        // Update stats count
+        setStats(prevStats => ({
+          ...prevStats,
+          alerts_count: Math.max(0, prevStats.alerts_count - 1)
+        }));
+      } catch (error) {
+        console.error('Error marking alert as read:', error);
+      }
+    }
+    // Navigate to the related call
+    navigate(`/calls/${alert.call_id}`);
   };
 
   if (isLoading) {
@@ -264,7 +309,8 @@ export default function Dashboard() {
                 {alerts.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg ${
+                    onClick={() => handleAlertClick(alert)}
+                    className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
                       alert.is_read
                         ? 'bg-gray-50 dark:bg-gray-800'
                         : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
@@ -272,6 +318,11 @@ export default function Dashboard() {
                   >
                     {getAlertIcon(alert.type)}
                     <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {getAlertTypeLabel(alert.type)}
+                        </span>
+                      </div>
                       <p className="text-sm text-gray-900 dark:text-gray-100">
                         {alert.message}
                       </p>

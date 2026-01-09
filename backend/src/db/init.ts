@@ -413,6 +413,47 @@ export async function seedDatabase(): Promise<void> {
         }
       }
       console.log('Evaluation criteria results added for call #1');
+
+      // Add sample alerts for testing
+      // Get the call IDs for the low-score calls
+      const lowScoreCall = await dbGet<{ id: number }>('SELECT id FROM calls WHERE phone_number = ?', ['+351956789012']);
+      const riskWordsCall = await dbGet<{ id: number }>('SELECT id FROM calls WHERE phone_number = ?', ['+351990123456']);
+      const longDurationCall = await dbGet<{ id: number }>('SELECT id FROM calls WHERE phone_number = ?', ['+351956789012']);
+      const recentCall = await dbGet<{ id: number }>('SELECT id FROM calls WHERE phone_number = ?', ['+351945678901']);
+
+      if (lowScoreCall) {
+        await dbRun(
+          `INSERT INTO alerts (company_id, call_id, agent_id, type, message, created_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now', '-5 days'))`,
+          [company.id, lowScoreCall.id, agent.id, 'low_score', 'Chamada com pontuacao abaixo de 5.0 (4.8). Cliente muito insatisfeito com reclamacao.']
+        );
+      }
+
+      if (riskWordsCall) {
+        await dbRun(
+          `INSERT INTO alerts (company_id, call_id, agent_id, type, message, created_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now', '-21 days'))`,
+          [company.id, riskWordsCall.id, agent.id, 'risk_words', 'Palavras de risco detetadas: reembolso, advogado, devolucao']
+        );
+      }
+
+      if (longDurationCall) {
+        await dbRun(
+          `INSERT INTO alerts (company_id, call_id, agent_id, type, message, created_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now', '-5 days'))`,
+          [company.id, longDurationCall.id, agent.id, 'long_duration', 'Chamada com duracao excessiva: 7 minutos (limite: 5 minutos)']
+        );
+      }
+
+      if (recentCall) {
+        await dbRun(
+          `INSERT INTO alerts (company_id, call_id, agent_id, type, message, created_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now', '-3 days'))`,
+          [company.id, recentCall.id, agent.id, 'no_next_step', 'Proximo passo nao definido claramente na chamada']
+        );
+      }
+
+      console.log('Sample alerts created for testing');
     }
   } else {
     console.log('Demo data already exists, skipping seed');

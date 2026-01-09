@@ -14,7 +14,7 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
     const isAdmin = req.user!.role === 'admin_manager';
 
     let dateFilter = '';
-    const params: (string | number)[] = [req.user!.company_id];
+    const params: (string | number)[] = [req.user!.companyId];
 
     if (date_from) {
       dateFilter += ' AND c.call_date >= ?';
@@ -29,7 +29,7 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
     let agentFilter = '';
     if (!isAdmin) {
       agentFilter = ' AND c.agent_id = ?';
-      params.push(req.user!.id);
+      params.push(req.user!.userId);
     }
 
     // Total calls
@@ -49,11 +49,11 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
     const averageScore = (avgScoreResult as { avg: number })?.avg || 0;
 
     // Alerts count (unread)
-    const alertsParams = [req.user!.company_id];
+    const alertsParams = [req.user!.companyId];
     let alertAgentFilter = '';
     if (!isAdmin) {
       alertAgentFilter = ' AND a.agent_id = ?';
-      alertsParams.push(req.user!.id);
+      alertsParams.push(req.user!.userId);
     }
     const alertsResult = await dbGet(
       `SELECT COUNT(*) as total FROM alerts a
@@ -96,11 +96,11 @@ router.get('/recent-calls', async (req: AuthenticatedRequest, res: Response) => 
     const limit = Math.min(Number(req.query.limit) || 5, 10);
 
     let agentFilter = '';
-    const params: (string | number)[] = [req.user!.company_id];
+    const params: (string | number)[] = [req.user!.companyId];
 
     if (!isAdmin) {
       agentFilter = ' AND c.agent_id = ?';
-      params.push(req.user!.id);
+      params.push(req.user!.userId);
     }
 
     const calls = await dbAll(
@@ -128,11 +128,11 @@ router.get('/alerts', async (req: AuthenticatedRequest, res: Response) => {
     const limit = Math.min(Number(req.query.limit) || 5, 10);
 
     let agentFilter = '';
-    const params: (string | number)[] = [req.user!.company_id];
+    const params: (string | number)[] = [req.user!.companyId];
 
     if (!isAdmin) {
       agentFilter = ' AND a.agent_id = ?';
-      params.push(req.user!.id);
+      params.push(req.user!.userId);
     }
 
     const alerts = await dbAll(
@@ -155,15 +155,18 @@ router.get('/alerts', async (req: AuthenticatedRequest, res: Response) => {
 // Get score evolution for dashboard charts
 router.get('/score-evolution', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { days = 30 } = req.query;
+    const { days = 30, agent_id } = req.query;
     const isAdmin = req.user!.role === 'admin_manager';
 
     let agentFilter = '';
-    const params: (string | number)[] = [req.user!.company_id, Number(days)];
+    const params: (string | number)[] = [req.user!.companyId, Number(days)];
 
     if (!isAdmin) {
       agentFilter = ' AND c.agent_id = ?';
-      params.splice(1, 0, req.user!.id);
+      params.splice(1, 0, req.user!.userId);
+    } else if (agent_id) {
+      agentFilter = ' AND c.agent_id = ?';
+      params.push(Number(agent_id));
     }
 
     const evolution = await dbAll(
@@ -185,6 +188,128 @@ router.get('/score-evolution', async (req: AuthenticatedRequest, res: Response) 
   } catch (error) {
     console.error('Error fetching score evolution:', error);
     res.status(500).json({ error: 'Failed to fetch score evolution' });
+  }
+});
+
+// Get score by agent for reports (admin only)
+router.get('/score-by-agent', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'admin_manager') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { date_from, date_to } = req.query;
+    let dateFilter = '';
+    const params: (string | number)[] = [req.user!.companyId];
+
+    if (date_from) {
+      dateFilter += ' AND c.call_date >= ?';
+      params.push(String(date_from));
+    }
+    if (date_to) {
+      dateFilter += ' AND c.call_date <= ?';
+      params.push(String(date_to));
+    }
+
+    const results = await dbAll(
+      `SELECT
+         u.id as agent_id,
+         u.username as agent_username,
+         ROUND(AVG(c.final_score), 1) as average_score,
+         COUNT(*) as total_calls
+       FROM calls c
+       JOIN users u ON c.agent_id = u.id
+       WHERE c.company_id = ? AND c.final_score IS NOT NULL${dateFilter}
+       GROUP BY u.id
+       ORDER BY average_score DESC`,
+      params
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching score by agent:', error);
+    res.status(500).json({ error: 'Failed to fetch score by agent' });
+  }
+});
+
+// Get calls by period for reports (admin only)
+router.get('/calls-by-period', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'admin_manager') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { days = 30, agent_id } = req.query;
+    const params: (string | number)[] = [req.user!.companyId, Number(days)];
+    let agentFilter = '';
+
+    if (agent_id) {
+      agentFilter = ' AND c.agent_id = ?';
+      params.push(Number(agent_id));
+    }
+
+    const results = await dbAll(
+      `SELECT
+         DATE(c.call_date) as period,
+         COUNT(*) as count
+       FROM calls c
+       WHERE c.company_id = ?
+         AND c.call_date >= DATE('now', '-' || ? || ' days')
+         ${agentFilter}
+       GROUP BY DATE(c.call_date)
+       ORDER BY period ASC`,
+      params
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching calls by period:', error);
+    res.status(500).json({ error: 'Failed to fetch calls by period' });
+  }
+});
+
+// Get top contact reasons for reports (admin only)
+router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'admin_manager') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // Since we don't have a separate reason field, we'll simulate with some common reasons
+    // In a real app, this would come from call categorization or NLP analysis
+    const reasons = [
+      { reason: 'Informacao de produto', count: 4 },
+      { reason: 'Suporte tecnico', count: 3 },
+      { reason: 'Reclamacao', count: 2 },
+      { reason: 'Faturacao', count: 1 }
+    ];
+
+    res.json(reasons);
+  } catch (error) {
+    console.error('Error fetching top reasons:', error);
+    res.status(500).json({ error: 'Failed to fetch top reasons' });
+  }
+});
+
+// Get top objections for reports (admin only)
+router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'admin_manager') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // Simulated objection data - in a real app this would come from NLP analysis
+    const objections = [
+      { objection: 'Preco muito alto', count: 5 },
+      { objection: 'Ja tenho fornecedor', count: 3 },
+      { objection: 'Nao tenho tempo', count: 2 },
+      { objection: 'Preciso pensar', count: 2 }
+    ];
+
+    res.json(objections);
+  } catch (error) {
+    console.error('Error fetching top objections:', error);
+    res.status(500).json({ error: 'Failed to fetch top objections' });
   }
 });
 

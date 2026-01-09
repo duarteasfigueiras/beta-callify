@@ -14,7 +14,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       `SELECT * FROM criteria
        WHERE company_id = ?
        ORDER BY weight DESC, name ASC`,
-      [req.user!.company_id]
+      [req.user!.companyId]
     );
     res.json(criteria);
   } catch (error) {
@@ -28,7 +28,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const criterion = await dbGet(
       `SELECT * FROM criteria WHERE id = ? AND company_id = ?`,
-      [req.params.id, req.user!.company_id]
+      [req.params.id, req.user!.companyId]
     );
     if (!criterion) {
       return res.status(404).json({ error: 'Criterion not found' });
@@ -52,12 +52,12 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
     const result = await dbRun(
       `INSERT INTO criteria (company_id, name, description, weight, is_active)
        VALUES (?, ?, ?, ?, 1)`,
-      [req.user!.company_id, name, description, weight || 1]
+      [req.user!.companyId, name, description, weight || 1]
     );
 
     res.status(201).json({
       id: result.lastID,
-      company_id: req.user!.company_id,
+      company_id: req.user!.companyId,
       name,
       description,
       weight: weight || 1,
@@ -78,7 +78,7 @@ router.put('/:id', requireRole('admin_manager'), async (req: AuthenticatedReques
     // Check criterion exists and belongs to company
     const criterion = await dbGet(
       'SELECT id FROM criteria WHERE id = ? AND company_id = ?',
-      [criterionId, req.user!.company_id]
+      [criterionId, req.user!.companyId]
     );
     if (!criterion) {
       return res.status(404).json({ error: 'Criterion not found' });
@@ -111,7 +111,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     // Check criterion exists and belongs to company
     const criterion = await dbGet(
       'SELECT id FROM criteria WHERE id = ? AND company_id = ?',
-      [criterionId, req.user!.company_id]
+      [criterionId, req.user!.companyId]
     );
     if (!criterion) {
       return res.status(404).json({ error: 'Criterion not found' });

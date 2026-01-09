@@ -49,6 +49,10 @@ export const authApi = {
     const response = await api.get('/auth/me');
     return response.data;
   },
+  register: async (token: string, username: string, password: string) => {
+    const response = await api.post('/auth/register', { token, username, password });
+    return response.data;
+  },
   recoverPassword: async (username: string) => {
     const response = await api.post('/auth/recover-password', { username });
     return response.data;
@@ -73,8 +77,24 @@ export const dashboardApi = {
     const response = await api.get('/dashboard/alerts', { params: { limit } });
     return response.data;
   },
-  getScoreEvolution: async (days?: number) => {
-    const response = await api.get('/dashboard/score-evolution', { params: { days } });
+  getScoreEvolution: async (days?: number, agent_id?: number) => {
+    const response = await api.get('/dashboard/score-evolution', { params: { days, agent_id } });
+    return response.data;
+  },
+  getScoreByAgent: async (params?: { date_from?: string; date_to?: string }) => {
+    const response = await api.get('/dashboard/score-by-agent', { params });
+    return response.data;
+  },
+  getCallsByPeriod: async (days?: number, agent_id?: number) => {
+    const response = await api.get('/dashboard/calls-by-period', { params: { days, agent_id } });
+    return response.data;
+  },
+  getTopReasons: async () => {
+    const response = await api.get('/dashboard/top-reasons');
+    return response.data;
+  },
+  getTopObjections: async () => {
+    const response = await api.get('/dashboard/top-objections');
     return response.data;
   },
 };
@@ -105,12 +125,24 @@ export const usersApi = {
     const response = await api.get('/users');
     return response.data;
   },
+  getMe: async () => {
+    const response = await api.get('/users/me');
+    return response.data;
+  },
   getById: async (id: number) => {
     const response = await api.get(`/users/${id}`);
     return response.data;
   },
   invite: async (role: 'admin_manager' | 'agent') => {
     const response = await api.post('/users/invite', { role });
+    return response.data;
+  },
+  updateRole: async (id: number, role: 'admin_manager' | 'agent') => {
+    const response = await api.patch(`/users/${id}/role`, { role });
+    return response.data;
+  },
+  updatePreferences: async (data: { language_preference?: 'pt' | 'en'; theme_preference?: 'light' | 'dark' }) => {
+    const response = await api.patch('/users/me/preferences', data);
     return response.data;
   },
   delete: async (id: number) => {
@@ -139,6 +171,18 @@ export const criteriaApi = {
   },
   delete: async (id: number) => {
     const response = await api.delete(`/criteria/${id}`);
+    return response.data;
+  },
+};
+
+// Alerts API
+export const alertsApi = {
+  getAll: async (params?: { page?: number; limit?: number; unread_only?: boolean }) => {
+    const response = await api.get('/alerts', { params });
+    return response.data;
+  },
+  markAsRead: async (id: number) => {
+    const response = await api.patch(`/alerts/${id}/read`);
     return response.data;
   },
 };

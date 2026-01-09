@@ -57,6 +57,8 @@ export default function CallDetail() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'transcription' | 'evaluation' | 'feedback'>('summary');
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCall();
@@ -110,6 +112,21 @@ export default function CallDetail() {
       toast.error(t('common.error', 'Failed to submit feedback'));
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const deleteCall = async () => {
+    try {
+      setDeleting(true);
+      await api.delete(`/calls/${id}`);
+      toast.success(t('calls.deleted', 'Call deleted successfully'));
+      navigate('/calls');
+    } catch (error) {
+      console.error('Error deleting call:', error);
+      toast.error(t('common.error', 'Failed to delete call'));
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -173,24 +190,66 @@ export default function CallDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Header with back button */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/calls')}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t('calls.detail', 'Call Detail')}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {call.phone_number}
-          </p>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {t('calls.deleteConfirmTitle', 'Delete Call')}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('calls.deleteConfirmMessage', 'Are you sure you want to delete this call? This action cannot be undone.')}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                {t('common.cancel', 'Cancel')}
+              </button>
+              <button
+                onClick={deleteCall}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors"
+              >
+                {deleting ? t('common.deleting', 'Deleting...') : t('common.delete', 'Delete')}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/calls')}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('calls.detail', 'Call Detail')}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {call.phone_number}
+            </p>
+          </div>
+        </div>
+        {user?.role === 'admin_manager' && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {t('calls.delete', 'Delete')}
+          </button>
+        )}
       </div>
 
       {/* Call metadata cards */}

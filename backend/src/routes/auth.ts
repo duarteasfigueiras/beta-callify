@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { dbGet } from '../db/database';
+import { dbGet, dbRun } from '../db/database';
 import { AuthenticatedRequest, authenticateToken, generateToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
 
@@ -47,6 +47,80 @@ router.post('/login', async (req, res: Response) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Register with invitation token
+router.post('/register', async (req, res: Response) => {
+  try {
+    const { token, username, password } = req.body;
+
+    if (!token || !username || !password) {
+      return res.status(400).json({ error: 'Token, username, and password are required' });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Find valid invitation
+    const invitation = await dbGet<{
+      id: number;
+      company_id: number;
+      role: string;
+      used: number;
+      expires_at: string;
+    }>(
+      'SELECT * FROM invitations WHERE token = ?',
+      [token]
+    );
+
+    if (!invitation) {
+      return res.status(400).json({ error: 'Invalid invitation token' });
+    }
+
+    if (invitation.used) {
+      return res.status(400).json({ error: 'Invitation has already been used' });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Invitation has expired' });
+    }
+
+    // Check if username already exists
+    const existingUser = await dbGet<{ id: number }>(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user
+    const result = await dbRun(
+      `INSERT INTO users (company_id, username, password_hash, role, language_preference, theme_preference)
+       VALUES (?, ?, ?, ?, 'pt', 'light')`,
+      [invitation.company_id, username, passwordHash, invitation.role]
+    );
+
+    // Mark invitation as used
+    await dbRun(
+      'UPDATE invitations SET used = 1 WHERE id = ?',
+      [invitation.id]
+    );
+
+    return res.json({ message: 'Registration successful. You can now login.' });
+  } catch (error) {
+    console.error('Registration error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
