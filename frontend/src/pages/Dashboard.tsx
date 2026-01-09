@@ -6,6 +6,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, alertsApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { DashboardOverview, Call, Alert } from '../types';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -21,6 +30,7 @@ export default function Dashboard() {
   });
   const [recentCalls, setRecentCalls] = useState<Call[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [scoreEvolution, setScoreEvolution] = useState<{ date: string; average_score: number; total_calls: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
@@ -38,19 +48,34 @@ export default function Dashboard() {
     }
   };
 
+  const getDaysFromRange = () => {
+    switch (dateRange) {
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      default:
+        return 365; // For 'all', get last year
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const [overviewData, recentCallsData, alertsData] = await Promise.all([
+        const [overviewData, recentCallsData, alertsData, scoreEvolutionData] = await Promise.all([
           dashboardApi.getOverview(getDateRange()),
           dashboardApi.getRecentCalls(5),
           dashboardApi.getAlerts(5),
+          dashboardApi.getScoreEvolution(getDaysFromRange()),
         ]);
 
         setStats(overviewData);
         setRecentCalls(recentCallsData);
         setAlerts(alertsData);
+        setScoreEvolution(scoreEvolutionData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -346,9 +371,65 @@ export default function Dashboard() {
             <CardTitle>{t('dashboard.scoreEvolution')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-              {t('common.noResults')}
-            </div>
+            {scoreEvolution.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                {t('common.noResults')}
+              </div>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={scoreEvolution.map(item => ({
+                      ...item,
+                      average_score: Math.round(item.average_score * 10) / 10,
+                      formattedDate: new Date(item.date).toLocaleDateString(user?.language_preference === 'pt' ? 'pt-PT' : 'en-US', {
+                        day: '2-digit',
+                        month: '2-digit',
+                      }),
+                    }))}
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                    <XAxis
+                      dataKey="formattedDate"
+                      tick={{ fill: 'currentColor', fontSize: 12 }}
+                      tickLine={{ stroke: 'currentColor' }}
+                      className="text-gray-500 dark:text-gray-400"
+                    />
+                    <YAxis
+                      domain={[0, 10]}
+                      tick={{ fill: 'currentColor', fontSize: 12 }}
+                      tickLine={{ stroke: 'currentColor' }}
+                      className="text-gray-500 dark:text-gray-400"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--tooltip-bg, #fff)',
+                        border: '1px solid var(--tooltip-border, #e5e7eb)',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }}
+                      labelStyle={{ color: 'var(--tooltip-text, #374151)', fontWeight: 600 }}
+                      formatter={(value: number, name: string) => {
+                        if (name === 'average_score') {
+                          return [value.toFixed(1), t('dashboard.averageScore')];
+                        }
+                        return [value, t('dashboard.totalCalls')];
+                      }}
+                      labelFormatter={(label) => label}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="average_score"
+                      stroke="#16a34a"
+                      strokeWidth={2}
+                      dot={{ fill: '#16a34a', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: '#16a34a' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
