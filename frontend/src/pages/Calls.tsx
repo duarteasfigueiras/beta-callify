@@ -178,6 +178,48 @@ export default function Calls() {
 
   const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax;
 
+  // Quick date filter helpers
+  const setTodayFilter = () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    setDateFrom(todayStr);
+    setDateTo(todayStr);
+    setPage(1);
+  };
+
+  const setThisWeekFilter = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    // Get Monday of this week (Sunday = 0, Monday = 1, etc.)
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const mondayStr = monday.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
+    setDateFrom(mondayStr);
+    setDateTo(todayStr);
+    setPage(1);
+  };
+
+  // Check if current filter matches "Today" or "This Week"
+  const isToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return dateFrom === today && dateTo === today;
+  };
+
+  const isThisWeek = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const mondayStr = monday.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
+    return dateFrom === mondayStr && dateTo === todayStr;
+  };
+
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -250,6 +292,25 @@ export default function Calls() {
       {showFilters && (
         <Card>
           <CardContent className="p-4">
+            {/* Quick Date Filters */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                variant={isToday() ? "default" : "outline"}
+                size="sm"
+                onClick={setTodayFilter}
+                className={isToday() ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                {t('calls.today')}
+              </Button>
+              <Button
+                variant={isThisWeek() ? "default" : "outline"}
+                size="sm"
+                onClick={setThisWeekFilter}
+                className={isThisWeek() ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                {t('calls.thisWeek')}
+              </Button>
+            </div>
             <div className="flex flex-wrap items-end gap-4">
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
