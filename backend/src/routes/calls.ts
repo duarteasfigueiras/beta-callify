@@ -78,7 +78,11 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, agent_id, date_from, date_to, score_min, score_max, sort_by = 'call_date', sort_order = 'desc' } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
+
+    // Validate and sanitize page and limit parameters
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
 
     console.log('[DEBUG] GET /calls - user:', req.user?.userId, 'company:', req.user?.companyId, 'role:', req.user?.role, 'sort_by:', sort_by, 'sort_order:', sort_order);
 
@@ -132,15 +136,15 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
        ${whereClause}
        ORDER BY c.${sortColumn} ${sortDirection}
        LIMIT ? OFFSET ?`,
-      [...params, Number(limit), offset]
+      [...params, limitNum, offset]
     );
 
     res.json({
       data: calls,
       total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit))
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum)
     });
   } catch (error) {
     console.error('Error fetching calls:', error);

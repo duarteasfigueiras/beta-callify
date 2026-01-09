@@ -27,7 +27,8 @@ export default function Calls() {
   // Initialize state from URL params
   const [page, setPage] = useState(() => {
     const p = searchParams.get('page');
-    return p ? parseInt(p, 10) : 1;
+    const parsed = p ? parseInt(p, 10) : 1;
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed;
   });
   const [dateFrom, setDateFrom] = useState(() => searchParams.get('date_from') || '');
   const [dateTo, setDateTo] = useState(() => searchParams.get('date_to') || '');
