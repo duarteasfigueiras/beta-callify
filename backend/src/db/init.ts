@@ -191,6 +191,229 @@ export async function seedDatabase(): Promise<void> {
       );
     }
     console.log('Default evaluation criteria created');
+
+    // Get agent id for sample calls
+    const agent = await dbGet<{ id: number }>('SELECT id FROM users WHERE username = ?', ['agent']);
+    if (agent) {
+      // Create sample calls with different dates for testing
+      const sampleCalls = [
+        {
+          phone: '+351912345678', score: 8.5, days_ago: 0, duration: 245,
+          summary: 'Cliente ligou interessado em upgrade do plano atual. Agente identificou necessidades e apresentou opcoes adequadas.',
+          next_step: 'Enviar orcamento por email ate final do dia',
+          went_well: JSON.stringify([
+            { text: 'Boa identificacao das necessidades', timestamp: '00:45' },
+            { text: 'Apresentacao clara das opcoes', timestamp: '01:30' },
+            { text: 'Tom profissional mantido', timestamp: '03:15' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Poderia ter explorado mais objecoes', timestamp: '02:15' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351923456789', score: 7.2, days_ago: 1, duration: 180,
+          summary: 'Chamada de suporte tecnico sobre problema de faturacao.',
+          next_step: 'Agente vai verificar com departamento financeiro',
+          went_well: JSON.stringify([
+            { text: 'Escuta ativa', timestamp: '00:30' },
+            { text: 'Empatia demonstrada', timestamp: '01:15' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Tempo de espera elevado', timestamp: '02:00' },
+            { text: 'Resolucao nao imediata', timestamp: '02:45' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351934567890', score: 9.1, days_ago: 2, duration: 320,
+          summary: 'Excelente chamada de vendas. Cliente fechou contrato anual.',
+          next_step: 'Enviar contrato para assinatura digital',
+          went_well: JSON.stringify([
+            { text: 'Tratamento de objecoes exemplar', timestamp: '02:30' },
+            { text: 'Fecho de venda conseguido', timestamp: '04:15' },
+            { text: 'Upselling bem sucedido', timestamp: '03:45' }
+          ]),
+          went_wrong: JSON.stringify([]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351945678901', score: 6.5, days_ago: 3, duration: 150,
+          summary: 'Cliente com duvidas sobre servico. Informacao basica fornecida.',
+          next_step: 'Cliente vai pensar e ligar de volta',
+          went_well: JSON.stringify([
+            { text: 'Informacao correcta fornecida', timestamp: '01:00' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Faltou criar urgencia', timestamp: '02:00' },
+            { text: 'Proximo passo vago', timestamp: '02:20' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351956789012', score: 4.8, days_ago: 5, duration: 420,
+          summary: 'Chamada de reclamacao sobre servico. Cliente muito insatisfeito.',
+          next_step: 'Escalar para supervisor',
+          went_well: JSON.stringify([
+            { text: 'Agente manteve calma', timestamp: '03:00' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Nao conseguiu resolver', timestamp: '04:30' },
+            { text: 'Cliente mencionou cancelamento', timestamp: '05:15' },
+            { text: 'Chamada demasiado longa', timestamp: '06:30' }
+          ]),
+          risk_words: JSON.stringify(['cancelar', 'insatisfeito', 'reclamacao'])
+        },
+        {
+          phone: '+351967890123', score: 8.0, days_ago: 7, duration: 200,
+          summary: 'Renovacao de contrato bem sucedida.',
+          next_step: 'Processar renovacao no sistema',
+          went_well: JSON.stringify([
+            { text: 'Cliente fidelizado', timestamp: '01:30' },
+            { text: 'Processo rapido', timestamp: '02:45' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Poderia ter oferecido upgrade', timestamp: '03:00' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351978901234', score: 7.8, days_ago: 10, duration: 275,
+          summary: 'Demonstracao de produto para potencial cliente.',
+          next_step: 'Agendar reuniao presencial',
+          went_well: JSON.stringify([
+            { text: 'Demo bem estruturada', timestamp: '01:15' },
+            { text: 'Interesse do cliente', timestamp: '03:30' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Algumas questoes tecnicas sem resposta', timestamp: '04:00' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351989012345', score: 9.5, days_ago: 14, duration: 190,
+          summary: 'Chamada modelo. Todos os criterios cumpridos com excelencia.',
+          next_step: 'Enviar proposta personalizada',
+          went_well: JSON.stringify([
+            { text: 'Abertura exemplar', timestamp: '00:15' },
+            { text: 'Identificacao perfeita', timestamp: '00:45' },
+            { text: 'Tratamento de objecoes excelente', timestamp: '01:30' },
+            { text: 'Fecho claro', timestamp: '02:50' }
+          ]),
+          went_wrong: JSON.stringify([]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351990123456', score: 5.2, days_ago: 21, duration: 380,
+          summary: 'Cliente solicitou reembolso. Situacao escalada.',
+          next_step: 'Departamento financeiro vai contactar cliente',
+          went_well: JSON.stringify([
+            { text: 'Procedimento seguido', timestamp: '02:00' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Cliente pediu reembolso', timestamp: '03:15' },
+            { text: 'Mencao de advogado', timestamp: '04:30' },
+            { text: 'Resolucao demorada', timestamp: '05:45' }
+          ]),
+          risk_words: JSON.stringify(['reembolso', 'advogado', 'devolucao'])
+        },
+        {
+          phone: '+351901234567', score: 8.8, days_ago: 30, duration: 210,
+          summary: 'Venda consultiva bem executada.',
+          next_step: 'Agendar instalacao para proxima semana',
+          went_well: JSON.stringify([
+            { text: 'Consulta de necessidades', timestamp: '00:30' },
+            { text: 'Solucao adequada', timestamp: '01:45' },
+            { text: 'Cliente satisfeito', timestamp: '03:00' }
+          ]),
+          went_wrong: JSON.stringify([]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351912345111', score: 7.0, days_ago: 45, duration: 165,
+          summary: 'Chamada de follow-up pos-venda.',
+          next_step: 'Enviar manual de utilizacao',
+          went_well: JSON.stringify([
+            { text: 'Cliente contactado proactivamente', timestamp: '00:15' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Algumas duvidas ficaram por esclarecer', timestamp: '02:30' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+        {
+          phone: '+351923456222', score: 6.0, days_ago: 60, duration: 300,
+          summary: 'Suporte tecnico com resolucao parcial.',
+          next_step: 'Tecnico vai ligar amanha',
+          went_well: JSON.stringify([
+            { text: 'Diagnostico inicial feito', timestamp: '01:00' }
+          ]),
+          went_wrong: JSON.stringify([
+            { text: 'Problema nao resolvido na chamada', timestamp: '03:30' },
+            { text: 'Cliente frustrado', timestamp: '04:15' }
+          ]),
+          risk_words: JSON.stringify([])
+        },
+      ];
+
+      for (const call of sampleCalls) {
+        const callDate = new Date();
+        callDate.setDate(callDate.getDate() - call.days_ago);
+        const callDateStr = callDate.toISOString();
+
+        await dbRun(
+          `INSERT INTO calls (company_id, agent_id, phone_number, duration_seconds, final_score, call_date, summary, direction, next_step_recommendation, what_went_well, what_went_wrong, risk_words_detected)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            company.id,
+            agent.id,
+            call.phone,
+            call.duration,
+            call.score,
+            callDateStr,
+            call.summary,
+            'inbound',
+            call.next_step,
+            call.went_well,
+            call.went_wrong,
+            call.risk_words
+          ]
+        );
+      }
+      console.log('Sample calls created for testing');
+
+      // Add evaluation criteria results for the first few calls
+      // We need to add criteria results for at least a few calls to test the evaluation tab
+      // Call 1 (score 8.5) - good performance
+      const criteriaForResults = [
+        { name: 'Saudacao/Abertura', passed: true, justification: 'Agente cumprimentou cliente corretamente' },
+        { name: 'Identificacao da necessidade', passed: true, justification: 'Necessidades do cliente bem identificadas' },
+        { name: 'Escuta ativa', passed: true, justification: 'Demonstrou escuta ativa durante toda a chamada' },
+        { name: 'Apresentacao de solucao', passed: true, justification: 'Solucoes apresentadas de forma clara' },
+        { name: 'Tratamento de objecoes', passed: false, justification: 'Poderia ter explorado mais as objecoes do cliente', timestamp: '02:15' },
+        { name: 'Clareza na comunicacao', passed: true, justification: 'Comunicacao clara e profissional' },
+        { name: 'Tom profissional', passed: true, justification: 'Tom adequado mantido durante toda a chamada' },
+        { name: 'Proximo passo definido', passed: true, justification: 'Proximo passo claramente definido' },
+        { name: 'Fecho da chamada', passed: true, justification: 'Chamada encerrada corretamente' },
+        { name: 'Ausencia de palavras de risco', passed: true, justification: 'Nenhuma palavra de risco detetada' },
+      ];
+
+      // Get criteria IDs
+      for (const criteriaResult of criteriaForResults) {
+        const criterion = await dbGet<{ id: number }>(
+          'SELECT id FROM criteria WHERE company_id = ? AND name = ?',
+          [company.id, criteriaResult.name]
+        );
+        if (criterion) {
+          await dbRun(
+            `INSERT INTO call_criteria_results (call_id, criterion_id, passed, justification, timestamp_reference)
+             VALUES (?, ?, ?, ?, ?)`,
+            [1, criterion.id, criteriaResult.passed ? 1 : 0, criteriaResult.justification, criteriaResult.timestamp || null]
+          );
+        }
+      }
+      console.log('Evaluation criteria results added for call #1');
+    }
   } else {
     console.log('Demo data already exists, skipping seed');
   }
