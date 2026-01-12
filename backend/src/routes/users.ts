@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbAll, dbGet, dbRun } from '../db/database';
+import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -10,14 +10,14 @@ router.use(authenticateToken);
 // Get all users (admin only)
 router.get('/', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const users = await dbAll(
-      `SELECT id, company_id, username, role, language_preference, theme_preference, created_at, updated_at
-       FROM users
-       WHERE company_id = ?
-       ORDER BY created_at DESC`,
-      [req.user!.companyId]
-    );
-    res.json(users);
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, company_id, username, role, language_preference, theme_preference, created_at, updated_at')
+      .eq('company_id', req.user!.companyId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(users || []);
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
@@ -27,13 +27,13 @@ router.get('/', requireRole('admin_manager'), async (req: AuthenticatedRequest, 
 // Get current user
 router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await dbGet(
-      `SELECT id, company_id, username, role, language_preference, theme_preference, created_at, updated_at
-       FROM users
-       WHERE id = ?`,
-      [req.user!.userId]
-    );
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, company_id, username, role, language_preference, theme_preference, created_at, updated_at')
+      .eq('id', req.user!.userId)
+      .single();
+
+    if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
@@ -56,38 +56,23 @@ router.patch('/me/preferences', async (req: AuthenticatedRequest, res: Response)
       return res.status(400).json({ error: 'Invalid theme preference. Must be "light" or "dark"' });
     }
 
-    // Build update query dynamically
-    const updates: string[] = [];
-    const params: (string | number)[] = [];
+    // Build update object
+    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (language_preference) updateData.language_preference = language_preference;
+    if (theme_preference) updateData.theme_preference = theme_preference;
 
-    if (language_preference) {
-      updates.push('language_preference = ?');
-      params.push(language_preference);
-    }
-    if (theme_preference) {
-      updates.push('theme_preference = ?');
-      params.push(theme_preference);
-    }
-
-    if (updates.length === 0) {
+    if (Object.keys(updateData).length === 1) {
       return res.status(400).json({ error: 'No preferences to update' });
     }
 
-    updates.push('updated_at = CURRENT_TIMESTAMP');
-    params.push(req.user!.userId);
+    const { data: user, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', req.user!.userId)
+      .select('id, company_id, username, role, language_preference, theme_preference, created_at, updated_at')
+      .single();
 
-    await dbRun(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
-      params
-    );
-
-    // Fetch and return updated user
-    const user = await dbGet(
-      `SELECT id, company_id, username, role, language_preference, theme_preference, created_at, updated_at
-       FROM users
-       WHERE id = ?`,
-      [req.user!.userId]
-    );
+    if (error) throw error;
 
     res.json(user);
   } catch (error) {
@@ -99,13 +84,14 @@ router.patch('/me/preferences', async (req: AuthenticatedRequest, res: Response)
 // Get user by ID (admin only)
 router.get('/:id', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await dbGet(
-      `SELECT id, company_id, username, role, language_preference, theme_preference, created_at, updated_at
-       FROM users
-       WHERE id = ? AND company_id = ?`,
-      [req.params.id, req.user!.companyId]
-    );
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, company_id, username, role, language_preference, theme_preference, created_at, updated_at')
+      .eq('id', req.params.id)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
+    if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
@@ -128,11 +114,16 @@ router.post('/invite', requireRole('admin_manager'), async (req: AuthenticatedRe
     const token = Buffer.from(`${req.user!.companyId}:${Date.now()}`).toString('base64');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
-    await dbRun(
-      `INSERT INTO invitations (company_id, invited_by, token, role, used, expires_at)
-       VALUES (?, ?, ?, ?, 0, ?)`,
-      [req.user!.companyId, req.user!.userId, token, role, expiresAt]
-    );
+    const { error } = await supabase.from('invitations').insert({
+      company_id: req.user!.companyId,
+      invited_by: req.user!.userId,
+      token,
+      role,
+      used: false,
+      expires_at: expiresAt
+    });
+
+    if (error) throw error;
 
     res.json({
       token,
@@ -161,18 +152,23 @@ router.patch('/:id/role', requireRole('admin_manager'), async (req: Authenticate
     }
 
     // Check user exists and belongs to same company
-    const user = await dbGet<{ id: number; role: string }>(
-      'SELECT id, role FROM users WHERE id = ? AND company_id = ?',
-      [userId, req.user!.companyId]
-    );
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    await dbRun(
-      'UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [role, userId]
-    );
+    const { error } = await supabase
+      .from('users')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (error) throw error;
 
     res.json({ message: 'User role updated successfully', role });
   } catch (error) {
@@ -192,15 +188,21 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     }
 
     // Check user exists and belongs to same company
-    const user = await dbGet(
-      'SELECT id FROM users WHERE id = ? AND company_id = ?',
-      [userId, req.user!.companyId]
-    );
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    await dbRun('DELETE FROM users WHERE id = ?', [userId]);
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+
+    if (error) throw error;
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);

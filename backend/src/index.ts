@@ -14,6 +14,7 @@ import criteriaRoutes from './routes/criteria';
 import dashboardRoutes from './routes/dashboard';
 import alertsRoutes from './routes/alerts';
 import webhooksRoutes from './routes/webhooks';
+import n8nRoutes from './routes/n8n';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -50,6 +51,7 @@ app.use('/api/criteria', criteriaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
+app.use('/api/n8n', n8nRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -86,6 +88,7 @@ async function startServer() {
       console.log(`========================================`);
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`API available at http://localhost:${PORT}/api`);
+      console.log(`n8n Integration: http://localhost:${PORT}/api/n8n/health`);
       console.log(`Retention policy: 60 days (auto-cleanup enabled)`);
       console.log(`========================================\n`);
       console.log(`Demo credentials:`);

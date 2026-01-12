@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbAll, dbGet, dbRun } from '../db/database';
+import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -11,20 +11,22 @@ router.use(authenticateToken);
 router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Check if calls already exist
-    const existingCalls = await dbGet<{ count: number }>(
-      'SELECT COUNT(*) as count FROM calls WHERE company_id = ?',
-      [req.user!.companyId]
-    );
+    const { count } = await supabase
+      .from('calls')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user!.companyId);
 
-    if (existingCalls && existingCalls.count > 0) {
-      return res.json({ message: 'Calls already exist', count: existingCalls.count });
+    if (count && count > 0) {
+      return res.json({ message: 'Calls already exist', count });
     }
 
     // Get an agent from the company
-    const agent = await dbGet<{ id: number }>(
-      'SELECT id FROM users WHERE company_id = ? AND role = ?',
-      [req.user!.companyId, 'agent']
-    );
+    const { data: agent } = await supabase
+      .from('users')
+      .select('id')
+      .eq('company_id', req.user!.companyId)
+      .eq('role', 'agent')
+      .single();
 
     if (!agent) {
       return res.status(400).json({ error: 'No agent found to assign calls to' });
@@ -49,22 +51,17 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
     for (const call of sampleCalls) {
       const callDate = new Date();
       callDate.setDate(callDate.getDate() - call.days_ago);
-      const callDateStr = callDate.toISOString();
 
-      await dbRun(
-        `INSERT INTO calls (company_id, agent_id, phone_number, duration_seconds, final_score, call_date, summary, direction)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          req.user!.companyId,
-          agent.id,
-          call.phone,
-          call.duration,
-          call.score,
-          callDateStr,
-          `Sample call from ${call.days_ago} days ago with score ${call.score}`,
-          'inbound'
-        ]
-      );
+      await supabase.from('calls').insert({
+        company_id: req.user!.companyId,
+        agent_id: agent.id,
+        phone_number: call.phone,
+        duration_seconds: call.duration,
+        final_score: call.score,
+        call_date: callDate.toISOString(),
+        summary: `Sample call from ${call.days_ago} days ago with score ${call.score}`,
+        direction: 'inbound'
+      });
     }
 
     res.json({ message: 'Sample calls created', count: sampleCalls.length });
@@ -84,67 +81,58 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
     const offset = (pageNum - 1) * limitNum;
 
-    console.log('[DEBUG] GET /calls - user:', req.user?.userId, 'company:', req.user?.companyId, 'role:', req.user?.role, 'sort_by:', sort_by, 'sort_order:', sort_order);
-
-    let whereClause = 'WHERE c.company_id = ?';
-    const params: (string | number)[] = [req.user!.companyId];
+    // Build query
+    let query = supabase
+      .from('calls')
+      .select('*, users!calls_agent_id_fkey(username)', { count: 'exact' })
+      .eq('company_id', req.user!.companyId);
 
     // Agents can only see their own calls
     if (req.user!.role === 'agent') {
-      whereClause += ' AND c.agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     } else if (agent_id) {
-      whereClause += ' AND c.agent_id = ?';
-      params.push(Number(agent_id));
+      query = query.eq('agent_id', Number(agent_id));
     }
 
     if (date_from) {
-      whereClause += ' AND c.call_date >= ?';
-      params.push(String(date_from) + 'T00:00:00.000Z');
+      query = query.gte('call_date', String(date_from) + 'T00:00:00.000Z');
     }
     if (date_to) {
-      whereClause += ' AND c.call_date <= ?';
-      params.push(String(date_to) + 'T23:59:59.999Z');
+      query = query.lte('call_date', String(date_to) + 'T23:59:59.999Z');
     }
     if (score_min) {
-      whereClause += ' AND c.final_score >= ?';
-      params.push(Number(score_min));
+      query = query.gte('final_score', Number(score_min));
     }
     if (score_max) {
-      whereClause += ' AND c.final_score <= ?';
-      params.push(Number(score_max));
+      query = query.lte('final_score', Number(score_max));
     }
 
-    // Validate and sanitize sort parameters
+    // Sort
     const allowedSortColumns = ['call_date', 'duration_seconds', 'final_score', 'phone_number'];
     const sortColumn = allowedSortColumns.includes(String(sort_by)) ? String(sort_by) : 'call_date';
-    const sortDirection = String(sort_order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    const ascending = String(sort_order).toLowerCase() === 'asc';
+    query = query.order(sortColumn, { ascending });
 
-    // Get total count
-    const countResult = await dbGet(
-      `SELECT COUNT(*) as total FROM calls c ${whereClause}`,
-      params
-    );
-    const total = (countResult as { total: number }).total;
-    console.log('[DEBUG] Query:', `SELECT COUNT(*) as total FROM calls c ${whereClause}`, 'params:', params, 'total:', total);
+    // Pagination
+    query = query.range(offset, offset + limitNum - 1);
 
-    // Get paginated calls
-    const calls = await dbAll(
-      `SELECT c.*, u.username as agent_username
-       FROM calls c
-       LEFT JOIN users u ON c.agent_id = u.id
-       ${whereClause}
-       ORDER BY c.${sortColumn} ${sortDirection}
-       LIMIT ? OFFSET ?`,
-      [...params, limitNum, offset]
-    );
+    const { data: calls, count: total, error } = await query;
+
+    if (error) throw error;
+
+    // Transform the data to match expected format
+    const transformedCalls = (calls || []).map((call: any) => ({
+      ...call,
+      agent_username: call.users?.username || null,
+      users: undefined
+    }));
 
     res.json({
-      data: calls,
-      total,
+      data: transformedCalls,
+      total: total || 0,
       page: pageNum,
       limit: limitNum,
-      totalPages: Math.ceil(total / limitNum)
+      totalPages: Math.ceil((total || 0) / limitNum)
     });
   } catch (error) {
     console.error('Error fetching calls:', error);
@@ -157,49 +145,55 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callId = parseInt(req.params.id);
 
-    let query = `
-      SELECT c.*, u.username as agent_username
-      FROM calls c
-      LEFT JOIN users u ON c.agent_id = u.id
-      WHERE c.id = ? AND c.company_id = ?
-    `;
-    const params: (string | number)[] = [callId, req.user!.companyId];
+    let query = supabase
+      .from('calls')
+      .select('*, users!calls_agent_id_fkey(username)')
+      .eq('id', callId)
+      .eq('company_id', req.user!.companyId);
 
     // Agents can only see their own calls
     if (req.user!.role === 'agent') {
-      query += ' AND c.agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     }
 
-    const call = await dbGet(query, params);
+    const { data: call, error } = await query.single();
 
-    if (!call) {
+    if (error || !call) {
       return res.status(404).json({ error: 'Call not found' });
     }
 
     // Get criterion results
-    const criteriaResults = await dbAll(
-      `SELECT ccr.*, cr.name as criterion_name
-       FROM call_criteria_results ccr
-       JOIN criteria cr ON ccr.criterion_id = cr.id
-       WHERE ccr.call_id = ?`,
-      [callId]
-    );
+    const { data: criteriaResults } = await supabase
+      .from('call_criteria_results')
+      .select('*, criteria(name)')
+      .eq('call_id', callId);
 
     // Get feedback
-    const feedback = await dbAll(
-      `SELECT cf.*, u.username as author_username
-       FROM call_feedback cf
-       LEFT JOIN users u ON cf.author_id = u.id
-       WHERE cf.call_id = ?
-       ORDER BY cf.created_at ASC`,
-      [callId]
-    );
+    const { data: feedback } = await supabase
+      .from('call_feedback')
+      .select('*, users(username)')
+      .eq('call_id', callId)
+      .order('created_at', { ascending: true });
+
+    // Transform the data
+    const transformedCriteriaResults = (criteriaResults || []).map((cr: any) => ({
+      ...cr,
+      criterion_name: cr.criteria?.name || null,
+      criteria: undefined
+    }));
+
+    const transformedFeedback = (feedback || []).map((f: any) => ({
+      ...f,
+      author_username: f.users?.username || null,
+      users: undefined
+    }));
 
     res.json({
       ...call,
-      criteria_results: criteriaResults,
-      feedback
+      agent_username: call.users?.username || null,
+      users: undefined,
+      criteria_results: transformedCriteriaResults,
+      feedback: transformedFeedback
     });
   } catch (error) {
     console.error('Error fetching call:', error);
@@ -218,29 +212,31 @@ router.post('/:id/feedback', requireRole('admin_manager'), async (req: Authentic
     }
 
     // Verify the call exists and belongs to the company
-    const call = await dbGet(
-      'SELECT id FROM calls WHERE id = ? AND company_id = ?',
-      [callId, req.user!.companyId]
-    );
+    const { data: call } = await supabase
+      .from('calls')
+      .select('id')
+      .eq('id', callId)
+      .eq('company_id', req.user!.companyId)
+      .single();
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
     }
 
     // Insert the feedback
-    const result = await dbRun(
-      `INSERT INTO call_feedback (call_id, author_id, content, created_at)
-       VALUES (?, ?, ?, datetime('now'))`,
-      [callId, req.user!.userId, content.trim()]
-    );
+    const { data: feedback, error } = await supabase
+      .from('call_feedback')
+      .insert({
+        call_id: callId,
+        author_id: req.user!.userId,
+        content: content.trim()
+      })
+      .select()
+      .single();
 
-    res.status(201).json({
-      id: result.lastID,
-      call_id: callId,
-      author_id: req.user!.userId,
-      content: content.trim(),
-      created_at: new Date().toISOString()
-    });
+    if (error) throw error;
+
+    res.status(201).json(feedback);
   } catch (error) {
     console.error('Error adding feedback:', error);
     res.status(500).json({ error: 'Failed to add feedback' });
@@ -259,10 +255,13 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
     // Use provided agent_id or find an agent in the company
     let targetAgentId = agent_id;
     if (!targetAgentId) {
-      const agent = await dbGet<{ id: number }>(
-        'SELECT id FROM users WHERE company_id = ? AND role = ?',
-        [req.user!.companyId, 'agent']
-      );
+      const { data: agent } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', req.user!.companyId)
+        .eq('role', 'agent')
+        .single();
+
       if (agent) {
         targetAgentId = agent.id;
       } else {
@@ -271,34 +270,24 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
       }
     }
 
-    const callDate = new Date().toISOString();
-
-    const result = await dbRun(
-      `INSERT INTO calls (company_id, agent_id, phone_number, duration_seconds, final_score, call_date, summary, direction, next_step_recommendation)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        req.user!.companyId,
-        targetAgentId,
+    const { data: newCall, error } = await supabase
+      .from('calls')
+      .insert({
+        company_id: req.user!.companyId,
+        agent_id: targetAgentId,
         phone_number,
-        duration_seconds || 120,
-        final_score || 7.0,
-        callDate,
-        summary || 'Test call created via API',
+        duration_seconds: duration_seconds || 120,
+        final_score: final_score || 7.0,
+        summary: summary || 'Test call created via API',
         direction,
-        'Follow up with client'
-      ]
-    );
+        next_step_recommendation: 'Follow up with client'
+      })
+      .select()
+      .single();
 
-    res.status(201).json({
-      id: result.lastID,
-      phone_number,
-      agent_id: targetAgentId,
-      duration_seconds: duration_seconds || 120,
-      final_score: final_score || 7.0,
-      call_date: callDate,
-      summary: summary || 'Test call created via API',
-      direction
-    });
+    if (error) throw error;
+
+    res.status(201).json(newCall);
   } catch (error) {
     console.error('Error creating call:', error);
     res.status(500).json({ error: 'Failed to create call' });
@@ -311,22 +300,26 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     const callId = parseInt(req.params.id);
 
     // Verify the call exists and belongs to the company
-    const call = await dbGet(
-      'SELECT id FROM calls WHERE id = ? AND company_id = ?',
-      [callId, req.user!.companyId]
-    );
+    const { data: call } = await supabase
+      .from('calls')
+      .select('id')
+      .eq('id', callId)
+      .eq('company_id', req.user!.companyId)
+      .single();
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
     }
 
-    // Delete related data first
-    await dbRun('DELETE FROM call_criteria_results WHERE call_id = ?', [callId]);
-    await dbRun('DELETE FROM call_feedback WHERE call_id = ?', [callId]);
-    await dbRun('DELETE FROM alerts WHERE call_id = ?', [callId]);
+    // Delete related data first (cascade should handle this, but being explicit)
+    await supabase.from('call_criteria_results').delete().eq('call_id', callId);
+    await supabase.from('call_feedback').delete().eq('call_id', callId);
+    await supabase.from('alerts').delete().eq('call_id', callId);
 
     // Delete the call
-    await dbRun('DELETE FROM calls WHERE id = ?', [callId]);
+    const { error } = await supabase.from('calls').delete().eq('id', callId);
+
+    if (error) throw error;
 
     res.json({ message: 'Call deleted successfully' });
   } catch (error) {

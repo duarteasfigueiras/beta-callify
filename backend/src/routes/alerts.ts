@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbAll, dbGet, dbRun } from '../db/database';
+import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -11,47 +11,47 @@ router.use(authenticateToken);
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, unread_only } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const offset = (pageNum - 1) * limitNum;
     const isAdmin = req.user!.role === 'admin_manager';
 
-    let whereClause = 'WHERE a.company_id = ?';
-    const params: (string | number)[] = [req.user!.companyId];
+    // Build query
+    let query = supabase
+      .from('alerts')
+      .select('*, users!alerts_agent_id_fkey(username), calls!alerts_call_id_fkey(phone_number)', { count: 'exact' })
+      .eq('company_id', req.user!.companyId);
 
     // Agents can only see their own alerts
     if (!isAdmin) {
-      whereClause += ' AND a.agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     }
 
     if (unread_only === 'true') {
-      whereClause += ' AND a.is_read = 0';
+      query = query.eq('is_read', false);
     }
 
-    // Get total count
-    const countResult = await dbGet(
-      `SELECT COUNT(*) as total FROM alerts a ${whereClause}`,
-      params
-    );
-    const total = (countResult as { total: number }).total;
+    query = query.order('created_at', { ascending: false }).range(offset, offset + limitNum - 1);
 
-    // Get paginated alerts
-    const alerts = await dbAll(
-      `SELECT a.*, u.username as agent_username, c.phone_number
-       FROM alerts a
-       LEFT JOIN users u ON a.agent_id = u.id
-       LEFT JOIN calls c ON a.call_id = c.id
-       ${whereClause}
-       ORDER BY a.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, Number(limit), offset]
-    );
+    const { data: alerts, count: total, error } = await query;
+
+    if (error) throw error;
+
+    // Transform the data
+    const transformedAlerts = (alerts || []).map((alert: any) => ({
+      ...alert,
+      agent_username: alert.users?.username || null,
+      phone_number: alert.calls?.phone_number || null,
+      users: undefined,
+      calls: undefined
+    }));
 
     res.json({
-      data: alerts,
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit))
+      data: transformedAlerts,
+      total: total || 0,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil((total || 0) / limitNum)
     });
   } catch (error) {
     console.error('Error fetching alerts:', error);
@@ -65,22 +65,29 @@ router.patch('/:id/read', async (req: AuthenticatedRequest, res: Response) => {
     const alertId = parseInt(req.params.id);
     const isAdmin = req.user!.role === 'admin_manager';
 
-    // Verify the alert exists and belongs to the company
-    let query = 'SELECT id FROM alerts WHERE id = ? AND company_id = ?';
-    const params: (string | number)[] = [alertId, req.user!.companyId];
+    // Build query to verify the alert
+    let query = supabase
+      .from('alerts')
+      .select('id')
+      .eq('id', alertId)
+      .eq('company_id', req.user!.companyId);
 
     if (!isAdmin) {
-      query += ' AND agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     }
 
-    const alert = await dbGet(query, params);
+    const { data: alert } = await query.single();
 
     if (!alert) {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    await dbRun('UPDATE alerts SET is_read = 1 WHERE id = ?', [alertId]);
+    const { error } = await supabase
+      .from('alerts')
+      .update({ is_read: true })
+      .eq('id', alertId);
+
+    if (error) throw error;
 
     res.json({ message: 'Alert marked as read' });
   } catch (error) {
@@ -93,44 +100,45 @@ router.patch('/:id/read', async (req: AuthenticatedRequest, res: Response) => {
 router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Check if alerts already exist
-    const existingAlerts = await dbGet<{ count: number }>(
-      'SELECT COUNT(*) as count FROM alerts WHERE company_id = ?',
-      [req.user!.companyId]
-    );
+    const { count } = await supabase
+      .from('alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user!.companyId);
 
-    if (existingAlerts && existingAlerts.count > 0) {
-      return res.json({ message: 'Alerts already exist', count: existingAlerts.count });
+    if (count && count > 0) {
+      return res.json({ message: 'Alerts already exist', count });
     }
 
     // Get an agent from the company
-    const agent = await dbGet<{ id: number }>(
-      'SELECT id FROM users WHERE company_id = ? AND role = ?',
-      [req.user!.companyId, 'agent']
-    );
+    const { data: agent } = await supabase
+      .from('users')
+      .select('id')
+      .eq('company_id', req.user!.companyId)
+      .eq('role', 'agent')
+      .single();
 
     if (!agent) {
       return res.status(400).json({ error: 'No agent found to assign alerts to' });
     }
 
     // Get some calls to create alerts for
-    const calls = await dbAll<{ id: number; final_score: number; phone_number: string }>(
-      `SELECT id, final_score, phone_number FROM calls
-       WHERE company_id = ?
-       ORDER BY call_date DESC
-       LIMIT 5`,
-      [req.user!.companyId]
-    );
+    const { data: calls } = await supabase
+      .from('calls')
+      .select('id, final_score, phone_number')
+      .eq('company_id', req.user!.companyId)
+      .order('call_date', { ascending: false })
+      .limit(5);
 
-    if (calls.length === 0) {
+    if (!calls || calls.length === 0) {
       return res.status(400).json({ error: 'No calls found to create alerts for' });
     }
 
     // Create sample alerts
     const alertTypes = [
-      { type: 'low_score', message: 'Chamada com pontuacao abaixo de 5.0. Requer atencao.' },
+      { type: 'low_score', message: 'Chamada com pontuação abaixo de 5.0. Requer atenção.' },
       { type: 'risk_words', message: 'Palavras de risco detetadas: cancelar, insatisfeito' },
-      { type: 'long_duration', message: 'Chamada com duracao excessiva (>5 min)' },
-      { type: 'no_next_step', message: 'Proximo passo nao definido na chamada' }
+      { type: 'long_duration', message: 'Chamada com duração excessiva (>5 min)' },
+      { type: 'no_next_step', message: 'Próximo passo não definido na chamada' }
     ];
 
     let createdCount = 0;
@@ -138,11 +146,14 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
       const call = calls[i];
       const alertType = alertTypes[i];
 
-      await dbRun(
-        `INSERT INTO alerts (company_id, call_id, agent_id, type, message, is_read, created_at)
-         VALUES (?, ?, ?, ?, ?, 0, datetime('now', '-' || ? || ' days'))`,
-        [req.user!.companyId, call.id, agent.id, alertType.type, alertType.message, i]
-      );
+      await supabase.from('alerts').insert({
+        company_id: req.user!.companyId,
+        call_id: call.id,
+        agent_id: agent.id,
+        type: alertType.type,
+        message: alertType.message,
+        is_read: false
+      });
       createdCount++;
     }
 

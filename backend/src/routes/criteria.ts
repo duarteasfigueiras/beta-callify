@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbAll, dbGet, dbRun } from '../db/database';
+import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -10,13 +10,15 @@ router.use(authenticateToken);
 // Get all criteria
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const criteria = await dbAll(
-      `SELECT * FROM criteria
-       WHERE company_id = ?
-       ORDER BY weight DESC, name ASC`,
-      [req.user!.companyId]
-    );
-    res.json(criteria);
+    const { data: criteria, error } = await supabase
+      .from('criteria')
+      .select('*')
+      .eq('company_id', req.user!.companyId)
+      .order('weight', { ascending: false })
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    res.json(criteria || []);
   } catch (error) {
     console.error('Error fetching criteria:', error);
     res.status(500).json({ error: 'Failed to fetch criteria' });
@@ -26,11 +28,14 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 // Get single criterion
 router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const criterion = await dbGet(
-      `SELECT * FROM criteria WHERE id = ? AND company_id = ?`,
-      [req.params.id, req.user!.companyId]
-    );
-    if (!criterion) {
+    const { data: criterion, error } = await supabase
+      .from('criteria')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
+    if (error || !criterion) {
       return res.status(404).json({ error: 'Criterion not found' });
     }
     res.json(criterion);
@@ -45,24 +50,25 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
   try {
     const { name, description, weight } = req.body;
 
-    if (!name || !description) {
-      return res.status(400).json({ error: 'Name and description are required' });
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
     }
 
-    const result = await dbRun(
-      `INSERT INTO criteria (company_id, name, description, weight, is_active)
-       VALUES (?, ?, ?, ?, 1)`,
-      [req.user!.companyId, name, description, weight || 1]
-    );
+    const { data: criterion, error } = await supabase
+      .from('criteria')
+      .insert({
+        company_id: req.user!.companyId,
+        name,
+        description: description || '',
+        weight: weight || 1,
+        is_active: true
+      })
+      .select()
+      .single();
 
-    res.status(201).json({
-      id: result.lastID,
-      company_id: req.user!.companyId,
-      name,
-      description,
-      weight: weight || 1,
-      is_active: true
-    });
+    if (error) throw error;
+
+    res.status(201).json(criterion);
   } catch (error) {
     console.error('Error creating criterion:', error);
     res.status(500).json({ error: 'Failed to create criterion' });
@@ -76,26 +82,33 @@ router.put('/:id', requireRole('admin_manager'), async (req: AuthenticatedReques
     const criterionId = parseInt(req.params.id);
 
     // Check criterion exists and belongs to company
-    const criterion = await dbGet(
-      'SELECT id FROM criteria WHERE id = ? AND company_id = ?',
-      [criterionId, req.user!.companyId]
-    );
-    if (!criterion) {
+    const { data: existing } = await supabase
+      .from('criteria')
+      .select('id')
+      .eq('id', criterionId)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
+    if (!existing) {
       return res.status(404).json({ error: 'Criterion not found' });
     }
 
-    await dbRun(
-      `UPDATE criteria SET
-         name = COALESCE(?, name),
-         description = COALESCE(?, description),
-         weight = COALESCE(?, weight),
-         is_active = COALESCE(?, is_active),
-         updated_at = datetime('now')
-       WHERE id = ?`,
-      [name, description, weight, is_active, criterionId]
-    );
+    // Build update object
+    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (weight !== undefined) updateData.weight = weight;
+    if (is_active !== undefined) updateData.is_active = is_active;
 
-    const updated = await dbGet('SELECT * FROM criteria WHERE id = ?', [criterionId]);
+    const { data: updated, error } = await supabase
+      .from('criteria')
+      .update(updateData)
+      .eq('id', criterionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating criterion:', error);
@@ -109,15 +122,24 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     const criterionId = parseInt(req.params.id);
 
     // Check criterion exists and belongs to company
-    const criterion = await dbGet(
-      'SELECT id FROM criteria WHERE id = ? AND company_id = ?',
-      [criterionId, req.user!.companyId]
-    );
-    if (!criterion) {
+    const { data: existing } = await supabase
+      .from('criteria')
+      .select('id')
+      .eq('id', criterionId)
+      .eq('company_id', req.user!.companyId)
+      .single();
+
+    if (!existing) {
       return res.status(404).json({ error: 'Criterion not found' });
     }
 
-    await dbRun('DELETE FROM criteria WHERE id = ?', [criterionId]);
+    const { error } = await supabase
+      .from('criteria')
+      .delete()
+      .eq('id', criterionId);
+
+    if (error) throw error;
+
     res.json({ message: 'Criterion deleted successfully' });
   } catch (error) {
     console.error('Error deleting criterion:', error);

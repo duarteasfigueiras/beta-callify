@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { usersApi } from '../services/api';
+import { usersApi, authApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,15 @@ export default function Settings() {
     user?.theme_preference || 'light'
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -46,6 +55,40 @@ export default function Settings() {
       toast.error(t('settings.saveError', 'Failed to save settings'));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error(t('settings.passwordFieldsRequired', 'All password fields are required'));
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error(t('settings.passwordTooShort', 'New password must be at least 6 characters'));
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error(t('settings.passwordsDoNotMatch', 'New passwords do not match'));
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await authApi.changePassword(currentPassword, newPassword);
+      toast.success(t('settings.passwordChanged', 'Password changed successfully'));
+      // Clear form
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      const errorMessage = error.response?.data?.error || t('settings.passwordChangeError', 'Failed to change password');
+      toast.error(errorMessage);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -87,6 +130,98 @@ export default function Settings() {
                 {user?.role === 'admin_manager' ? t('common.admin', 'Admin') : t('common.agent', 'Agent')}
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Change Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            {t('settings.changePassword', 'Change Password')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Current Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.currentPassword', 'Current Password')}
+            </label>
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder={t('settings.enterCurrentPassword', 'Enter current password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* New Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.newPassword', 'New Password')}
+            </label>
+            <div className="relative">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder={t('settings.enterNewPassword', 'Enter new password (min. 6 characters)')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.confirmNewPassword', 'Confirm New Password')}
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder={t('settings.confirmNewPasswordPlaceholder', 'Confirm new password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Change Password Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Lock className="w-4 h-4" />
+              {isChangingPassword ? t('settings.changingPassword', 'Changing...') : t('settings.changePasswordButton', 'Change Password')}
+            </button>
           </div>
         </CardContent>
       </Card>

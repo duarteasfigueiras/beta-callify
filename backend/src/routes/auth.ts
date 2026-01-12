@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { dbGet, dbRun } from '../db/database';
+import { supabase } from '../db/supabase';
 import { AuthenticatedRequest, authenticateToken, generateToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
 
@@ -16,12 +16,13 @@ router.post('/login', async (req, res: Response) => {
     }
 
     // Find user by username
-    const user = await dbGet<User>(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
@@ -69,16 +70,11 @@ router.post('/register', async (req, res: Response) => {
     }
 
     // Find valid invitation
-    const invitation = await dbGet<{
-      id: number;
-      company_id: number;
-      role: string;
-      used: number;
-      expires_at: string;
-    }>(
-      'SELECT * FROM invitations WHERE token = ?',
-      [token]
-    );
+    const { data: invitation } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('token', token)
+      .single();
 
     if (!invitation) {
       return res.status(400).json({ error: 'Invalid invitation token' });
@@ -93,10 +89,11 @@ router.post('/register', async (req, res: Response) => {
     }
 
     // Check if username already exists
-    const existingUser = await dbGet<{ id: number }>(
-      'SELECT id FROM users WHERE username = ?',
-      [username]
-    );
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .single();
 
     if (existingUser) {
       return res.status(400).json({ error: 'Username already taken' });
@@ -106,17 +103,20 @@ router.post('/register', async (req, res: Response) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = await dbRun(
-      `INSERT INTO users (company_id, username, password_hash, role, language_preference, theme_preference)
-       VALUES (?, ?, ?, ?, 'pt', 'light')`,
-      [invitation.company_id, username, passwordHash, invitation.role]
-    );
+    await supabase.from('users').insert({
+      company_id: invitation.company_id,
+      username,
+      password_hash: passwordHash,
+      role: invitation.role,
+      language_preference: 'pt',
+      theme_preference: 'light'
+    });
 
     // Mark invitation as used
-    await dbRun(
-      'UPDATE invitations SET used = 1 WHERE id = ?',
-      [invitation.id]
-    );
+    await supabase
+      .from('invitations')
+      .update({ used: true })
+      .eq('id', invitation.id);
 
     return res.json({ message: 'Registration successful. You can now login.' });
   } catch (error) {
@@ -137,12 +137,13 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const user = await dbGet<User>(
-      'SELECT * FROM users WHERE id = ?',
-      [req.user.userId]
-    );
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.user.userId)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -163,10 +164,11 @@ router.post('/recover-password', async (req, res: Response) => {
       return res.status(400).json({ error: 'Username is required' });
     }
 
-    const user = await dbGet<User>(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
 
     if (!user) {
       // Don't reveal if user exists or not
@@ -185,6 +187,56 @@ router.post('/recover-password', async (req, res: Response) => {
     return res.json({ message: 'If the username exists, password reset instructions will be sent' });
   } catch (error) {
     console.error('Password recovery error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Change password (for logged-in users)
+router.post('/change-password', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+
+    // Get user from database
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.user.userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await supabase
+      .from('users')
+      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .eq('id', req.user.userId);
+
+    return res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -219,11 +271,10 @@ router.post('/reset-password', async (req, res: Response) => {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    const { dbRun } = require('../db/database');
-    await dbRun(
-      'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [passwordHash, userId]
-    );
+    await supabase
+      .from('users')
+      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .eq('id', userId);
 
     return res.json({ message: 'Password updated successfully' });
   } catch (error) {

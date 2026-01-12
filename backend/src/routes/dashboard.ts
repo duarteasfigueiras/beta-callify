@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbAll, dbGet } from '../db/database';
+import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
@@ -13,74 +13,54 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
     const { date_from, date_to } = req.query;
     const isAdmin = req.user!.role === 'admin_manager';
 
-    let dateFilter = '';
-    const params: (string | number)[] = [req.user!.companyId];
+    // Build calls query
+    let callsQuery = supabase
+      .from('calls')
+      .select('final_score, next_step_recommendation', { count: 'exact' })
+      .eq('company_id', req.user!.companyId);
+
+    if (!isAdmin) {
+      callsQuery = callsQuery.eq('agent_id', req.user!.userId);
+    }
 
     if (date_from) {
-      dateFilter += ' AND c.call_date >= ?';
-      params.push(String(date_from));
+      callsQuery = callsQuery.gte('call_date', String(date_from));
     }
     if (date_to) {
-      dateFilter += ' AND c.call_date <= ?';
-      params.push(String(date_to));
+      callsQuery = callsQuery.lte('call_date', String(date_to));
     }
 
-    // For agents, only show their own stats
-    let agentFilter = '';
-    if (!isAdmin) {
-      agentFilter = ' AND c.agent_id = ?';
-      params.push(req.user!.userId);
-    }
+    const { data: calls, count: totalCalls } = await callsQuery;
 
-    // Total calls
-    const totalCallsResult = await dbGet(
-      `SELECT COUNT(*) as total FROM calls c
-       WHERE c.company_id = ?${agentFilter}${dateFilter}`,
-      params
-    );
-    const totalCalls = (totalCallsResult as { total: number })?.total || 0;
-
-    // Average score
-    const avgScoreResult = await dbGet(
-      `SELECT AVG(c.final_score) as avg FROM calls c
-       WHERE c.company_id = ? AND c.final_score IS NOT NULL${agentFilter}${dateFilter}`,
-      params
-    );
-    const averageScore = (avgScoreResult as { avg: number })?.avg || 0;
-
-    // Alerts count (unread)
-    const alertsParams = [req.user!.companyId];
-    let alertAgentFilter = '';
-    if (!isAdmin) {
-      alertAgentFilter = ' AND a.agent_id = ?';
-      alertsParams.push(req.user!.userId);
-    }
-    const alertsResult = await dbGet(
-      `SELECT COUNT(*) as total FROM alerts a
-       WHERE a.company_id = ? AND a.is_read = 0${alertAgentFilter}`,
-      alertsParams
-    );
-    const alertsCount = (alertsResult as { total: number })?.total || 0;
-
-    // Calls with next step recommendation
-    const nextStepResult = await dbGet(
-      `SELECT
-         COUNT(CASE WHEN c.next_step_recommendation IS NOT NULL AND c.next_step_recommendation != '' THEN 1 END) as with_next_step,
-         COUNT(*) as total
-       FROM calls c
-       WHERE c.company_id = ?${agentFilter}${dateFilter}`,
-      params
-    );
-    const withNextStep = (nextStepResult as { with_next_step: number })?.with_next_step || 0;
-    const totalForPercentage = (nextStepResult as { total: number })?.total || 1;
-    const callsWithNextStepPercentage = totalForPercentage > 0
-      ? Math.round((withNextStep / totalForPercentage) * 100)
+    // Calculate average score
+    const scoresArray = (calls || []).filter(c => c.final_score !== null).map(c => c.final_score);
+    const averageScore = scoresArray.length > 0
+      ? scoresArray.reduce((a, b) => a + b, 0) / scoresArray.length
       : 0;
 
+    // Calculate next step percentage
+    const withNextStep = (calls || []).filter(c => c.next_step_recommendation && c.next_step_recommendation.length > 0).length;
+    const callsWithNextStepPercentage = totalCalls && totalCalls > 0
+      ? Math.round((withNextStep / totalCalls) * 100)
+      : 0;
+
+    // Get unread alerts count
+    let alertsQuery = supabase
+      .from('alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', req.user!.companyId)
+      .eq('is_read', false);
+
+    if (!isAdmin) {
+      alertsQuery = alertsQuery.eq('agent_id', req.user!.userId);
+    }
+
+    const { count: alertsCount } = await alertsQuery;
+
     res.json({
-      total_calls: totalCalls,
-      average_score: Math.round(averageScore * 10) / 10, // Round to 1 decimal
-      alerts_count: alertsCount,
+      total_calls: totalCalls || 0,
+      average_score: Math.round(averageScore * 10) / 10,
+      alerts_count: alertsCount || 0,
       calls_with_next_step_percentage: callsWithNextStepPercentage
     });
   } catch (error) {
@@ -95,26 +75,29 @@ router.get('/recent-calls', async (req: AuthenticatedRequest, res: Response) => 
     const isAdmin = req.user!.role === 'admin_manager';
     const limit = Math.min(Number(req.query.limit) || 5, 10);
 
-    let agentFilter = '';
-    const params: (string | number)[] = [req.user!.companyId];
+    let query = supabase
+      .from('calls')
+      .select('id, phone_number, call_date, final_score, duration_seconds, users!calls_agent_id_fkey(username)')
+      .eq('company_id', req.user!.companyId);
 
     if (!isAdmin) {
-      agentFilter = ' AND c.agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     }
 
-    const calls = await dbAll(
-      `SELECT c.id, c.phone_number, c.call_date, c.final_score, c.duration_seconds,
-              u.username as agent_username
-       FROM calls c
-       LEFT JOIN users u ON c.agent_id = u.id
-       WHERE c.company_id = ?${agentFilter}
-       ORDER BY c.call_date DESC
-       LIMIT ?`,
-      [...params, limit]
-    );
+    query = query.order('call_date', { ascending: false }).limit(limit);
 
-    res.json(calls);
+    const { data: calls, error } = await query;
+
+    if (error) throw error;
+
+    // Transform the data
+    const transformedCalls = (calls || []).map((call: any) => ({
+      ...call,
+      agent_username: call.users?.username || null,
+      users: undefined
+    }));
+
+    res.json(transformedCalls);
   } catch (error) {
     console.error('Error fetching recent calls:', error);
     res.status(500).json({ error: 'Failed to fetch recent calls' });
@@ -127,25 +110,29 @@ router.get('/alerts', async (req: AuthenticatedRequest, res: Response) => {
     const isAdmin = req.user!.role === 'admin_manager';
     const limit = Math.min(Number(req.query.limit) || 5, 10);
 
-    let agentFilter = '';
-    const params: (string | number)[] = [req.user!.companyId];
+    let query = supabase
+      .from('alerts')
+      .select('*, users!alerts_agent_id_fkey(username)')
+      .eq('company_id', req.user!.companyId);
 
     if (!isAdmin) {
-      agentFilter = ' AND a.agent_id = ?';
-      params.push(req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     }
 
-    const alerts = await dbAll(
-      `SELECT a.*, u.username as agent_username
-       FROM alerts a
-       LEFT JOIN users u ON a.agent_id = u.id
-       WHERE a.company_id = ?${agentFilter}
-       ORDER BY a.created_at DESC
-       LIMIT ?`,
-      [...params, limit]
-    );
+    query = query.order('created_at', { ascending: false }).limit(limit);
 
-    res.json(alerts);
+    const { data: alerts, error } = await query;
+
+    if (error) throw error;
+
+    // Transform the data
+    const transformedAlerts = (alerts || []).map((alert: any) => ({
+      ...alert,
+      agent_username: alert.users?.username || null,
+      users: undefined
+    }));
+
+    res.json(transformedAlerts);
   } catch (error) {
     console.error('Error fetching alerts:', error);
     res.status(500).json({ error: 'Failed to fetch alerts' });
@@ -157,32 +144,44 @@ router.get('/score-evolution', async (req: AuthenticatedRequest, res: Response) 
   try {
     const { days = 30, agent_id } = req.query;
     const isAdmin = req.user!.role === 'admin_manager';
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - Number(days));
 
-    let agentFilter = '';
-    const params: (string | number)[] = [req.user!.companyId, Number(days)];
+    let query = supabase
+      .from('calls')
+      .select('call_date, final_score')
+      .eq('company_id', req.user!.companyId)
+      .not('final_score', 'is', null)
+      .gte('call_date', daysAgo.toISOString());
 
     if (!isAdmin) {
-      agentFilter = ' AND c.agent_id = ?';
-      params.splice(1, 0, req.user!.userId);
+      query = query.eq('agent_id', req.user!.userId);
     } else if (agent_id) {
-      agentFilter = ' AND c.agent_id = ?';
-      params.push(Number(agent_id));
+      query = query.eq('agent_id', Number(agent_id));
     }
 
-    const evolution = await dbAll(
-      `SELECT
-         DATE(c.call_date) as date,
-         AVG(c.final_score) as average_score,
-         COUNT(*) as total_calls
-       FROM calls c
-       WHERE c.company_id = ?
-         AND c.final_score IS NOT NULL
-         AND c.call_date >= DATE('now', '-' || ? || ' days')
-         ${agentFilter}
-       GROUP BY DATE(c.call_date)
-       ORDER BY date ASC`,
-      params
-    );
+    const { data: calls, error } = await query;
+
+    if (error) throw error;
+
+    // Group by date
+    const groupedByDate: Record<string, { scores: number[]; count: number }> = {};
+    (calls || []).forEach((call: any) => {
+      const date = call.call_date.split('T')[0];
+      if (!groupedByDate[date]) {
+        groupedByDate[date] = { scores: [], count: 0 };
+      }
+      groupedByDate[date].scores.push(call.final_score);
+      groupedByDate[date].count++;
+    });
+
+    const evolution = Object.entries(groupedByDate)
+      .map(([date, data]) => ({
+        date,
+        average_score: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
+        total_calls: data.count
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     res.json(evolution);
   } catch (error) {
@@ -199,31 +198,45 @@ router.get('/score-by-agent', async (req: AuthenticatedRequest, res: Response) =
     }
 
     const { date_from, date_to } = req.query;
-    let dateFilter = '';
-    const params: (string | number)[] = [req.user!.companyId];
+
+    let query = supabase
+      .from('calls')
+      .select('agent_id, final_score, users!calls_agent_id_fkey(id, username)')
+      .eq('company_id', req.user!.companyId)
+      .not('final_score', 'is', null);
 
     if (date_from) {
-      dateFilter += ' AND c.call_date >= ?';
-      params.push(String(date_from));
+      query = query.gte('call_date', String(date_from));
     }
     if (date_to) {
-      dateFilter += ' AND c.call_date <= ?';
-      params.push(String(date_to));
+      query = query.lte('call_date', String(date_to));
     }
 
-    const results = await dbAll(
-      `SELECT
-         u.id as agent_id,
-         u.username as agent_username,
-         ROUND(AVG(c.final_score), 1) as average_score,
-         COUNT(*) as total_calls
-       FROM calls c
-       JOIN users u ON c.agent_id = u.id
-       WHERE c.company_id = ? AND c.final_score IS NOT NULL${dateFilter}
-       GROUP BY u.id
-       ORDER BY average_score DESC`,
-      params
-    );
+    const { data: calls, error } = await query;
+
+    if (error) throw error;
+
+    // Group by agent
+    const agentStats: Record<number, { username: string; scores: number[] }> = {};
+    (calls || []).forEach((call: any) => {
+      const agentId = call.agent_id;
+      if (!agentStats[agentId]) {
+        agentStats[agentId] = {
+          username: call.users?.username || 'Unknown',
+          scores: []
+        };
+      }
+      agentStats[agentId].scores.push(call.final_score);
+    });
+
+    const results = Object.entries(agentStats)
+      .map(([agentId, data]) => ({
+        agent_id: parseInt(agentId),
+        agent_username: data.username,
+        average_score: Math.round((data.scores.reduce((a, b) => a + b, 0) / data.scores.length) * 10) / 10,
+        total_calls: data.scores.length
+      }))
+      .sort((a, b) => b.average_score - a.average_score);
 
     res.json(results);
   } catch (error) {
@@ -240,26 +253,33 @@ router.get('/calls-by-period', async (req: AuthenticatedRequest, res: Response) 
     }
 
     const { days = 30, agent_id } = req.query;
-    const params: (string | number)[] = [req.user!.companyId, Number(days)];
-    let agentFilter = '';
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - Number(days));
+
+    let query = supabase
+      .from('calls')
+      .select('call_date')
+      .eq('company_id', req.user!.companyId)
+      .gte('call_date', daysAgo.toISOString());
 
     if (agent_id) {
-      agentFilter = ' AND c.agent_id = ?';
-      params.push(Number(agent_id));
+      query = query.eq('agent_id', Number(agent_id));
     }
 
-    const results = await dbAll(
-      `SELECT
-         DATE(c.call_date) as period,
-         COUNT(*) as count
-       FROM calls c
-       WHERE c.company_id = ?
-         AND c.call_date >= DATE('now', '-' || ? || ' days')
-         ${agentFilter}
-       GROUP BY DATE(c.call_date)
-       ORDER BY period ASC`,
-      params
-    );
+    const { data: calls, error } = await query;
+
+    if (error) throw error;
+
+    // Group by date
+    const groupedByDate: Record<string, number> = {};
+    (calls || []).forEach((call: any) => {
+      const date = call.call_date.split('T')[0];
+      groupedByDate[date] = (groupedByDate[date] || 0) + 1;
+    });
+
+    const results = Object.entries(groupedByDate)
+      .map(([period, count]) => ({ period, count }))
+      .sort((a, b) => a.period.localeCompare(b.period));
 
     res.json(results);
   } catch (error) {
@@ -275,13 +295,12 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Since we don't have a separate reason field, we'll simulate with some common reasons
-    // In a real app, this would come from call categorization or NLP analysis
+    // Simulated data - in a real app this would come from call categorization
     const reasons = [
-      { reason: 'Informacao de produto', count: 4 },
-      { reason: 'Suporte tecnico', count: 3 },
-      { reason: 'Reclamacao', count: 2 },
-      { reason: 'Faturacao', count: 1 }
+      { reason: 'Informação de produto', count: 4 },
+      { reason: 'Suporte técnico', count: 3 },
+      { reason: 'Reclamação', count: 2 },
+      { reason: 'Faturação', count: 1 }
     ];
 
     res.json(reasons);
@@ -298,11 +317,11 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Simulated objection data - in a real app this would come from NLP analysis
+    // Simulated objection data
     const objections = [
-      { objection: 'Preco muito alto', count: 5 },
-      { objection: 'Ja tenho fornecedor', count: 3 },
-      { objection: 'Nao tenho tempo', count: 2 },
+      { objection: 'Preço muito alto', count: 5 },
+      { objection: 'Já tenho fornecedor', count: 3 },
+      { objection: 'Não tenho tempo', count: 2 },
       { objection: 'Preciso pensar', count: 2 }
     ];
 
