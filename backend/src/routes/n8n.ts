@@ -524,6 +524,157 @@ When analyzing a call, evaluate each criterion and provide:
 });
 
 /**
+ * Receive AI Agent output and create call record
+ * This endpoint accepts the format from the AI agent (Portuguese fields)
+ */
+router.post('/agent-output', async (req: Request, res: Response) => {
+  try {
+    console.log('[n8n] Received AI agent output:', JSON.stringify(req.body, null, 2));
+
+    const {
+      // Call metadata (optional)
+      phoneNumber,
+      direction = 'inbound',
+      durationSeconds = 0,
+      audioUrl,
+      agentId,
+      companyId,
+      callDate,
+      transcription,
+      // AI Agent output format
+      agent_output,
+      // Or direct fields
+      score,
+      resumo,
+      pontos_fortes,
+      melhorias,
+      acoes_recomendadas,
+      observacoes
+    } = req.body;
+
+    // Parse agent_output if it's a string
+    let aiOutput = agent_output;
+    if (typeof agent_output === 'string') {
+      try {
+        aiOutput = JSON.parse(agent_output);
+      } catch {
+        aiOutput = {};
+      }
+    }
+
+    // Use direct fields or from agent_output object
+    const finalScore = score ?? aiOutput?.score;
+    const summary = resumo ?? aiOutput?.resumo ?? '';
+    const strengths = pontos_fortes ?? aiOutput?.pontos_fortes ?? [];
+    const improvements = melhorias ?? aiOutput?.melhorias ?? [];
+    const recommendations = acoes_recomendadas ?? aiOutput?.acoes_recomendadas ?? [];
+    const notes = observacoes ?? aiOutput?.observacoes ?? '';
+
+    if (finalScore === undefined) {
+      return res.status(400).json({
+        error: 'score is required',
+        example: {
+          score: 7.5,
+          resumo: 'Resumo da chamada...',
+          pontos_fortes: ['Ponto 1', 'Ponto 2'],
+          melhorias: ['Melhoria 1'],
+          acoes_recomendadas: ['Ação 1'],
+          observacoes: 'Notas adicionais'
+        }
+      });
+    }
+
+    // Get company
+    let targetCompanyId = companyId;
+    if (!targetCompanyId) {
+      const { data: company } = await supabase.from('companies').select('id').limit(1).single();
+      if (!company) {
+        return res.status(500).json({ error: 'No company configured' });
+      }
+      targetCompanyId = company.id;
+    }
+
+    // Get agent
+    let targetAgentId = agentId;
+    if (!targetAgentId) {
+      const { data: agent } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', targetCompanyId)
+        .limit(1)
+        .single();
+
+      if (!agent) {
+        return res.status(500).json({ error: 'No agent found' });
+      }
+      targetAgentId = agent.id;
+    }
+
+    // Detect risk words from transcription or summary
+    const textToCheck = (transcription || summary || '').toLowerCase();
+    const detectedRiskWords = RISK_WORDS.filter(word => textToCheck.includes(word.toLowerCase()));
+
+    // Create call record with AI analysis
+    const { data: newCall, error } = await supabase
+      .from('calls')
+      .insert({
+        company_id: targetCompanyId,
+        agent_id: targetAgentId,
+        phone_number: phoneNumber || 'AI Analysis',
+        direction: direction === 'outbound' ? 'outbound' : 'inbound',
+        duration_seconds: durationSeconds,
+        audio_file_path: audioUrl || null,
+        call_date: callDate || new Date().toISOString(),
+        transcription: transcription || null,
+        summary: summary,
+        next_step_recommendation: recommendations.join('\n- '),
+        final_score: finalScore,
+        score_justification: notes,
+        what_went_well: JSON.stringify(strengths),
+        what_went_wrong: JSON.stringify(improvements),
+        risk_words_detected: JSON.stringify(detectedRiskWords)
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('[n8n] Error creating call:', error);
+      throw error;
+    }
+
+    const callId = newCall.id;
+
+    // Generate alerts
+    const alerts = await generateAlerts(
+      callId,
+      targetCompanyId,
+      targetAgentId,
+      finalScore,
+      durationSeconds,
+      detectedRiskWords,
+      recommendations.join(', ')
+    );
+
+    console.log('[n8n] AI agent output processed, call created:', callId);
+
+    res.status(201).json({
+      success: true,
+      callId,
+      status: 'completed',
+      finalScore,
+      summary,
+      riskWordsDetected: detectedRiskWords,
+      alertsGenerated: alerts.length,
+      viewUrl: `/calls/${callId}`
+    });
+
+  } catch (error) {
+    console.error('[n8n] Error processing AI agent output:', error);
+    res.status(500).json({ error: 'Failed to process AI agent output' });
+  }
+});
+
+/**
  * Health check and documentation
  */
 router.get('/health', (req: Request, res: Response) => {
@@ -536,6 +687,7 @@ router.get('/health', (req: Request, res: Response) => {
       'POST /api/n8n/calls/:id/transcription': 'Submit transcription (Step 2)',
       'POST /api/n8n/calls/:id/analysis': 'Submit AI analysis (Step 3)',
       'POST /api/n8n/calls/complete': 'Process complete call in one request',
+      'POST /api/n8n/agent-output': 'Receive AI agent output (Portuguese format)',
       'GET /api/n8n/calls/:id/status': 'Get call processing status',
       'GET /api/n8n/criteria': 'Get evaluation criteria for analysis',
       'GET /api/n8n/health': 'This endpoint'

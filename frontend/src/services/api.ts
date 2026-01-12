@@ -190,3 +190,4 @@ export const alertsApi = {
     return response.data;
   },
 };
+
