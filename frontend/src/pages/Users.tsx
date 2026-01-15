@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users as UsersIcon, UserPlus, Trash2, Shield, User as UserIcon, Copy, Link, RefreshCw } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Trash2, Shield, User as UserIcon, Copy, Link, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { User, UserRole } from '../types';
 import toast from 'react-hot-toast';
+
+const MAX_USERS = 5;
 
 export default function Users() {
   const { t } = useTranslation();
@@ -171,14 +173,54 @@ export default function Users() {
             {t('users.subtitle', 'Manage team members and their roles')}
           </p>
         </div>
-        <button
-          onClick={handleInviteClick}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <UserPlus className="w-5 h-5" />
-          {t('users.inviteUser', 'Invite User')}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Agent count indicator (admins don't count towards the limit) */}
+          {(() => {
+            const agentCount = users.filter(u => u.role === 'agent').length;
+            const isAtLimit = agentCount >= MAX_USERS;
+            return (
+              <>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                  isAtLimit
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}>
+                  <UsersIcon className="w-4 h-4" />
+                  {agentCount}/{MAX_USERS} {t('users.usersLabel', 'users')}
+                </div>
+                <button
+                  onClick={handleInviteClick}
+                  disabled={isAtLimit}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isAtLimit
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                  title={isAtLimit ? t('users.limitReached', 'User limit reached') : ''}
+                >
+                  <UserPlus className="w-5 h-5" />
+                  {t('users.inviteUser', 'Invite User')}
+                </button>
+              </>
+            );
+          })()}
+        </div>
       </div>
+
+      {/* Limit Warning Banner */}
+      {users.filter(u => u.role === 'agent').length >= MAX_USERS && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+              {t('users.limitReachedTitle', 'User limit reached')}
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              {t('users.limitReachedMessage', 'You have reached the maximum of {{max}} users. Delete an existing user to invite a new one.', { max: MAX_USERS })}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Users Table */}
       <Card>

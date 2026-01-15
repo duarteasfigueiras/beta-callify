@@ -17,6 +17,7 @@ router.get('/', requireRole('admin_manager'), async (req: AuthenticatedRequest, 
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+
     res.json(users || []);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -36,6 +37,7 @@ router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
     if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
     res.json(user);
   } catch (error) {
     console.error('Error fetching user:', error);

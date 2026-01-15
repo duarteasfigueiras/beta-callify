@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Scale, AlertTriangle } from 'lucide-react';
 import { criteriaApi } from '../services/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 
 interface Criterion {
@@ -52,16 +52,6 @@ export default function Criteria() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Function to handle navigation with unsaved changes check
-  const handleNavigation = useCallback((path: string) => {
-    if (isDirty()) {
-      setPendingNavigation(path);
-      setShowUnsavedWarning(true);
-    } else {
-      navigate(path);
-    }
-  }, [isDirty, navigate]);
-
   // Confirm leaving without saving
   const confirmLeave = useCallback(() => {
     setShowUnsavedWarning(false);
@@ -89,7 +79,7 @@ export default function Criteria() {
       setCriteria(data);
     } catch (error) {
       console.error('Error fetching criteria:', error);
-      toast.error(t('common.error', 'Failed to load criteria'));
+      toast.error(t('common.error', 'Failed to load data'));
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +89,7 @@ export default function Criteria() {
     fetchCriteria();
   }, []);
 
-  const handleCreate = async () => {
+  const handleCreateCriterion = async () => {
     if (!formData.name.trim()) {
       toast.error(t('criteria.nameRequired', 'Criterion name is required'));
       return;
@@ -107,7 +97,11 @@ export default function Criteria() {
 
     try {
       setIsSubmitting(true);
-      await criteriaApi.create(formData);
+      await criteriaApi.create({
+        name: formData.name,
+        description: formData.description,
+        weight: formData.weight
+      });
       toast.success(t('criteria.created', 'Criterion created successfully'));
       setShowCreateModal(false);
       setFormData({ name: '', description: '', weight: 1 });
@@ -120,7 +114,7 @@ export default function Criteria() {
     }
   };
 
-  const handleUpdate = async () => {
+  const handleUpdateCriterion = async () => {
     if (!editingCriterion || !formData.name.trim()) {
       toast.error(t('criteria.nameRequired', 'Criterion name is required'));
       return;
@@ -128,7 +122,11 @@ export default function Criteria() {
 
     try {
       setIsSubmitting(true);
-      await criteriaApi.update(editingCriterion.id, formData);
+      await criteriaApi.update(editingCriterion.id, {
+        name: formData.name,
+        description: formData.description,
+        weight: formData.weight
+      });
       toast.success(t('criteria.updated', 'Criterion updated successfully'));
       setShowEditModal(false);
       setEditingCriterion(null);
@@ -142,7 +140,7 @@ export default function Criteria() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDeleteCriterion = async (id: number) => {
     if (!confirm(t('criteria.confirmDelete', 'Are you sure you want to delete this criterion?'))) {
       return;
     }
@@ -157,7 +155,7 @@ export default function Criteria() {
     }
   };
 
-  const openEditModal = (criterion: Criterion) => {
+  const openEditCriterionModal = (criterion: Criterion) => {
     setEditingCriterion(criterion);
     const editForm = {
       name: criterion.name,
@@ -274,14 +272,14 @@ export default function Criteria() {
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => openEditModal(criterion)}
+                            onClick={() => openEditCriterionModal(criterion)}
                             className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             title={t('common.edit', 'Edit')}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(criterion.id)}
+                            onClick={() => handleDeleteCriterion(criterion.id)}
                             className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             title={t('common.delete', 'Delete')}
                           >
@@ -298,7 +296,7 @@ export default function Criteria() {
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
+      {/* Create Criterion Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -364,7 +362,7 @@ export default function Criteria() {
                 {t('common.cancel', 'Cancel')}
               </button>
               <button
-                onClick={handleCreate}
+                onClick={handleCreateCriterion}
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
               >
@@ -375,7 +373,7 @@ export default function Criteria() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Criterion Modal */}
       {showEditModal && editingCriterion && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -440,7 +438,7 @@ export default function Criteria() {
                 {t('common.cancel', 'Cancel')}
               </button>
               <button
-                onClick={handleUpdate}
+                onClick={handleUpdateCriterion}
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
               >

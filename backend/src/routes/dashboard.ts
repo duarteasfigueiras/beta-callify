@@ -295,15 +295,8 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Simulated data - in a real app this would come from call categorization
-    const reasons = [
-      { reason: 'Informação de produto', count: 4 },
-      { reason: 'Suporte técnico', count: 3 },
-      { reason: 'Reclamação', count: 2 },
-      { reason: 'Faturação', count: 1 }
-    ];
-
-    res.json(reasons);
+    // Returns empty array - will be populated when call analysis is implemented
+    res.json([]);
   } catch (error) {
     console.error('Error fetching top reasons:', error);
     res.status(500).json({ error: 'Failed to fetch top reasons' });
@@ -317,15 +310,8 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Simulated objection data
-    const objections = [
-      { objection: 'Preço muito alto', count: 5 },
-      { objection: 'Já tenho fornecedor', count: 3 },
-      { objection: 'Não tenho tempo', count: 2 },
-      { objection: 'Preciso pensar', count: 2 }
-    ];
-
-    res.json(objections);
+    // Returns empty array - will be populated when call analysis is implemented
+    res.json([]);
   } catch (error) {
     console.error('Error fetching top objections:', error);
     res.status(500).json({ error: 'Failed to fetch top objections' });

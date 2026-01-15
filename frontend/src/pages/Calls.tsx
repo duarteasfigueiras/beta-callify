@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Phone, Search, Filter, ChevronLeft, ChevronRight, Calendar, X, User, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Phone, Search, Filter, ChevronLeft, ChevronRight, Calendar, X, User, ArrowUp, ArrowDown, ArrowUpDown, PhoneIncoming, PhoneOutgoing, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { callsApi, usersApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -23,6 +23,7 @@ export default function Calls() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState<UserType[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'inbound' | 'outbound' | 'meeting'>('all');
 
   // Initialize state from URL params
   const [page, setPage] = useState(() => {
@@ -240,10 +241,18 @@ export default function Calls() {
       : <ArrowDown className="w-4 h-4 ml-1" />;
   };
 
-  const filteredCalls = calls.filter(call =>
-    call.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (call.agent_username && call.agent_username.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredCalls = calls.filter(call => {
+    // Filter by tab (direction) - 'all' shows everything
+    if (activeTab !== 'all') {
+      if (activeTab === 'inbound' && call.direction !== 'inbound') return false;
+      if (activeTab === 'outbound' && call.direction !== 'outbound') return false;
+      if (activeTab === 'meeting' && call.direction !== 'meeting') return false;
+    }
+
+    // Filter by search term
+    return call.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (call.agent_username && call.agent_username.toLowerCase().includes(searchTerm.toLowerCase()));
+  });
 
   if (isLoading) {
     return (
@@ -287,6 +296,56 @@ export default function Calls() {
             <Filter className="w-4 h-4" />
           </Button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex gap-6">
+          <button
+            onClick={() => { setActiveTab('all'); setPage(1); }}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'all'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <Phone className="w-4 h-4" />
+            {t('calls.all', 'All')}
+          </button>
+          <button
+            onClick={() => { setActiveTab('inbound'); setPage(1); }}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'inbound'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <PhoneIncoming className="w-4 h-4" />
+            {t('calls.inbound', 'Inbound')}
+          </button>
+          <button
+            onClick={() => { setActiveTab('outbound'); setPage(1); }}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'outbound'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <PhoneOutgoing className="w-4 h-4" />
+            {t('calls.outbound', 'Outbound')}
+          </button>
+          <button
+            onClick={() => { setActiveTab('meeting'); setPage(1); }}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'meeting'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            {t('calls.meetings', 'Meetings')}
+          </button>
+        </nav>
       </div>
 
       {/* Filters */}

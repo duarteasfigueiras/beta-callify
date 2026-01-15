@@ -353,7 +353,10 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
      VALUES (?, ?, ?, ?, ?, ?)`,
     [callData.companyId, callData.agentId, callData.phoneNumber, callData.direction, callData.durationSeconds, callDate]
   );
-  const callId = result.lastID;
+  const callId = result.lastID as number;
+  if (!callId) {
+    throw new Error('Failed to create call record - no ID returned');
+  }
   console.log('[CallProcessor] Created call record:', callId);
 
   // Step 2: Download audio if URL provided

@@ -55,7 +55,7 @@ export default function CallDetail() {
   const [loading, setLoading] = useState(true);
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
-  const [activeTab, setActiveTab] = useState<'summary' | 'transcription' | 'evaluation' | 'feedback'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'evaluation' | 'feedback'>('summary');
   const audioRef = useRef<HTMLAudioElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -267,7 +267,7 @@ export default function CallDetail() {
             {t('calls.duration', 'Duration')}
           </p>
           <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-            {formatDuration(call.duration_seconds)}
+            {call.duration_seconds ? formatDuration(call.duration_seconds) : '-'}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -323,7 +323,7 @@ export default function CallDetail() {
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex gap-4">
-          {(['summary', 'transcription', 'evaluation', 'feedback'] as const).map((tab) => (
+          {(['summary', 'evaluation', 'feedback'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -334,7 +334,6 @@ export default function CallDetail() {
               }`}
             >
               {tab === 'summary' && t('calls.summary', 'Summary')}
-              {tab === 'transcription' && t('calls.transcription', 'Transcription')}
               {tab === 'evaluation' && t('calls.evaluation', 'Evaluation')}
               {tab === 'feedback' && t('calls.feedback', 'Feedback')}
             </button>
@@ -470,22 +469,6 @@ export default function CallDetail() {
             {!call.summary && !call.next_step_recommendation && !whatWentWell && !whatWentWrong && (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 {t('calls.noSummary', 'No AI analysis available for this call')}
-              </p>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'transcription' && (
-          <div className="p-6">
-            {call.transcription ? (
-              <div className="prose dark:prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                  {call.transcription}
-                </pre>
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                {t('calls.noTranscription', 'No transcription available for this call')}
               </p>
             )}
           </div>

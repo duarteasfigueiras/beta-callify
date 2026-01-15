@@ -124,16 +124,16 @@ ON CONFLICT DO NOTHING;
 
 -- Insert default criteria in Portuguese
 INSERT INTO criteria (company_id, name, description, weight) VALUES
-  (1, 'Saudação/Abertura', 'Cumprimento e abertura da chamada', 1),
-  (1, 'Identificação da necessidade', 'Identificação das necessidades do cliente', 2),
-  (1, 'Escuta ativa', 'Demonstração de escuta ativa', 1),
-  (1, 'Apresentação de solução', 'Apresentação clara de soluções', 3),
-  (1, 'Tratamento de objeções', 'Gestão eficaz das objeções do cliente', 2),
-  (1, 'Clareza na comunicação', 'Comunicação clara e compreensível', 1),
-  (1, 'Tom profissional', 'Manutenção de tom profissional', 1),
-  (1, 'Próximo passo definido', 'Definição clara do próximo passo', 3),
+  (1, 'Saudacao/Abertura', 'Cumprimento e abertura da chamada', 1),
+  (1, 'Identificacao da necessidade', 'Identificacao das necessidades do cliente', 2),
+  (1, 'Escuta ativa', 'Demonstracao de escuta ativa', 1),
+  (1, 'Apresentacao de solucao', 'Apresentacao clara de solucoes', 3),
+  (1, 'Tratamento de objecoes', 'Gestao eficaz das objecoes do cliente', 2),
+  (1, 'Clareza na comunicacao', 'Comunicacao clara e compreensivel', 1),
+  (1, 'Tom profissional', 'Manutencao de tom profissional', 1),
+  (1, 'Proximo passo definido', 'Definicao clara do proximo passo', 3),
   (1, 'Fecho da chamada', 'Encerramento profissional da chamada', 1),
-  (1, 'Ausência de palavras de risco', 'Evitar palavras de risco ou gatilhos', 2)
+  (1, 'Ausencia de palavras de risco', 'Evitar palavras de risco ou gatilhos', 2)
 ON CONFLICT DO NOTHING;
 
 -- Enable Row Level Security (RLS) for all tables

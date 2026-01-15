@@ -8,7 +8,7 @@ export type Language = 'pt' | 'en';
 export type Theme = 'light' | 'dark';
 
 // Call direction
-export type CallDirection = 'inbound' | 'outbound';
+export type CallDirection = 'inbound' | 'outbound' | 'meeting';
 
 // Alert types
 export type AlertType = 'low_score' | 'risk_words' | 'long_duration' | 'no_next_step';

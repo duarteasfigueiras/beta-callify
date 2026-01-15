@@ -67,8 +67,8 @@ export default function Dashboard() {
       try {
         const [overviewData, recentCallsData, alertsData, scoreEvolutionData] = await Promise.all([
           dashboardApi.getOverview(getDateRange()),
-          dashboardApi.getRecentCalls(5),
-          dashboardApi.getAlerts(5),
+          dashboardApi.getRecentCalls(3),
+          dashboardApi.getAlerts(3),
           dashboardApi.getScoreEvolution(getDaysFromRange()),
         ]);
 
