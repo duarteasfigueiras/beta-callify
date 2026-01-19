@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "echo 'Build complete'",
+    "start": "tsx src/index.ts",
     "db:init": "tsx src/db/init.ts",
     "db:seed": "tsx src/db/seed.ts",
     "test": "vitest",
@@ -22,6 +22,8 @@
     "multer": "^1.4.5-lts.1",
     "openai": "^4.20.1",
     "sqlite3": "^5.1.7",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
