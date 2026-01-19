@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS companies (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
+  invite_limit INTEGER DEFAULT 10,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin_manager', 'agent')),
+  custom_role_name TEXT,
   language_preference TEXT DEFAULT 'pt' CHECK (language_preference IN ('pt', 'en')),
   theme_preference TEXT DEFAULT 'light' CHECK (theme_preference IN ('light', 'dark')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -41,7 +43,7 @@ CREATE TABLE IF NOT EXISTS calls (
   company_id INTEGER NOT NULL REFERENCES companies(id),
   agent_id INTEGER NOT NULL REFERENCES users(id),
   phone_number TEXT,
-  direction TEXT DEFAULT 'inbound' CHECK (direction IN ('inbound', 'outbound')),
+  direction TEXT DEFAULT 'inbound' CHECK (direction IN ('inbound', 'outbound', 'meeting')),
   duration_seconds INTEGER DEFAULT 0,
   audio_file_path TEXT,
   transcription TEXT,
@@ -53,6 +55,12 @@ CREATE TABLE IF NOT EXISTS calls (
   what_went_well TEXT,
   what_went_wrong TEXT,
   risk_words_detected TEXT,
+  -- New AI coaching fields
+  phrases_to_avoid TEXT,           -- JSON array of phrases the agent should avoid
+  recommended_phrases TEXT,        -- JSON array of recommended phrases
+  response_improvement_example TEXT, -- JSON object with before/after example
+  top_performer_comparison TEXT,   -- JSON object comparing to top performer
+  skill_scores TEXT,               -- JSON object with skill breakdown (escuta_ativa, clareza, objecoes, fecho, empatia)
   call_date TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ
@@ -96,6 +104,7 @@ CREATE TABLE IF NOT EXISTS invitations (
   invited_by INTEGER NOT NULL REFERENCES users(id),
   token TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('admin_manager', 'agent')),
+  custom_role_name TEXT,
   used BOOLEAN DEFAULT FALSE,
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()

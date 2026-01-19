@@ -93,12 +93,16 @@ export const dashboardApi = {
     const response = await api.get('/dashboard/calls-by-period', { params: { days, agent_id } });
     return response.data;
   },
-  getTopReasons: async () => {
-    const response = await api.get('/dashboard/top-reasons');
+  getTopReasons: async (params?: { date_from?: string; date_to?: string }) => {
+    const response = await api.get('/dashboard/top-reasons', { params });
     return response.data;
   },
   getTopObjections: async () => {
     const response = await api.get('/dashboard/top-objections');
+    return response.data;
+  },
+  getScoreEvolutionByCategory: async (days?: number) => {
+    const response = await api.get('/dashboard/score-evolution-by-category', { params: { days } });
     return response.data;
   },
 };
@@ -113,12 +117,19 @@ export const callsApi = {
     date_to?: string;
     score_min?: number;
     score_max?: number;
+    sort_by?: string;
+    sort_order?: string;
+    direction?: string;
   }) => {
     const response = await api.get('/calls', { params });
     return response.data;
   },
   getById: async (id: number) => {
     const response = await api.get(`/calls/${id}`);
+    return response.data;
+  },
+  getByRiskWord: async (word: string, params?: { page?: number; limit?: number }) => {
+    const response = await api.get(`/calls/by-risk-word/${encodeURIComponent(word)}`, { params });
     return response.data;
   },
 };
@@ -133,20 +144,32 @@ export const usersApi = {
     const response = await api.get('/users/me');
     return response.data;
   },
+  getMyCompany: async () => {
+    const response = await api.get('/users/me/company');
+    return response.data;
+  },
   getById: async (id: number) => {
     const response = await api.get(`/users/${id}`);
     return response.data;
   },
-  invite: async (role: 'admin_manager' | 'agent') => {
-    const response = await api.post('/users/invite', { role });
+  invite: async (role: 'admin_manager' | 'agent', company_id?: number, custom_role_name?: string) => {
+    const response = await api.post('/users/invite', { role, company_id, custom_role_name });
     return response.data;
   },
   updateRole: async (id: number, role: 'admin_manager' | 'agent') => {
     const response = await api.patch(`/users/${id}/role`, { role });
     return response.data;
   },
-  updatePreferences: async (data: { language_preference?: 'pt' | 'en'; theme_preference?: 'light' | 'dark' }) => {
+  updatePreferences: async (data: { language_preference?: 'pt' | 'en'; theme_preference?: 'light' | 'dark'; phone_number?: string | null; display_name?: string | null }) => {
     const response = await api.patch('/users/me/preferences', data);
+    return response.data;
+  },
+  updatePhoneNumber: async (id: number, phone_number: string | null) => {
+    const response = await api.patch(`/users/${id}/phone`, { phone_number });
+    return response.data;
+  },
+  updateCategory: async (id: number, custom_role_name: string | null) => {
+    const response = await api.patch(`/users/${id}/category`, { custom_role_name });
     return response.data;
   },
   delete: async (id: number) => {
@@ -157,24 +180,48 @@ export const usersApi = {
 
 // Criteria API
 export const criteriaApi = {
-  getAll: async () => {
-    const response = await api.get('/criteria');
+  getAll: async (params?: { category?: string }) => {
+    const response = await api.get('/criteria', { params });
     return response.data;
   },
   getById: async (id: number) => {
     const response = await api.get(`/criteria/${id}`);
     return response.data;
   },
-  create: async (data: { name: string; description: string; weight?: number }) => {
+  create: async (data: { name: string; description: string; weight?: number; category?: string }) => {
     const response = await api.post('/criteria', data);
     return response.data;
   },
-  update: async (id: number, data: { name?: string; description?: string; weight?: number; is_active?: boolean }) => {
+  update: async (id: number, data: { name?: string; description?: string; weight?: number; is_active?: boolean; category?: string }) => {
     const response = await api.put(`/criteria/${id}`, data);
     return response.data;
   },
   delete: async (id: number) => {
     const response = await api.delete(`/criteria/${id}`);
+    return response.data;
+  },
+};
+
+// Alert Settings API
+export interface AlertSettings {
+  id?: number;
+  company_id: number;
+  low_score_enabled: boolean;
+  low_score_threshold: number;
+  risk_words_enabled: boolean;
+  risk_words_list: string;
+  long_duration_enabled: boolean;
+  long_duration_threshold_minutes: number;
+  no_next_step_enabled: boolean;
+}
+
+export const alertSettingsApi = {
+  get: async (): Promise<AlertSettings> => {
+    const response = await api.get('/criteria/alert-settings');
+    return response.data;
+  },
+  update: async (data: Partial<AlertSettings>): Promise<AlertSettings> => {
+    const response = await api.put('/criteria/alert-settings', data);
     return response.data;
   },
 };
@@ -187,6 +234,64 @@ export const alertsApi = {
   },
   markAsRead: async (id: number) => {
     const response = await api.patch(`/alerts/${id}/read`);
+    return response.data;
+  },
+};
+
+// Companies API (developer only)
+export const companiesApi = {
+  getAll: async () => {
+    const response = await api.get('/users/companies');
+    return response.data;
+  },
+  create: async (name: string, invite_limit?: number) => {
+    const response = await api.post('/users/companies', { name, invite_limit });
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/users/companies/${id}`);
+    return response.data;
+  },
+};
+
+// Categories API
+export interface Category {
+  key: string;
+  name: string;
+  color_id: string;
+  color_classes: string;
+  is_builtin: boolean;
+  criteria_count?: number;
+}
+
+export interface ColorOption {
+  id: string;
+  bg: string;
+  text: string;
+  darkBg: string;
+  darkText: string;
+  preview: string; // Vibrant color for the color picker
+}
+
+export const categoriesApi = {
+  getAll: async (company_id?: number): Promise<Category[]> => {
+    const response = await api.get('/categories', { params: company_id ? { company_id } : {} });
+    return response.data;
+  },
+  getColors: async (): Promise<ColorOption[]> => {
+    const response = await api.get('/categories/colors');
+    return response.data;
+  },
+  create: async (name: string, color_id: string, company_id?: number): Promise<Category> => {
+    const response = await api.post('/categories', { name, color_id, company_id });
+    return response.data;
+  },
+  update: async (key: string, name: string, color_id: string, company_id?: number): Promise<Category> => {
+    const response = await api.put(`/categories/${key}`, { name, color_id, company_id });
+    return response.data;
+  },
+  delete: async (key: string, company_id?: number): Promise<{ message: string; deleted_criteria: number }> => {
+    const response = await api.delete(`/categories/${key}`, { params: company_id ? { company_id } : {} });
     return response.data;
   },
 };

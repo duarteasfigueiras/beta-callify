@@ -17,6 +17,14 @@ const RISK_WORDS = [
 const LOW_SCORE_THRESHOLD = parseFloat(process.env.LOW_SCORE_THRESHOLD || '5.0');
 const LONG_CALL_THRESHOLD_SECONDS = parseInt(process.env.LONG_CALL_THRESHOLD_SECONDS || '1800');
 
+/**
+ * Helper to get agent's category from custom_role_name
+ */
+async function getAgentCategory(agentId: number): Promise<string | null> {
+  const agent = await dbGet('SELECT custom_role_name FROM users WHERE id = ?', [agentId]);
+  return agent?.custom_role_name || null;
+}
+
 interface CallData {
   companyId: number;
   agentId: number;
@@ -376,12 +384,26 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
   );
   console.log('[CallProcessor] Transcription completed, length:', transcription.length);
 
-  // Step 4: Get company criteria
-  const criteria = await dbAll(
-    'SELECT * FROM criteria WHERE company_id = ? AND is_active = 1',
-    [callData.companyId]
-  );
-  console.log('[CallProcessor] Retrieved criteria:', criteria.length);
+  // Step 4: Get agent's category and filter criteria accordingly (normalize to lowercase)
+  const rawAgentCategory = await getAgentCategory(callData.agentId);
+  const agentCategory = rawAgentCategory ? rawAgentCategory.toLowerCase() : null;
+  console.log('[CallProcessor] Agent category:', agentCategory || 'none');
+
+  let criteria;
+  if (agentCategory) {
+    // Get criteria that are either 'all' (global) or match the agent's category
+    criteria = await dbAll(
+      'SELECT * FROM criteria WHERE company_id = ? AND is_active = 1 AND (LOWER(category) = ? OR LOWER(category) = ?)',
+      [callData.companyId, agentCategory, 'all']
+    );
+  } else {
+    // No category - get all company criteria
+    criteria = await dbAll(
+      'SELECT * FROM criteria WHERE company_id = ? AND is_active = 1',
+      [callData.companyId]
+    );
+  }
+  console.log('[CallProcessor] Retrieved criteria (all + category):', criteria.length);
 
   // Step 5: Analyze call with AI
   const analysis = await analyzeCall(transcription, criteria, callData.companyId);

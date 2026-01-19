@@ -14,12 +14,15 @@ import {
   Moon,
   Sun,
   Globe,
+  Building2,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/Button';
 import { cn } from '../utils/cn';
 import i18n from '../i18n';
+import { isAdminOrDeveloper, isDeveloper } from '../types';
 
 interface NavItem {
   key: string;
@@ -27,6 +30,7 @@ interface NavItem {
   icon: React.ElementType;
   href: string;
   adminOnly?: boolean;
+  developerOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -35,7 +39,9 @@ const navItems: NavItem[] = [
   { key: 'reports', labelKey: 'nav.reports', icon: BarChart3, href: '/reports', adminOnly: true },
   { key: 'criteria', labelKey: 'nav.criteria', icon: ClipboardCheck, href: '/criteria', adminOnly: true },
   { key: 'users', labelKey: 'nav.users', icon: Users, href: '/users', adminOnly: true },
+  { key: 'companies', labelKey: 'nav.companies', icon: Building2, href: '/companies', developerOnly: true },
   { key: 'settings', labelKey: 'nav.settings', icon: Settings, href: '/settings' },
+  { key: 'contacts', labelKey: 'nav.contacts', icon: MessageSquare, href: '/contacts' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -46,7 +52,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAdmin = user?.role === 'admin_manager';
+  const isAdmin = user?.role ? isAdminOrDeveloper(user.role) : false;
+  const isDev = user?.role ? isDeveloper(user.role) : false;
 
   const handleLogout = async () => {
     await logout();
@@ -59,7 +66,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     localStorage.setItem('language', newLang);
   };
 
-  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const filteredNavItems = navItems.filter(item => {
+    // Developer sees everything
+    if (isDev) return true;
+    // Admin sees admin items but not developer-only
+    if (item.developerOnly) return false;
+    if (item.adminOnly) return isAdmin;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -131,7 +145,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {user?.username}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {isAdmin ? t('users.admin') : t('users.agent')}
+                {isDev ? t('users.developer') : isAdmin ? t('users.admin') : t('users.user')}
               </p>
             </div>
           </div>

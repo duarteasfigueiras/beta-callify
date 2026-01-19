@@ -3,6 +3,19 @@ import { supabase } from '../db/supabase';
 
 const router = Router();
 
+/**
+ * Helper to get agent's category from custom_role_name
+ */
+async function getAgentCategory(agentId: number): Promise<string | null> {
+  const { data: agent } = await supabase
+    .from('users')
+    .select('custom_role_name')
+    .eq('id', agentId)
+    .single();
+
+  return agent?.custom_role_name || null;
+}
+
 // Risk words list (system-level)
 const RISK_WORDS = [
   'cancelar', 'cancelamento',
@@ -38,7 +51,7 @@ router.post('/calls', async (req: Request, res: Response) => {
     if (!phoneNumber) {
       return res.status(400).json({
         error: 'phoneNumber is required',
-        example: { phoneNumber: '+351912345678', direction: 'inbound', durationSeconds: 180 }
+        example: { phoneNumber: '+351912345678', direction: 'inbound | outbound | meeting', durationSeconds: 180 }
       });
     }
 
@@ -80,6 +93,10 @@ router.post('/calls', async (req: Request, res: Response) => {
       }
     }
 
+    // Validate direction (inbound, outbound, or meeting)
+    const validDirections = ['inbound', 'outbound', 'meeting'];
+    const callDirection = validDirections.includes(direction) ? direction : 'inbound';
+
     // Create call record
     const { data: newCall, error } = await supabase
       .from('calls')
@@ -87,7 +104,7 @@ router.post('/calls', async (req: Request, res: Response) => {
         company_id: targetCompanyId,
         agent_id: targetAgentId,
         phone_number: phoneNumber,
-        direction: direction === 'outbound' ? 'outbound' : 'inbound',
+        direction: callDirection,
         duration_seconds: durationSeconds,
         audio_file_path: audioUrl || null,
         call_date: callDate || new Date().toISOString()
@@ -139,10 +156,10 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
       });
     }
 
-    // Verify call exists
+    // Verify call exists and get agent_id
     const { data: call, error: callError } = await supabase
       .from('calls')
-      .select('id, company_id')
+      .select('id, company_id, agent_id')
       .eq('id', callId)
       .single();
 
@@ -159,20 +176,39 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
       })
       .eq('id', callId);
 
-    // Get criteria for analysis
-    const { data: criteria } = await supabase
-      .from('criteria')
-      .select('id, name, description, weight')
-      .eq('company_id', call.company_id)
-      .eq('is_active', true);
+    // Get agent's category to filter criteria (normalize to lowercase)
+    const rawAgentCategory = call.agent_id ? await getAgentCategory(call.agent_id) : null;
+    const agentCategory = rawAgentCategory ? rawAgentCategory.toLowerCase() : null;
 
-    console.log('[n8n] Transcription saved, criteria count:', criteria?.length || 0);
+    // Get criteria for analysis - include 'all' criteria + category-specific criteria
+    let criteria: any[] = [];
+    if (agentCategory) {
+      // Get criteria that are either 'all' (global) or match the agent's category
+      const { data } = await supabase
+        .from('criteria')
+        .select('id, name, description, weight')
+        .eq('company_id', call.company_id)
+        .eq('is_active', true)
+        .in('category', ['all', agentCategory]);
+      criteria = data || [];
+    } else {
+      // No category - get all company criteria
+      const { data } = await supabase
+        .from('criteria')
+        .select('id, name, description, weight')
+        .eq('company_id', call.company_id)
+        .eq('is_active', true);
+      criteria = data || [];
+    }
+
+    console.log(`[n8n] Transcription saved, agent category: ${agentCategory || 'none'}, criteria count:`, criteria?.length || 0);
 
     res.json({
       success: true,
       callId,
       status: 'pending_analysis',
       transcriptionLength: transcription.length,
+      agentCategory: agentCategory || null,
       nextStep: `/api/n8n/calls/${callId}/analysis`,
       criteria: (criteria || []).map(c => ({
         id: c.id,
@@ -202,6 +238,8 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
       nextStepRecommendation,
       finalScore,
       scoreJustification,
+      contactReasons = [],  // AI-generated contact reasons
+      objections = [],      // AI-generated objections
       whatWentWell = [],
       whatWentWrong = [],
       criteriaResults = []
@@ -235,6 +273,11 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
     const textLower = transcription.toLowerCase();
     const detectedRiskWords = RISK_WORDS.filter(word => textLower.includes(word.toLowerCase()));
 
+    // Use contactReasons for what_went_well if provided, otherwise use whatWentWell
+    // Use objections for what_went_wrong if provided, otherwise use whatWentWrong
+    const finalContactReasons = contactReasons.length > 0 ? contactReasons : whatWentWell;
+    const finalObjections = objections.length > 0 ? objections : whatWentWrong;
+
     // Update call with analysis
     await supabase
       .from('calls')
@@ -243,8 +286,8 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
         next_step_recommendation: nextStepRecommendation || '',
         final_score: finalScore,
         score_justification: scoreJustification || '',
-        what_went_well: JSON.stringify(whatWentWell),
-        what_went_wrong: JSON.stringify(whatWentWrong),
+        what_went_well: JSON.stringify(finalContactReasons),
+        what_went_wrong: JSON.stringify(finalObjections),
         risk_words_detected: JSON.stringify(detectedRiskWords)
       })
       .eq('id', callId);
@@ -365,9 +408,17 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
       nextStepRecommendation,
       finalScore,
       scoreJustification,
+      contactReasons = [],  // AI-generated contact reasons
+      objections = [],      // AI-generated objections
       whatWentWell = [],
       whatWentWrong = [],
-      criteriaResults = []
+      criteriaResults = [],
+      // New AI coaching fields
+      phrasesToAvoid = [],
+      recommendedPhrases = [],
+      responseImprovementExample,
+      topPerformerComparison,
+      skillScores = []
     } = req.body;
 
     if (!phoneNumber || !transcription || finalScore === undefined) {
@@ -377,7 +428,9 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
           phoneNumber: '+351912345678',
           transcription: '[Agent]: Hello...',
           finalScore: 7.5,
-          summary: 'Customer inquiry...'
+          summary: 'Customer inquiry...',
+          contactReasons: [{ text: 'Pedido de informação', timestamp: '00:30' }],
+          objections: [{ text: 'Preço elevado', timestamp: '02:15' }]
         }
       });
     }
@@ -412,6 +465,15 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
     const textLower = transcription.toLowerCase();
     const detectedRiskWords = RISK_WORDS.filter(word => textLower.includes(word.toLowerCase()));
 
+    // Use contactReasons for what_went_well if provided, otherwise use whatWentWell
+    // Use objections for what_went_wrong if provided, otherwise use whatWentWrong
+    const finalContactReasons = contactReasons.length > 0 ? contactReasons : whatWentWell;
+    const finalObjections = objections.length > 0 ? objections : whatWentWrong;
+
+    // Validate direction (inbound, outbound, or meeting)
+    const validDirections = ['inbound', 'outbound', 'meeting'];
+    const callDirection = validDirections.includes(direction) ? direction : 'inbound';
+
     // Create complete call record
     const { data: newCall, error } = await supabase
       .from('calls')
@@ -419,7 +481,7 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
         company_id: targetCompanyId,
         agent_id: targetAgentId,
         phone_number: phoneNumber,
-        direction: direction === 'outbound' ? 'outbound' : 'inbound',
+        direction: callDirection,
         duration_seconds: durationSeconds,
         audio_file_path: audioUrl || null,
         call_date: callDate || new Date().toISOString(),
@@ -429,9 +491,15 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
         next_step_recommendation: nextStepRecommendation || '',
         final_score: finalScore,
         score_justification: scoreJustification || '',
-        what_went_well: JSON.stringify(whatWentWell),
-        what_went_wrong: JSON.stringify(whatWentWrong),
-        risk_words_detected: JSON.stringify(detectedRiskWords)
+        what_went_well: JSON.stringify(finalContactReasons),
+        what_went_wrong: JSON.stringify(finalObjections),
+        risk_words_detected: JSON.stringify(detectedRiskWords),
+        // New AI coaching fields
+        phrases_to_avoid: JSON.stringify(phrasesToAvoid),
+        recommended_phrases: JSON.stringify(recommendedPhrases),
+        response_improvement_example: responseImprovementExample ? JSON.stringify(responseImprovementExample) : null,
+        top_performer_comparison: topPerformerComparison ? JSON.stringify(topPerformerComparison) : null,
+        skill_scores: JSON.stringify(skillScores)
       })
       .select('id')
       .single();
@@ -484,10 +552,12 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
 
 /**
  * Get evaluation criteria
+ * Accepts optional agentId to filter by agent's category
  */
 router.get('/criteria', async (req: Request, res: Response) => {
   try {
     const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
+    const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : null;
 
     let targetCompanyId = companyId;
     if (!targetCompanyId) {
@@ -495,19 +565,35 @@ router.get('/criteria', async (req: Request, res: Response) => {
       targetCompanyId = company?.id;
     }
 
+    // Get agent's category if agentId provided (normalize to lowercase)
+    const rawAgentCategory = agentId ? await getAgentCategory(agentId) : null;
+    const agentCategory = rawAgentCategory ? rawAgentCategory.toLowerCase() : null;
+
     let criteria: any[] = [];
     if (targetCompanyId) {
-      const { data } = await supabase
-        .from('criteria')
-        .select('id, name, description, weight')
-        .eq('company_id', targetCompanyId)
-        .eq('is_active', true);
-
-      criteria = data || [];
+      if (agentCategory) {
+        // Get criteria that are either 'all' (global) or match the agent's category
+        const { data } = await supabase
+          .from('criteria')
+          .select('id, name, description, weight, category')
+          .eq('company_id', targetCompanyId)
+          .eq('is_active', true)
+          .in('category', ['all', agentCategory]);
+        criteria = data || [];
+      } else {
+        // No category - get all company criteria
+        const { data } = await supabase
+          .from('criteria')
+          .select('id, name, description, weight, category')
+          .eq('company_id', targetCompanyId)
+          .eq('is_active', true);
+        criteria = data || [];
+      }
     }
 
     res.json({
       criteria,
+      agentCategory: agentCategory || 'all',
       analysisInstructions: `
 When analyzing a call, evaluate each criterion and provide:
 - criterionId: The ID of the criterion
@@ -549,7 +635,16 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       pontos_fortes,
       melhorias,
       acoes_recomendadas,
-      observacoes
+      observacoes,
+      // New AI-generated fields
+      motivos_contacto,  // Contact reasons
+      objecoes,          // Objections
+      // New AI coaching fields
+      frases_a_evitar,           // Phrases to avoid
+      frases_recomendadas,       // Recommended phrases
+      exemplo_resposta_melhorada, // Response improvement example
+      comparacao_top_performer,   // Top performer comparison
+      pontuacao_skills           // Skill scores
     } = req.body;
 
     // Parse agent_output if it's a string
@@ -569,6 +664,15 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const improvements = melhorias ?? aiOutput?.melhorias ?? [];
     const recommendations = acoes_recomendadas ?? aiOutput?.acoes_recomendadas ?? [];
     const notes = observacoes ?? aiOutput?.observacoes ?? '';
+    // AI-generated contact reasons and objections
+    const contactReasons = motivos_contacto ?? aiOutput?.motivos_contacto ?? aiOutput?.contactReasons ?? [];
+    const objections = objecoes ?? aiOutput?.objecoes ?? aiOutput?.objections ?? [];
+    // AI coaching fields
+    const phrasesToAvoid = frases_a_evitar ?? aiOutput?.frases_a_evitar ?? aiOutput?.phrasesToAvoid ?? [];
+    const recommendedPhrases = frases_recomendadas ?? aiOutput?.frases_recomendadas ?? aiOutput?.recommendedPhrases ?? [];
+    const responseExample = exemplo_resposta_melhorada ?? aiOutput?.exemplo_resposta_melhorada ?? aiOutput?.responseImprovementExample ?? null;
+    const topPerformerComp = comparacao_top_performer ?? aiOutput?.comparacao_top_performer ?? aiOutput?.topPerformerComparison ?? null;
+    const skillScoresData = pontuacao_skills ?? aiOutput?.pontuacao_skills ?? aiOutput?.skillScores ?? [];
 
     if (finalScore === undefined) {
       return res.status(400).json({
@@ -576,6 +680,8 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         example: {
           score: 7.5,
           resumo: 'Resumo da chamada...',
+          motivos_contacto: [{ text: 'Pedido de informação sobre preços', timestamp: '00:30' }],
+          objecoes: [{ text: 'Preço elevado', timestamp: '02:15' }],
           pontos_fortes: ['Ponto 1', 'Ponto 2'],
           melhorias: ['Melhoria 1'],
           acoes_recomendadas: ['Ação 1'],
@@ -614,6 +720,15 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const textToCheck = (transcription || summary || '').toLowerCase();
     const detectedRiskWords = RISK_WORDS.filter(word => textToCheck.includes(word.toLowerCase()));
 
+    // Use contactReasons if provided, otherwise fall back to strengths (pontos_fortes)
+    // Use objections if provided, otherwise fall back to improvements (melhorias)
+    const finalContactReasons = contactReasons.length > 0 ? contactReasons : strengths;
+    const finalObjections = objections.length > 0 ? objections : improvements;
+
+    // Validate direction (inbound, outbound, or meeting)
+    const validDirections = ['inbound', 'outbound', 'meeting'];
+    const callDirection = validDirections.includes(direction) ? direction : 'inbound';
+
     // Create call record with AI analysis
     const { data: newCall, error } = await supabase
       .from('calls')
@@ -621,7 +736,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         company_id: targetCompanyId,
         agent_id: targetAgentId,
         phone_number: phoneNumber || 'AI Analysis',
-        direction: direction === 'outbound' ? 'outbound' : 'inbound',
+        direction: callDirection,
         duration_seconds: durationSeconds,
         audio_file_path: audioUrl || null,
         call_date: callDate || new Date().toISOString(),
@@ -630,9 +745,15 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         next_step_recommendation: recommendations.join('\n- '),
         final_score: finalScore,
         score_justification: notes,
-        what_went_well: JSON.stringify(strengths),
-        what_went_wrong: JSON.stringify(improvements),
-        risk_words_detected: JSON.stringify(detectedRiskWords)
+        what_went_well: JSON.stringify(finalContactReasons),
+        what_went_wrong: JSON.stringify(finalObjections),
+        risk_words_detected: JSON.stringify(detectedRiskWords),
+        // New AI coaching fields
+        phrases_to_avoid: JSON.stringify(phrasesToAvoid),
+        recommended_phrases: JSON.stringify(recommendedPhrases),
+        response_improvement_example: responseExample ? JSON.stringify(responseExample) : null,
+        top_performer_comparison: topPerformerComp ? JSON.stringify(topPerformerComp) : null,
+        skill_scores: JSON.stringify(skillScoresData)
       })
       .select('id')
       .single();
@@ -718,17 +839,29 @@ Please provide your analysis in the following JSON format:
   "nextStepRecommendation": "Recommended next action",
   "finalScore": 7.5,
   "scoreJustification": "Explanation for the score",
+  "contactReasons": [
+    { "text": "Main reason for customer contact (e.g., 'Pedido de informação sobre preços', 'Suporte técnico', 'Cancelamento de serviço')", "timestamp": "MM:SS" }
+  ],
+  "objections": [
+    { "text": "Customer objection or concern raised (e.g., 'Preço elevado', 'Tempo de espera', 'Falta de funcionalidades')", "timestamp": "MM:SS" }
+  ],
   "whatWentWell": [
-    { "text": "Description of positive aspect", "timestamp": "MM:SS" }
+    { "text": "Positive aspect of agent performance", "timestamp": "MM:SS" }
   ],
   "whatWentWrong": [
-    { "text": "Description of issue", "timestamp": "MM:SS" }
+    { "text": "Area for improvement in agent performance", "timestamp": "MM:SS" }
   ],
   "criteriaResults": [
     { "criterionId": 1, "passed": true, "justification": "..." },
     { "criterionId": 2, "passed": false, "justification": "...", "timestampReference": "01:30" }
   ]
 }
+
+IMPORTANT INSTRUCTIONS:
+- "contactReasons": Extract the MAIN REASON(S) why the customer called. Be specific and concise (e.g., "Pedido de orçamento", "Dúvida sobre faturação", "Reclamação de entrega"). Generate these dynamically based on the conversation content.
+- "objections": Extract any OBJECTIONS or CONCERNS the customer raised during the call (e.g., "Preço muito alto", "Prazo de entrega longo", "Funcionalidade em falta"). If no objections, return empty array.
+- "whatWentWell": Focus on AGENT PERFORMANCE - what the agent did well
+- "whatWentWrong": Focus on AGENT PERFORMANCE - what the agent could improve
   `.trim();
 }
 
@@ -817,5 +950,470 @@ async function generateAlerts(
 
   return alerts;
 }
+
+/**
+ * Generate test calls with full AI coaching data
+ * POST /api/n8n/generate-test-calls
+ */
+router.post('/generate-test-calls', async (req: Request, res: Response) => {
+  try {
+    const { count = 20 } = req.body;
+
+    // Get company
+    const { data: company } = await supabase.from('companies').select('id').limit(1).single();
+    if (!company) {
+      return res.status(500).json({ error: 'No company found' });
+    }
+
+    // Get agent
+    const { data: agent } = await supabase
+      .from('users')
+      .select('id')
+      .eq('company_id', company.id)
+      .eq('role', 'agent')
+      .limit(1)
+      .single();
+
+    if (!agent) {
+      return res.status(500).json({ error: 'No agent found' });
+    }
+
+    const directions = ['inbound', 'outbound', 'meeting'];
+    const phoneNumbers = [
+      '+351912345678', '+351923456789', '+351934567890', '+351945678901',
+      '+351956789012', '+351967890123', '+351978901234', '+351989012345',
+      '+351990123456', '+351901234567', '+351912111222', '+351923222333',
+      '+351934333444', '+351945444555', '+351956555666', '+351967666777',
+      '+351978777888', '+351989888999', '+351990999000', '+351901000111'
+    ];
+
+    const summaries = [
+      'Cliente ligou para pedir informações sobre o novo plano de dados. Demonstrou interesse em mudar de operadora.',
+      'Chamada de acompanhamento pós-venda. Cliente satisfeito com o produto adquirido.',
+      'Reclamação sobre fatura incorreta. Situação resolvida com crédito na próxima fatura.',
+      'Pedido de cancelamento. Cliente retido com oferta de desconto de 30%.',
+      'Dúvidas sobre instalação do equipamento. Agendada visita técnica.',
+      'Reunião de apresentação de proposta comercial para empresa.',
+      'Cliente interessado em upgrade de serviço. Proposta enviada por email.',
+      'Suporte técnico - problema de conectividade resolvido remotamente.',
+      'Negociação de contrato anual. Fechamento previsto para próxima semana.',
+      'Chamada de boas-vindas a novo cliente. Explicação dos serviços incluídos.'
+    ];
+
+    const nextSteps = [
+      'Enviar proposta comercial por email até amanhã',
+      'Agendar visita técnica para instalação',
+      'Aguardar confirmação do cliente sobre upgrade',
+      'Fazer follow-up em 3 dias úteis',
+      'Preparar contrato para assinatura',
+      'Enviar documentação adicional solicitada',
+      'Confirmar agendamento da reunião presencial',
+      'Aguardar pagamento para ativar serviço',
+      'Contactar gestor de conta para aprovação',
+      'Verificar disponibilidade de stock'
+    ];
+
+    const phrasesToAvoidOptions = [
+      ['Isso não é possível', 'Não podemos fazer nada', 'Esse é o procedimento'],
+      ['Vou ter que transferir', 'Não sei', 'Isso é com outro departamento'],
+      ['Infelizmente não', 'É política da empresa', 'Não há nada a fazer'],
+      ['Tem que esperar', 'Não é da minha responsabilidade', 'Ligue mais tarde']
+    ];
+
+    const recommendedPhrasesOptions = [
+      ['Compreendo a sua situação', 'Vou resolver isso agora', 'Posso ajudá-lo com isso'],
+      ['Deixe-me verificar as opções disponíveis', 'Tenho uma solução para si', 'Agradeço a sua paciência'],
+      ['Vou acompanhar pessoalmente este caso', 'Qual seria a melhor solução para si?', 'Posso fazer isso por si'],
+      ['É uma excelente pergunta', 'Vou garantir que fica resolvido', 'Está tudo esclarecido?']
+    ];
+
+    const skillNames = ['Escuta Ativa', 'Clareza', 'Objeções', 'Fecho', 'Empatia'];
+
+    const insights = [
+      'Melhorar tempo de resposta às objeções do cliente',
+      'Excelente capacidade de criar rapport',
+      'Reforçar técnicas de fecho de venda',
+      'Demonstra boa escuta ativa',
+      'Pode melhorar na clareza das explicações técnicas',
+      'Boa gestão emocional em situações difíceis',
+      'Necessita praticar mais perguntas abertas',
+      'Muito bom a identificar necessidades do cliente'
+    ];
+
+    const createdCalls: number[] = [];
+
+    for (let i = 0; i < Math.min(count, 20); i++) {
+      const score = Math.round((5 + Math.random() * 5) * 10) / 10; // 5.0 to 10.0
+      const daysAgo = Math.floor(Math.random() * 30);
+      const callDate = new Date();
+      callDate.setDate(callDate.getDate() - daysAgo);
+
+      // Generate skill scores
+      const skillScores = skillNames.map(name => ({
+        name,
+        score: Math.round((4 + Math.random() * 6) * 10) / 10,
+        description: `Avaliação de ${name.toLowerCase()} nesta chamada`
+      }));
+
+      // Generate response example
+      const responseExample = {
+        before: 'Isso não é possível fazer, é política da empresa.',
+        after: 'Compreendo a sua situação. Deixe-me verificar que alternativas temos disponíveis para si.',
+        context: 'Quando o cliente pediu uma exceção à política de devolução'
+      };
+
+      // Generate top performer comparison
+      const topPerformerComparison = {
+        agent_score: score,
+        top_performer_score: Math.round((8 + Math.random() * 2) * 10) / 10,
+        gap: Math.round((score - 9) * 10) / 10,
+        insights: [
+          insights[Math.floor(Math.random() * insights.length)],
+          insights[Math.floor(Math.random() * insights.length)]
+        ]
+      };
+
+      // Generate contact reasons (what went well)
+      const contactReasons = [
+        { text: 'Pedido de informação sobre serviços', timestamp: '00:45' },
+        { text: 'Interesse em upgrade de plano', timestamp: '02:30' },
+        { text: 'Esclarecimento de dúvidas de faturação', timestamp: '04:15' }
+      ].slice(0, 2 + Math.floor(Math.random() * 2));
+
+      // Generate objections (what went wrong)
+      const objections = [
+        { text: 'Preço considerado elevado pelo cliente', timestamp: '03:20' },
+        { text: 'Dúvidas sobre qualidade do serviço', timestamp: '05:10' }
+      ].slice(0, 1 + Math.floor(Math.random() * 2));
+
+      const transcription = `[Agente]: Bom dia, obrigado por ligar. Em que posso ajudar?
+[Cliente]: Olá, gostaria de saber mais sobre os vossos serviços.
+[Agente]: Claro, terei todo o gosto em ajudar. Que tipo de serviço procura?
+[Cliente]: Estou interessado no plano empresarial.
+[Agente]: Excelente escolha. O plano empresarial inclui várias funcionalidades...
+[Cliente]: E qual é o preço?
+[Agente]: O investimento mensal é de 49,90€, mas temos uma promoção especial...
+[Cliente]: Parece interessante. Vou pensar.
+[Agente]: Compreendo. Posso enviar-lhe toda a informação por email?
+[Cliente]: Sim, por favor.
+[Agente]: Perfeito. Há mais alguma questão em que possa ajudar?
+[Cliente]: Não, obrigado.
+[Agente]: Agradeço o seu contacto. Tenha um excelente dia!`;
+
+      const { data: newCall, error } = await supabase
+        .from('calls')
+        .insert({
+          company_id: company.id,
+          agent_id: agent.id,
+          phone_number: phoneNumbers[i % phoneNumbers.length],
+          direction: directions[Math.floor(Math.random() * directions.length)],
+          duration_seconds: 120 + Math.floor(Math.random() * 480),
+          call_date: callDate.toISOString(),
+          transcription,
+          summary: summaries[i % summaries.length],
+          next_step_recommendation: nextSteps[i % nextSteps.length],
+          final_score: score,
+          score_justification: 'Avaliação baseada em critérios de qualidade de atendimento.',
+          what_went_well: JSON.stringify(contactReasons),
+          what_went_wrong: JSON.stringify(objections),
+          risk_words_detected: JSON.stringify(i % 4 === 0 ? ['cancelar'] : []),
+          phrases_to_avoid: JSON.stringify(phrasesToAvoidOptions[i % phrasesToAvoidOptions.length]),
+          recommended_phrases: JSON.stringify(recommendedPhrasesOptions[i % recommendedPhrasesOptions.length]),
+          response_improvement_example: JSON.stringify(responseExample),
+          top_performer_comparison: JSON.stringify(topPerformerComparison),
+          skill_scores: JSON.stringify(skillScores)
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[n8n] Error creating test call:', error);
+      } else if (newCall) {
+        createdCalls.push(newCall.id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Created ${createdCalls.length} test calls with full AI coaching data`,
+      callIds: createdCalls
+    });
+  } catch (error) {
+    console.error('[n8n] Error generating test calls:', error);
+    res.status(500).json({ error: 'Failed to generate test calls' });
+  }
+});
+
+/**
+ * Generate test users with different categories and calls
+ * POST /api/n8n/generate-test-users-and-calls
+ */
+router.post('/generate-test-users-and-calls', async (req: Request, res: Response) => {
+  try {
+    const { userCount = 20, callCount = 30 } = req.body;
+
+    // Get company
+    const { data: company } = await supabase.from('companies').select('id').limit(1).single();
+    if (!company) {
+      return res.status(500).json({ error: 'No company found' });
+    }
+
+    // Define user names and categories
+    const userNames = [
+      { name: 'Ana Silva', username: 'ana.silva' },
+      { name: 'Bruno Costa', username: 'bruno.costa' },
+      { name: 'Carla Ferreira', username: 'carla.ferreira' },
+      { name: 'Daniel Santos', username: 'daniel.santos' },
+      { name: 'Eva Martins', username: 'eva.martins' },
+      { name: 'Fernando Oliveira', username: 'fernando.oliveira' },
+      { name: 'Gabriela Pereira', username: 'gabriela.pereira' },
+      { name: 'Hugo Rodrigues', username: 'hugo.rodrigues' },
+      { name: 'Inês Almeida', username: 'ines.almeida' },
+      { name: 'João Sousa', username: 'joao.sousa' },
+      { name: 'Katia Lopes', username: 'katia.lopes' },
+      { name: 'Luis Fernandes', username: 'luis.fernandes' },
+      { name: 'Maria Gomes', username: 'maria.gomes' },
+      { name: 'Nuno Ribeiro', username: 'nuno.ribeiro' },
+      { name: 'Olga Carvalho', username: 'olga.carvalho' },
+      { name: 'Pedro Teixeira', username: 'pedro.teixeira' },
+      { name: 'Raquel Mendes', username: 'raquel.mendes' },
+      { name: 'Sérgio Nunes', username: 'sergio.nunes' },
+      { name: 'Teresa Pinto', username: 'teresa.pinto' },
+      { name: 'Vitor Moreira', username: 'vitor.moreira' }
+    ];
+
+    const categories = ['Comercial', 'Suporte', 'Técnico', 'Retenção', 'Premium'];
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash('test123', 10);
+
+    // Create users
+    const createdUsers: { id: number; name: string; category: string }[] = [];
+
+    for (let i = 0; i < Math.min(userCount, userNames.length); i++) {
+      const category = categories[i % categories.length];
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert({
+          company_id: company.id,
+          username: userNames[i].username,
+          password_hash: passwordHash,
+          role: 'agent',
+          custom_role_name: category,
+          display_name: userNames[i].name,
+          language_preference: 'pt',
+          theme_preference: 'light'
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error(`[n8n] Error creating user ${userNames[i].username}:`, error.message);
+      } else if (newUser) {
+        createdUsers.push({ id: newUser.id, name: userNames[i].name, category });
+      }
+    }
+
+    if (createdUsers.length === 0) {
+      return res.status(500).json({ error: 'No users were created' });
+    }
+
+    // Now create calls distributed among users
+    const directions = ['inbound', 'outbound', 'meeting'];
+    const phoneNumbers = [
+      '+351912345678', '+351923456789', '+351934567890', '+351945678901',
+      '+351956789012', '+351967890123', '+351978901234', '+351989012345',
+      '+351990123456', '+351901234567', '+351912111222', '+351923222333',
+      '+351934333444', '+351945444555', '+351956555666', '+351967666777',
+      '+351978777888', '+351989888999', '+351990999000', '+351901000111',
+      '+351911222333', '+351922333444', '+351933444555', '+351944555666',
+      '+351955666777', '+351966777888', '+351977888999', '+351988999000',
+      '+351999000111', '+351900111222'
+    ];
+
+    const summaries = [
+      'Cliente ligou para pedir informações sobre o novo plano de dados. Demonstrou interesse em mudar de operadora.',
+      'Chamada de acompanhamento pós-venda. Cliente satisfeito com o produto adquirido.',
+      'Reclamação sobre fatura incorreta. Situação resolvida com crédito na próxima fatura.',
+      'Pedido de cancelamento. Cliente retido com oferta de desconto de 30%.',
+      'Dúvidas sobre instalação do equipamento. Agendada visita técnica.',
+      'Reunião de apresentação de proposta comercial para empresa.',
+      'Cliente interessado em upgrade de serviço. Proposta enviada por email.',
+      'Suporte técnico - problema de conectividade resolvido remotamente.',
+      'Negociação de contrato anual. Fechamento previsto para próxima semana.',
+      'Chamada de boas-vindas a novo cliente. Explicação dos serviços incluídos.',
+      'Pedido de alteração de dados cadastrais. Atualização efetuada com sucesso.',
+      'Consulta sobre promoções ativas. Cliente aderiu à oferta especial.',
+      'Problema com equipamento. Agendada troca por novo dispositivo.',
+      'Pedido de segunda via de fatura. Enviada por email.',
+      'Reclamação sobre atendimento anterior. Situação esclarecida e resolvida.'
+    ];
+
+    const nextSteps = [
+      'Enviar proposta comercial por email até amanhã',
+      'Agendar visita técnica para instalação',
+      'Aguardar confirmação do cliente sobre upgrade',
+      'Fazer follow-up em 3 dias úteis',
+      'Preparar contrato para assinatura',
+      'Enviar documentação adicional solicitada',
+      'Confirmar agendamento da reunião presencial',
+      'Aguardar pagamento para ativar serviço',
+      'Contactar gestor de conta para aprovação',
+      'Verificar disponibilidade de stock',
+      'Ligar novamente na próxima semana',
+      'Enviar link de pagamento por SMS',
+      'Agendar chamada de acompanhamento',
+      'Escalar situação para supervisor',
+      'Aguardar resposta do departamento técnico'
+    ];
+
+    const phrasesToAvoidOptions = [
+      ['Isso não é possível', 'Não podemos fazer nada', 'Esse é o procedimento'],
+      ['Vou ter que transferir', 'Não sei', 'Isso é com outro departamento'],
+      ['Infelizmente não', 'É política da empresa', 'Não há nada a fazer'],
+      ['Tem que esperar', 'Não é da minha responsabilidade', 'Ligue mais tarde']
+    ];
+
+    const recommendedPhrasesOptions = [
+      ['Compreendo a sua situação', 'Vou resolver isso agora', 'Posso ajudá-lo com isso'],
+      ['Deixe-me verificar as opções disponíveis', 'Tenho uma solução para si', 'Agradeço a sua paciência'],
+      ['Vou acompanhar pessoalmente este caso', 'Qual seria a melhor solução para si?', 'Posso fazer isso por si'],
+      ['É uma excelente pergunta', 'Vou garantir que fica resolvido', 'Está tudo esclarecido?']
+    ];
+
+    const skillNames = ['Escuta Ativa', 'Clareza', 'Objeções', 'Fecho', 'Empatia'];
+
+    const insights = [
+      'Melhorar tempo de resposta às objeções do cliente',
+      'Excelente capacidade de criar rapport',
+      'Reforçar técnicas de fecho de venda',
+      'Demonstra boa escuta ativa',
+      'Pode melhorar na clareza das explicações técnicas',
+      'Boa gestão emocional em situações difíceis',
+      'Necessita praticar mais perguntas abertas',
+      'Muito bom a identificar necessidades do cliente'
+    ];
+
+    const whatWentWellOptions = [
+      [
+        { text: 'Saudação profissional e cordial', timestamp: '00:15' },
+        { text: 'Identificou corretamente a necessidade do cliente', timestamp: '01:30' },
+        { text: 'Ofereceu solução adequada', timestamp: '03:45' }
+      ],
+      [
+        { text: 'Demonstrou empatia com o cliente', timestamp: '00:45' },
+        { text: 'Explicação clara dos produtos', timestamp: '02:20' },
+        { text: 'Fecho de venda eficaz', timestamp: '05:10' }
+      ],
+      [
+        { text: 'Escuta ativa durante toda a chamada', timestamp: '01:00' },
+        { text: 'Tratou objeções com calma', timestamp: '03:30' },
+        { text: 'Definiu próximo passo claro', timestamp: '06:00' }
+      ]
+    ];
+
+    const whatWentWrongOptions = [
+      [
+        { text: 'Demorou a identificar o problema', timestamp: '02:00' },
+        { text: 'Faltou confirmar dados do cliente', timestamp: '04:30' }
+      ],
+      [
+        { text: 'Interrompeu o cliente várias vezes', timestamp: '01:45' },
+        { text: 'Não ofereceu alternativas', timestamp: '03:20' }
+      ],
+      [
+        { text: 'Tom de voz pouco entusiástico', timestamp: '00:30' },
+        { text: 'Não resumiu os pontos acordados', timestamp: '05:45' }
+      ]
+    ];
+
+    const createdCalls: number[] = [];
+
+    for (let i = 0; i < callCount; i++) {
+      const agent = createdUsers[i % createdUsers.length];
+      const score = Math.round((5 + Math.random() * 5) * 10) / 10;
+      const daysAgo = Math.floor(Math.random() * 30);
+      const callDate = new Date();
+      callDate.setDate(callDate.getDate() - daysAgo);
+
+      const skillScores = skillNames.map(name => ({
+        name,
+        score: Math.round((4 + Math.random() * 6) * 10) / 10,
+        description: `Avaliação de ${name.toLowerCase()} nesta chamada`
+      }));
+
+      const responseExample = {
+        before: 'Isso não é possível fazer, é política da empresa.',
+        after: 'Compreendo a sua situação. Deixe-me verificar que alternativas temos disponíveis para si.',
+        context: 'Quando o cliente pediu uma exceção à política de devolução'
+      };
+
+      const topPerformerComparison = {
+        agent_score: score,
+        top_performer_score: Math.round((8 + Math.random() * 2) * 10) / 10,
+        gap: Math.round((score - 9) * 10) / 10,
+        insights: [
+          insights[Math.floor(Math.random() * insights.length)],
+          insights[Math.floor(Math.random() * insights.length)]
+        ]
+      };
+
+      const transcription = `[${agent.name}]: Bom dia, obrigado por ligar para a ${agent.category}. Em que posso ajudar?
+[Cliente]: Olá, gostaria de saber mais sobre os vossos serviços.
+[${agent.name}]: Claro, terei todo o gosto em ajudar. Que tipo de serviço procura?
+[Cliente]: Estou interessado no plano empresarial.
+[${agent.name}]: Excelente escolha. O plano empresarial inclui várias funcionalidades...
+[Cliente]: E qual é o preço?
+[${agent.name}]: O investimento mensal é de 49,90€, mas temos uma promoção especial...
+[Cliente]: Parece interessante. Vou pensar.
+[${agent.name}]: Compreendo. Posso enviar-lhe toda a informação por email?
+[Cliente]: Sim, por favor.
+[${agent.name}]: Perfeito. Há mais alguma questão em que possa ajudar?
+[Cliente]: Não, obrigado.
+[${agent.name}]: Agradeço o seu contacto. Tenha um excelente dia!`;
+
+      const { data: newCall, error } = await supabase
+        .from('calls')
+        .insert({
+          company_id: company.id,
+          agent_id: agent.id,
+          phone_number: phoneNumbers[i % phoneNumbers.length],
+          direction: directions[Math.floor(Math.random() * directions.length)],
+          duration_seconds: 120 + Math.floor(Math.random() * 480),
+          call_date: callDate.toISOString(),
+          transcription,
+          summary: summaries[i % summaries.length],
+          next_step_recommendation: nextSteps[i % nextSteps.length],
+          final_score: score,
+          score_justification: 'Avaliação baseada em critérios de qualidade de atendimento.',
+          what_went_well: JSON.stringify(whatWentWellOptions[i % whatWentWellOptions.length]),
+          what_went_wrong: JSON.stringify(whatWentWrongOptions[i % whatWentWrongOptions.length]),
+          risk_words_detected: JSON.stringify(i % 5 === 0 ? ['cancelar'] : []),
+          phrases_to_avoid: JSON.stringify(phrasesToAvoidOptions[i % phrasesToAvoidOptions.length]),
+          recommended_phrases: JSON.stringify(recommendedPhrasesOptions[i % recommendedPhrasesOptions.length]),
+          response_improvement_example: JSON.stringify(responseExample),
+          top_performer_comparison: JSON.stringify(topPerformerComparison),
+          skill_scores: JSON.stringify(skillScores)
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[n8n] Error creating test call:', error);
+      } else if (newCall) {
+        createdCalls.push(newCall.id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Created ${createdUsers.length} users and ${createdCalls.length} calls`,
+      users: createdUsers.map(u => ({ id: u.id, name: u.name, category: u.category })),
+      callIds: createdCalls
+    });
+  } catch (error) {
+    console.error('[n8n] Error generating test users and calls:', error);
+    res.status(500).json({ error: 'Failed to generate test users and calls' });
+  }
+});
 
 export default router;

@@ -7,14 +7,14 @@ import { callsApi, usersApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Call, PaginatedResponse, User as UserType } from '../types';
+import { Call, PaginatedResponse, User as UserType, isAdminOrDeveloper } from '../types';
 
 export default function Calls() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin_manager';
+  const isAdmin = user?.role ? isAdminOrDeveloper(user.role) : false;
 
   const [calls, setCalls] = useState<Call[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -251,7 +251,7 @@ export default function Calls() {
 
     // Filter by search term
     return call.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (call.agent_username && call.agent_username.toLowerCase().includes(searchTerm.toLowerCase()));
+      (call.agent_name && call.agent_name.toLowerCase().includes(searchTerm.toLowerCase()));
   });
 
   if (isLoading) {
@@ -403,7 +403,7 @@ export default function Calls() {
               {isAdmin && agents.length > 0 && (
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('calls.agent')}
+                    {t('calls.user')}
                   </label>
                   <select
                     value={selectedAgentId}
@@ -413,10 +413,10 @@ export default function Calls() {
                     }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">{t('calls.allAgents')}</option>
+                    <option value="">{t('calls.allUsers')}</option>
                     {agents.map((agent) => (
                       <option key={agent.id} value={agent.id}>
-                        {agent.username}
+                        {agent.display_name || agent.username}
                       </option>
                     ))}
                   </select>
@@ -500,7 +500,7 @@ export default function Calls() {
                     </th>
                     {isAdmin && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        {t('calls.agent')}
+                        {t('calls.user')}
                       </th>
                     )}
                     <th
@@ -541,7 +541,7 @@ export default function Calls() {
                       </td>
                       {isAdmin && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {call.agent_username || '-'}
+                          {call.agent_name || '-'}
                         </td>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">

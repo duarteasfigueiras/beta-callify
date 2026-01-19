@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
 
@@ -10,17 +11,25 @@ router.use(authenticateToken);
 // Get all alerts for the company
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, unread_only } = req.query;
+    const { page = 1, limit = 20, unread_only, company_id } = req.query;
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const offset = (pageNum - 1) * limitNum;
-    const isAdmin = req.user!.role === 'admin_manager';
+    const isAdmin = isAdminOrDeveloper(req.user!.role);
 
-    // Build query
+    // Build query - don't join with calls as there may not be a foreign key
     let query = supabase
       .from('alerts')
-      .select('*, users!alerts_agent_id_fkey(username), calls!alerts_call_id_fkey(phone_number)', { count: 'exact' })
-      .eq('company_id', req.user!.companyId);
+      .select('*, users!alerts_agent_id_fkey(username, display_name, custom_role_name), companies(name)', { count: 'exact' });
+
+    // Developer sees all, admin sees company, agent sees own
+    if (isDeveloper(req.user!.role)) {
+      if (company_id) {
+        query = query.eq('company_id', Number(company_id));
+      }
+    } else {
+      query = query.eq('company_id', req.user!.companyId);
+    }
 
     // Agents can only see their own alerts
     if (!isAdmin) {
@@ -41,9 +50,11 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const transformedAlerts = (alerts || []).map((alert: any) => ({
       ...alert,
       agent_username: alert.users?.username || null,
-      phone_number: alert.calls?.phone_number || null,
+      agent_name: alert.users?.display_name || alert.users?.username || null,
+      agent_custom_role_name: alert.users?.custom_role_name || null,
+      company_name: alert.companies?.name || null,
       users: undefined,
-      calls: undefined
+      companies: undefined
     }));
 
     res.json({
@@ -63,14 +74,18 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 router.patch('/:id/read', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const alertId = parseInt(req.params.id);
-    const isAdmin = req.user!.role === 'admin_manager';
+    const isAdmin = isAdminOrDeveloper(req.user!.role);
 
     // Build query to verify the alert
     let query = supabase
       .from('alerts')
       .select('id')
-      .eq('id', alertId)
-      .eq('company_id', req.user!.companyId);
+      .eq('id', alertId);
+
+    // Developer can mark any alert as read
+    if (!isDeveloper(req.user!.role)) {
+      query = query.eq('company_id', req.user!.companyId);
+    }
 
     if (!isAdmin) {
       query = query.eq('agent_id', req.user!.userId);

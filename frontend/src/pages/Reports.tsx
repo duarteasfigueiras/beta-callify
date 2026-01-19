@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -17,13 +18,24 @@ import {
   XCircle,
   Download,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { dashboardApi, usersApi, callsApi } from '../services/api';
+import { dashboardApi, usersApi, callsApi, alertSettingsApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ScoreByAgent, ScoreEvolution, CallsByPeriod, TopReason, TopObjection, User, Call } from '../types';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface CriteriaStats {
   criterion_name: string;
@@ -41,6 +53,7 @@ interface AlertStats {
 export default function Reports() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [scoreByAgent, setScoreByAgent] = useState<ScoreByAgent[]>([]);
   const [scoreEvolution, setScoreEvolution] = useState<ScoreEvolution[]>([]);
@@ -61,6 +74,9 @@ export default function Reports() {
   const [riskWordsCount, setRiskWordsCount] = useState<{ word: string; count: number }[]>([]);
   const [alertsByType, setAlertsByType] = useState<AlertStats[]>([]);
   const [alertsByAgent, setAlertsByAgent] = useState<{ agent: string; count: number }[]>([]);
+
+  // Score by agent view mode: 'best' or 'worst'
+  const [scoreViewMode, setScoreViewMode] = useState<'best' | 'worst'>('best');
 
   useEffect(() => {
     fetchAgents();
@@ -92,13 +108,14 @@ export default function Reports() {
   const fetchReportData = async () => {
     setIsLoading(true);
     try {
-      const [agentData, evolutionData, periodData, reasonsData, objectionsData, callsData] = await Promise.all([
+      const [agentData, evolutionData, periodData, reasonsData, objectionsData, callsData, alertSettings] = await Promise.all([
         dashboardApi.getScoreByAgent(),
         dashboardApi.getScoreEvolution(getDays(), selectedAgentId),
         dashboardApi.getCallsByPeriod(getDays(), selectedAgentId),
         dashboardApi.getTopReasons(),
         dashboardApi.getTopObjections(),
         callsApi.getAll({ limit: 1000 }),
+        alertSettingsApi.get().catch(() => null),
       ]);
 
       setScoreByAgent(agentData);
@@ -129,7 +146,7 @@ export default function Reports() {
       // Calculate calls by agent
       const agentCounts: Record<string, number> = {};
       allCalls.forEach((call: Call) => {
-        const agentName = call.agent_username || 'Unknown';
+        const agentName = call.agent_name || 'Unknown';
         agentCounts[agentName] = (agentCounts[agentName] || 0) + 1;
       });
       setCallsByAgent(
@@ -142,20 +159,49 @@ export default function Reports() {
       const withNextStep = allCalls.filter((call: Call) => call.next_step_recommendation).length;
       setNextStepRate(allCalls.length > 0 ? Math.round((withNextStep / allCalls.length) * 100) : 0);
 
-      // Calculate risk words frequency
+      // Calculate risk words frequency based on configured words
+      console.log('Alert settings:', alertSettings);
+      console.log('Risk words list:', alertSettings?.risk_words_list);
+      const configuredRiskWords = alertSettings?.risk_words_list
+        ? alertSettings.risk_words_list.split(',').map((w: string) => w.trim().toLowerCase()).filter(Boolean)
+        : [];
+      console.log('Configured risk words:', configuredRiskWords);
+
+      // Initialize all configured words with count 0
       const riskWords: Record<string, number> = {};
+      configuredRiskWords.forEach((word: string) => {
+        riskWords[word] = 0;
+      });
+
+      // Count occurrences of configured words in calls
       allCalls.forEach((call: Call) => {
-        if (call.risk_words_detected && Array.isArray(call.risk_words_detected)) {
-          call.risk_words_detected.forEach((word: string) => {
-            riskWords[word] = (riskWords[word] || 0) + 1;
-          });
+        if (call.risk_words_detected) {
+          try {
+            // Parse if it's a string, otherwise use directly
+            const detectedWords = typeof call.risk_words_detected === 'string'
+              ? JSON.parse(call.risk_words_detected)
+              : call.risk_words_detected;
+
+            if (Array.isArray(detectedWords)) {
+              detectedWords.forEach((detectedWord: string) => {
+                if (detectedWord) {
+                  const normalizedWord = detectedWord.toLowerCase();
+                  // Only count if it's a configured word
+                  if (riskWords.hasOwnProperty(normalizedWord)) {
+                    riskWords[normalizedWord] = (riskWords[normalizedWord] || 0) + 1;
+                  }
+                }
+              });
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
         }
       });
       setRiskWordsCount(
         Object.entries(riskWords)
           .map(([word, count]) => ({ word, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 10)
       );
 
     } catch (error) {
@@ -501,7 +547,7 @@ export default function Reports() {
             )}
           </div>
 
-          {/* Agent filter */}
+          {/* User filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-500" />
             <select
@@ -509,7 +555,7 @@ export default function Reports() {
               onChange={(e) => setSelectedAgentId(e.target.value ? Number(e.target.value) : undefined)}
               className="px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="">{t('reports.allAgents', 'All Agents')}</option>
+              <option value="">{t('reports.allUsers', 'All Users')}</option>
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.username}
@@ -619,39 +665,72 @@ export default function Reports() {
 
       {/* Charts Grid - Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Score by Agent */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              {t('reports.scoreByAgent', 'Score by Agent')}
+        {/* Score by User - Top 4 Best or Worst - Clickable */}
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate('/user-scores')}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {t('reports.scoreByUser', 'Score by User')}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setScoreViewMode(scoreViewMode === 'best' ? 'worst' : 'best');
+                }}
+                className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 ${
+                  scoreViewMode === 'best'
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800'
+                }`}
+                title={scoreViewMode === 'best' ? t('reports.showWorst', 'Show worst') : t('reports.showBest', 'Show best')}
+              >
+                <span className="text-xs font-medium">
+                  {scoreViewMode === 'best' ? t('reports.best', 'Best') : t('reports.worst', 'Worst')}
+                </span>
+                {scoreViewMode === 'best' ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronUp className="w-4 h-4" />
+                )}
+              </button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {scoreByAgent.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-4">
-                {scoreByAgent.map((agent) => (
-                  <div key={agent.agent_id} className="flex items-center gap-4">
-                    <div className="w-24 truncate font-medium text-gray-900 dark:text-gray-100">
-                      {agent.agent_username}
-                    </div>
-                    <div className="flex-1">
-                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${getScoreColor(agent.average_score)} transition-all duration-500`}
-                          style={{ width: `${(agent.average_score / 10) * 100}%` }}
-                        />
+              <div className="space-y-3 h-64 overflow-y-auto pr-2">
+                {(scoreViewMode === 'best'
+                  ? [...scoreByAgent].sort((a, b) => b.average_score - a.average_score)
+                  : [...scoreByAgent].sort((a, b) => a.average_score - b.average_score)
+                ).map((agent) => (
+                  <div key={agent.agent_id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                          {agent.agent_name || agent.agent_username}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          {agent.total_calls} {t('reports.calls', 'calls')}
+                        </span>
                       </div>
-                    </div>
-                    <div className={`w-12 text-right font-bold ${getScoreTextColor(agent.average_score)}`}>
-                      {agent.average_score}
-                    </div>
-                    <div className="w-16 text-right text-sm text-gray-500 dark:text-gray-400">
-                      {agent.total_calls} {t('reports.calls', 'calls')}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${getScoreColor(agent.average_score)} transition-all duration-500`}
+                            style={{ width: `${(agent.average_score / 10) * 100}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold w-8 text-right ${getScoreTextColor(agent.average_score)}`}>
+                          {agent.average_score.toFixed(1)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -661,192 +740,260 @@ export default function Reports() {
         </Card>
 
         {/* Score Evolution */}
-        <Card>
-          <CardHeader>
+        <Card
+          className="flex flex-col cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate('/score-evolution')}
+        >
+          <CardHeader className="pb-2 shrink-0">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               {t('reports.scoreEvolution', 'Score Evolution')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 pt-0 pb-3 px-4 min-h-0">
             {scoreEvolution.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="h-48">
-                <div className="flex items-end gap-1 h-36">
-                  {scoreEvolution.map((point, index) => (
-                    <div
-                      key={index}
-                      className="flex-1 flex flex-col items-center justify-end"
-                    >
-                      <div
-                        className={`w-full ${getScoreColor(point.average_score)} rounded-t transition-all duration-500`}
-                        style={{ height: `${(point.average_score / 10) * 100}%` }}
-                        title={`${formatDate(point.date)}: ${point.average_score.toFixed(1)}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  {scoreEvolution.length > 0 && (
-                    <>
-                      <span>{formatDate(scoreEvolution[0].date)}</span>
-                      <span>{formatDate(scoreEvolution[scoreEvolution.length - 1].date)}</span>
-                    </>
-                  )}
-                </div>
-              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={scoreEvolution.map(item => ({
+                    ...item,
+                    average_score: Math.round(item.average_score * 10) / 10,
+                    formattedDate: new Date(item.date).toLocaleDateString(user?.language_preference === 'pt' ? 'pt-PT' : 'en-US', {
+                      day: '2-digit',
+                      month: '2-digit',
+                    }),
+                  }))}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="formattedDate"
+                    tick={{ fill: 'currentColor', fontSize: 11 }}
+                    tickLine={{ stroke: 'currentColor' }}
+                    className="text-gray-500 dark:text-gray-400"
+                  />
+                  <YAxis
+                    domain={[0, 10]}
+                    tick={{ fill: 'currentColor', fontSize: 11 }}
+                    tickLine={{ stroke: 'currentColor' }}
+                    className="text-gray-500 dark:text-gray-400"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #1f2937)',
+                      border: '1px solid var(--tooltip-border, #374151)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      fontSize: '12px',
+                      color: '#f9fafb',
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'average_score') {
+                        return [value.toFixed(1), t('reports.avgScore', 'Avg. Score')];
+                      }
+                      return [value, t('reports.totalCalls', 'Total Calls')];
+                    }}
+                    labelFormatter={(label) => label}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="average_score"
+                    stroke="#16a34a"
+                    strokeWidth={2}
+                    dot={{ fill: '#16a34a', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#16a34a' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Grid - Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calls by Period */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              {t('reports.callsByPeriod', 'Calls by Period')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {callsByPeriod.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                {t('common.noResults', 'No results')}
-              </div>
-            ) : (
-              <div className="h-48">
-                <div className="flex items-end gap-1 h-36">
-                  {callsByPeriod.map((point, index) => (
+      {/* Calls by Period - Full Width */}
+      <Card
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => navigate('/calls-by-period')}
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            {t('reports.callsByPeriod', 'Calls by Period')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {callsByPeriod.length === 0 ? (
+            <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              {t('common.noResults', 'No results')}
+            </div>
+          ) : (
+            <div className="h-48 flex flex-col">
+              <div className="flex items-end gap-0.5 flex-1">
+                {callsByPeriod.map((point, index) => {
+                  const heightPercent = (point.count / maxCalls) * 100;
+                  return (
                     <div
                       key={index}
-                      className="flex-1 flex flex-col items-center justify-end"
+                      className="flex flex-col items-center justify-end h-full relative group"
+                      style={{ minWidth: '6px', flex: '1 1 0' }}
                     >
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                        <div className="font-medium">{formatDate(point.period)}</div>
+                        <div>{point.count} {t('reports.calls', 'chamadas')}</div>
+                      </div>
                       <div
-                        className="w-full bg-blue-500 rounded-t transition-all duration-500"
-                        style={{ height: `${(point.count / maxCalls) * 100}%` }}
-                        title={`${formatDate(point.period)}: ${point.count} calls`}
+                        className="w-full bg-blue-500 rounded-t transition-all duration-300 hover:bg-blue-400 cursor-pointer"
+                        style={{ height: `${heightPercent}%`, minHeight: point.count > 0 ? '8px' : '2px' }}
                       />
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  {callsByPeriod.length > 0 && (
-                    <>
-                      <span>{formatDate(callsByPeriod[0].period)}</span>
-                      <span>{formatDate(callsByPeriod[callsByPeriod.length - 1].period)}</span>
-                    </>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Calls by Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="w-5 h-5" />
-              {t('reports.callsByType', 'Calls by Type')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 w-28">
-                  <PhoneIncoming className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('calls.inbound', 'Inbound')}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-500"
-                      style={{ width: totalCallsByType > 0 ? `${(callsByType.inbound / totalCallsByType) * 100}%` : '0%' }}
-                    />
-                  </div>
-                </div>
-                <div className="w-16 text-right font-medium text-gray-900 dark:text-gray-100">
-                  {callsByType.inbound}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 w-28">
-                  <PhoneOutgoing className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('calls.outbound', 'Outbound')}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all duration-500"
-                      style={{ width: totalCallsByType > 0 ? `${(callsByType.outbound / totalCallsByType) * 100}%` : '0%' }}
-                    />
-                  </div>
-                </div>
-                <div className="w-16 text-right font-medium text-gray-900 dark:text-gray-100">
-                  {callsByType.outbound}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 w-28">
-                  <Users className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('calls.meetings', 'Meetings')}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-purple-500 transition-all duration-500"
-                      style={{ width: totalCallsByType > 0 ? `${(callsByType.meeting / totalCallsByType) * 100}%` : '0%' }}
-                    />
-                  </div>
-                </div>
-                <div className="w-16 text-right font-medium text-gray-900 dark:text-gray-100">
-                  {callsByType.meeting}
-                </div>
+              <div className="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                {callsByPeriod.length > 0 && (
+                  <>
+                    <span>{formatDate(callsByPeriod[0].period)}</span>
+                    <span>{formatDate(callsByPeriod[callsByPeriod.length - 1].period)}</span>
+                  </>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Calls by Type - Full Width */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="w-5 h-5" />
+            {t('reports.callsByType', 'Calls by Type')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Inbound */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <PhoneIncoming className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('calls.inbound', 'Inbound')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{callsByType.inbound}</p>
+                </div>
+              </div>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-500"
+                  style={{ width: totalCallsByType > 0 ? `${(callsByType.inbound / totalCallsByType) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                {totalCallsByType > 0 ? `${Math.round((callsByType.inbound / totalCallsByType) * 100)}%` : '0%'}
+              </p>
+            </div>
+
+            {/* Outbound */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <PhoneOutgoing className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('calls.outbound', 'Outbound')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{callsByType.outbound}</p>
+                </div>
+              </div>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-500"
+                  style={{ width: totalCallsByType > 0 ? `${(callsByType.outbound / totalCallsByType) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                {totalCallsByType > 0 ? `${Math.round((callsByType.outbound / totalCallsByType) * 100)}%` : '0%'}
+              </p>
+            </div>
+
+            {/* Meetings */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('calls.meetings', 'Meetings')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{callsByType.meeting}</p>
+                </div>
+              </div>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 transition-all duration-500"
+                  style={{ width: totalCallsByType > 0 ? `${(callsByType.meeting / totalCallsByType) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                {totalCallsByType > 0 ? `${Math.round((callsByType.meeting / totalCallsByType) * 100)}%` : '0%'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Grid - Row 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calls by Agent */}
+        {/* Calls by User */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              {t('reports.callsByAgent', 'Calls by Agent')}
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {t('reports.callsByUser', 'Calls by User')}
+              </div>
+              {callsByAgent.length > 0 && (
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  {callsByAgent.length} {t('users.users', 'users')}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {callsByAgent.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-3">
-                {callsByAgent.slice(0, 6).map((item, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="w-24 truncate font-medium text-gray-900 dark:text-gray-100">
-                      {item.agent}
+              <div className="h-64 overflow-y-auto space-y-3 pr-2">
+                {callsByAgent.map((item, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                        {item.agent.charAt(0).toUpperCase()}
+                      </span>
                     </div>
-                    <div className="flex-1">
-                      <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {item.agent}
+                      </p>
+                      <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
                         <div
                           className="h-full bg-indigo-500 transition-all duration-500"
                           style={{ width: `${(item.count / maxAgentCalls) * 100}%` }}
                         />
                       </div>
                     </div>
-                    <div className="w-12 text-right font-medium text-gray-900 dark:text-gray-100">
-                      {item.count}
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {item.count}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('reports.calls', 'calls')}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -865,25 +1012,25 @@ export default function Reports() {
           </CardHeader>
           <CardContent>
             {topReasons.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 h-64 overflow-y-auto pr-2">
                 {topReasons.map((reason, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-32 truncate text-sm text-gray-900 dark:text-gray-100">
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="w-32 text-xs font-medium text-gray-900 dark:text-gray-100 break-words leading-tight">
                       {reason.reason}
                     </div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="flex-1 min-w-[40px]">
+                      <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-purple-500 transition-all duration-500"
                           style={{ width: `${(reason.count / maxReasonCount) * 100}%` }}
                         />
                       </div>
                     </div>
-                    <div className="w-8 text-right text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
                       {reason.count}
                     </div>
                   </div>
@@ -902,6 +1049,11 @@ export default function Reports() {
             <CardTitle className="flex items-center gap-2">
               <XCircle className="w-5 h-5" />
               {t('reports.topObjections', 'Top Objections')}
+              {topObjections.length > 0 && (
+                <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
+                  {topObjections.length} {t('reports.objections', 'objections')}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -910,19 +1062,18 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {topObjections.slice(0, 6).map((objection, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                  >
-                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                      {objection.count}
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                {topObjections.map((objection, index) => (
+                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="text-sm font-medium text-amber-600 dark:text-amber-400 capitalize break-words">
+                        {objection.objection}
+                      </div>
+                      <div className="text-sm font-bold text-gray-700 dark:text-gray-300 shrink-0 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">
+                        {objection.count}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                      {objection.objection}
-                    </div>
-                    <div className="mt-2 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-500 transition-all duration-500"
                         style={{ width: `${(objection.count / maxObjectionCount) * 100}%` }}
@@ -941,29 +1092,42 @@ export default function Reports() {
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               {t('reports.riskWordsFrequency', 'Risk Words Frequency')}
+              {riskWordsCount.length > 0 && (
+                <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
+                  {riskWordsCount.length} {t('common.words', 'words')}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {riskWordsCount.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                {t('common.noResults', 'No results')}
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                <div className="text-center">
+                  <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>{t('reports.noRiskWordsConfigured', 'No risk words configured')}</p>
+                  <p className="text-xs mt-1">{t('reports.configureInSettings', 'Configure in Settings > Alerts')}</p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                {riskWordsCount.slice(0, 6).map((item, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-28 truncate text-sm font-medium text-red-600 dark:text-red-400">
+              <div className="space-y-4 h-64 overflow-y-auto pr-2">
+                {riskWordsCount.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -mx-2 rounded-lg transition-colors"
+                    onClick={() => navigate(`/risk-words-calls?word=${encodeURIComponent(item.word)}`)}
+                  >
+                    <div className="w-32 truncate text-sm font-medium text-red-600 dark:text-red-400 capitalize">
                       {item.word}
                     </div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-red-500 transition-all duration-500"
-                          style={{ width: `${(item.count / maxRiskWordCount) * 100}%` }}
+                          style={{ width: `${maxRiskWordCount > 0 ? (item.count / maxRiskWordCount) * 100 : 0}%` }}
                         />
                       </div>
                     </div>
-                    <div className="w-8 text-right text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
                       {item.count}
                     </div>
                   </div>

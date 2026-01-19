@@ -186,8 +186,18 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
     }
 
     // Process the simulated call
+    // For developer users without a company, we need to get a company first
+    let targetCompanyId = req.user!.companyId;
+    if (!targetCompanyId) {
+      const company = await dbGet<{ id: number }>('SELECT id FROM companies LIMIT 1');
+      if (!company) {
+        return res.status(400).json({ error: 'No company available for simulation' });
+      }
+      targetCompanyId = company.id;
+    }
+
     const result = await simulateTwilioWebhook(
-      req.user!.companyId,
+      targetCompanyId,
       targetAgentId,
       phoneNumber,
       durationSeconds

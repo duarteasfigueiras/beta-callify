@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isAdminOrDeveloper } from '../types';
 import toast from 'react-hot-toast';
 
 interface TimestampedItem {
@@ -25,10 +26,29 @@ interface Feedback {
   created_at: string;
 }
 
+interface SkillScore {
+  name: string;
+  score: number;
+  description?: string;
+}
+
+interface ResponseExample {
+  before: string;
+  after: string;
+  context?: string;
+}
+
+interface TopPerformerComparison {
+  agent_score: number;
+  top_performer_score: number;
+  gap: number;
+  insights: string[];
+}
+
 interface CallData {
   id: number;
   phone_number: string;
-  agent_username: string;
+  agent_name: string;
   direction: string;
   duration_seconds: number;
   call_date: string;
@@ -44,6 +64,12 @@ interface CallData {
   audio_file_path: string;
   criteria_results: CriterionResult[];
   feedback: Feedback[];
+  // New AI coaching fields
+  phrases_to_avoid: string;
+  recommended_phrases: string;
+  response_improvement_example: string;
+  top_performer_comparison: string;
+  skill_scores: string;
 }
 
 export default function CallDetail() {
@@ -151,16 +177,9 @@ export default function CallDetail() {
     return 0;
   };
 
-  // Seek audio to specific timestamp
-  const seekToTimestamp = (timestamp: string) => {
-    if (audioRef.current) {
-      const seconds = parseTimestamp(timestamp);
-      audioRef.current.currentTime = seconds;
-      audioRef.current.play();
-      toast.success(t('calls.seekingTo', 'Seeking to {{timestamp}}', { timestamp }));
-    } else {
-      toast.error(t('calls.noAudio', 'No audio available'));
-    }
+  // Navigate to transcription page at specific timestamp
+  const goToTranscription = (timestamp: string) => {
+    navigate(`/calls/${id}/transcription?t=${encodeURIComponent(timestamp)}`);
   };
 
   // Helper to check if items have timestamps
@@ -187,6 +206,25 @@ export default function CallDetail() {
   const whatWentWell = parseJSON(call.what_went_well);
   const whatWentWrong = parseJSON(call.what_went_wrong);
   const riskWords = parseJSON(call.risk_words_detected);
+  const phrasesToAvoid = parseJSON(call.phrases_to_avoid);
+  const recommendedPhrases = parseJSON(call.recommended_phrases);
+  const responseExample = parseJSON(call.response_improvement_example) as ResponseExample | null;
+  const topPerformerComparison = parseJSON(call.top_performer_comparison) as TopPerformerComparison | null;
+  const skillScores = parseJSON(call.skill_scores) as SkillScore[] | null;
+
+  // Helper to get skill color based on score
+  const getSkillColor = (score: number) => {
+    if (score >= 8) return 'bg-green-500';
+    if (score >= 6) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  // Helper to get skill text color
+  const getSkillTextColor = (score: number) => {
+    if (score >= 8) return 'text-green-600 dark:text-green-400';
+    if (score >= 6) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
+  };
 
   return (
     <div className="space-y-6">
@@ -239,7 +277,7 @@ export default function CallDetail() {
             </p>
           </div>
         </div>
-        {user?.role === 'admin_manager' && (
+        {user?.role && isAdminOrDeveloper(user.role) && (
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
@@ -272,10 +310,10 @@ export default function CallDetail() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            {t('calls.agent', 'Agent')}
+            {t('calls.user', 'User')}
           </p>
           <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-            {call.agent_username}
+            {call.agent_name}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -345,11 +383,11 @@ export default function CallDetail() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         {activeTab === 'summary' && (
           <div className="p-6 space-y-6">
-            {/* AI Summary */}
+            {/* Summary */}
             {call.summary && (
               <div>
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  {t('calls.aiSummary', 'AI Summary')}
+                  {t('calls.summary', 'Summary')}
                 </h4>
                 <p className="text-gray-900 dark:text-white">{call.summary}</p>
               </div>
@@ -384,9 +422,9 @@ export default function CallDetail() {
                               {item.text}
                             </span>
                             <button
-                              onClick={() => seekToTimestamp(item.timestamp)}
+                              onClick={() => goToTranscription(item.timestamp)}
                               className="text-xs bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 px-2 py-1 rounded cursor-pointer transition-colors"
-                              title={t('calls.seekToTimestamp', 'Click to seek to this moment')}
+                              title={t('calls.goToTranscription', 'Click to seek to this moment')}
                             >
                               {item.timestamp}
                             </button>
@@ -425,9 +463,9 @@ export default function CallDetail() {
                               {item.text}
                             </span>
                             <button
-                              onClick={() => seekToTimestamp(item.timestamp)}
+                              onClick={() => goToTranscription(item.timestamp)}
                               className="text-xs bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 px-2 py-1 rounded cursor-pointer transition-colors"
-                              title={t('calls.seekToTimestamp', 'Click to seek to this moment')}
+                              title={t('calls.goToTranscription', 'Click to seek to this moment')}
                             >
                               {item.timestamp}
                             </button>
@@ -461,6 +499,162 @@ export default function CallDetail() {
                       {word}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Phrases to Avoid */}
+            {phrasesToAvoid && Array.isArray(phrasesToAvoid) && phrasesToAvoid.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                  {t('calls.phrasesToAvoid', 'Frases a Evitar')}
+                </h4>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <ul className="space-y-2">
+                    {phrasesToAvoid.map((phrase: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-red-800 dark:text-red-200">
+                        <span className="mt-1.5 w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></span>
+                        <span className="italic">"{phrase}"</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Recommended Phrases */}
+            {recommendedPhrases && Array.isArray(recommendedPhrases) && recommendedPhrases.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+                  {t('calls.recommendedPhrases', 'Frases Recomendadas')}
+                </h4>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <ul className="space-y-2">
+                    {recommendedPhrases.map((phrase: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-blue-800 dark:text-blue-200">
+                        <span className="mt-1.5 w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                        <span className="italic">"{phrase}"</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Response Improvement Example */}
+            {responseExample && responseExample.before && responseExample.after && (
+              <div>
+                <h4 className="text-sm font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2">
+                  {t('calls.responseImprovement', 'Exemplo de Resposta a Melhorar')}
+                </h4>
+                <div className="space-y-3">
+                  {responseExample.context && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                      {responseExample.context}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <p className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                        {t('calls.before', 'Antes')}
+                      </p>
+                      <p className="text-red-800 dark:text-red-200 italic">"{responseExample.before}"</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
+                        {t('calls.after', 'Depois')}
+                      </p>
+                      <p className="text-green-800 dark:text-green-200 italic">"{responseExample.after}"</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Skill Scores */}
+            {skillScores && Array.isArray(skillScores) && skillScores.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
+                  {t('calls.skillEvolution', 'Evolução por Skill')}
+                </h4>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+                  <div className="space-y-4">
+                    {skillScores.map((skill: SkillScore, i: number) => (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {skill.name}
+                          </span>
+                          <span className={`text-sm font-bold ${getSkillTextColor(skill.score)}`}>
+                            {skill.score.toFixed(1)}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${getSkillColor(skill.score)} transition-all duration-500`}
+                            style={{ width: `${(skill.score / 10) * 100}%` }}
+                          />
+                        </div>
+                        {skill.description && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {skill.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Top Performer Comparison */}
+            {topPerformerComparison && (
+              <div>
+                <h4 className="text-sm font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-2">
+                  {t('calls.topPerformerComparison', 'Comparação com Top Performer')}
+                </h4>
+                <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+                  <div className="flex items-center justify-center gap-8 mb-4">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.yourScore', 'A Tua Pontuação')}
+                      </p>
+                      <p className={`text-3xl font-bold ${getSkillTextColor(topPerformerComparison.agent_score)}`}>
+                        {topPerformerComparison.agent_score.toFixed(1)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.gap', 'Diferença')}
+                      </p>
+                      <p className={`text-2xl font-bold ${topPerformerComparison.gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {topPerformerComparison.gap >= 0 ? '+' : ''}{topPerformerComparison.gap.toFixed(1)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.topPerformer', 'Top Performer')}
+                      </p>
+                      <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                        {topPerformerComparison.top_performer_score.toFixed(1)}
+                      </p>
+                    </div>
+                  </div>
+                  {topPerformerComparison.insights && topPerformerComparison.insights.length > 0 && (
+                    <div className="border-t border-cyan-200 dark:border-cyan-800 pt-3 mt-3">
+                      <p className="text-xs font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-2">
+                        {t('calls.insights', 'Insights')}
+                      </p>
+                      <ul className="space-y-1">
+                        {topPerformerComparison.insights.map((insight: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-cyan-800 dark:text-cyan-200">
+                            <span className="mt-1 w-1.5 h-1.5 bg-cyan-500 rounded-full flex-shrink-0"></span>
+                            {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -546,7 +740,7 @@ export default function CallDetail() {
             )}
 
             {/* Add Feedback Form (Admin only) */}
-            {user?.role === 'admin_manager' && (
+            {user?.role && isAdminOrDeveloper(user.role) && (
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                   {t('calls.addFeedback', 'Add Feedback')}

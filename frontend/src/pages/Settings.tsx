@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, Phone, UserCircle, PartyPopper } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -11,6 +12,19 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isNewUser = searchParams.get('newUser') === 'true';
+
+  // Remove newUser param from URL after showing the welcome message
+  useEffect(() => {
+    if (isNewUser) {
+      // Remove the param after a delay so the user sees the welcome message
+      const timer = setTimeout(() => {
+        setSearchParams({});
+      }, 10000); // Remove after 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [isNewUser, setSearchParams]);
 
   const [languagePreference, setLanguagePreference] = useState<'pt' | 'en'>(
     user?.language_preference || 'pt'
@@ -19,6 +33,14 @@ export default function Settings() {
     user?.theme_preference || 'light'
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Phone number state
+  const [phoneNumber, setPhoneNumber] = useState<string>(user?.phone_number || '+351');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+
+  // Display name state
+  const [displayName, setDisplayName] = useState<string>(user?.display_name || '');
+  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -58,6 +80,50 @@ export default function Settings() {
     }
   };
 
+  const handleSavePhone = async () => {
+    setIsSavingPhone(true);
+    try {
+      await usersApi.updatePreferences({
+        phone_number: phoneNumber || null,
+      });
+
+      // Refresh user data
+      if (refreshUser) {
+        await refreshUser();
+      }
+
+      toast.success(t('settings.phoneSaved', 'Phone number saved successfully'));
+    } catch (error: any) {
+      console.error('Error saving phone number:', error);
+      const errorMessage = error.response?.data?.error || t('settings.phoneError', 'Failed to save phone number');
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
+
+  const handleSaveDisplayName = async () => {
+    setIsSavingDisplayName(true);
+    try {
+      await usersApi.updatePreferences({
+        display_name: displayName || null,
+      });
+
+      // Refresh user data
+      if (refreshUser) {
+        await refreshUser();
+      }
+
+      toast.success(t('settings.displayNameSaved', 'Name saved successfully'));
+    } catch (error: any) {
+      console.error('Error saving display name:', error);
+      const errorMessage = error.response?.data?.error || t('settings.displayNameError', 'Failed to save name');
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingDisplayName(false);
+    }
+  };
+
   const handleChangePassword = async () => {
     // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -94,6 +160,29 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Banner for New Users */}
+      {isNewUser && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <PartyPopper className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold mb-2">
+                {t('settings.welcomeTitle', 'Welcome to Callify!')}
+              </h2>
+              <p className="text-green-100 mb-4">
+                {t('settings.welcomeMessage', 'Your account has been created successfully. Please complete your profile by adding your name and phone number below. This information will help us associate your calls automatically.')}
+              </p>
+              <div className="flex items-center gap-2 text-sm text-green-200">
+                <span className="inline-block w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                {t('settings.welcomeHint', 'Fill in the "Display Name" and "Phone Number" sections below')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -103,6 +192,97 @@ export default function Settings() {
           {t('settings.subtitle', 'Manage your preferences')}
         </p>
       </div>
+
+      {/* Display Name - First for new users */}
+      <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCircle className="w-5 h-5" />
+            {t('settings.displayName', 'Display Name')}
+            {isNewUser && (
+              <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+                {t('settings.recommended', 'Recommended')}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {t('settings.displayNameDescription', 'Set your real name to be associated with your calls and appear in transcriptions.')}
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.displayNameLabel', 'Your Name')}
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder={t('settings.displayNamePlaceholder', 'John Doe')}
+              autoFocus={isNewUser}
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t('settings.displayNameHint', 'This name will be used to identify you in call transcriptions')}
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={handleSaveDisplayName}
+              disabled={isSavingDisplayName}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {isSavingDisplayName ? t('settings.saving', 'Saving...') : t('settings.saveDisplayName', 'Save Name')}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Phone Number - Second for new users */}
+      <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="w-5 h-5" />
+            {t('settings.phoneNumber', 'Phone Number')}
+            {isNewUser && (
+              <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+                {t('settings.recommended', 'Recommended')}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {t('settings.phoneDescription', 'Add your phone number to automatically associate calls with your account.')}
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.phoneLabel', 'Phone Number')}
+            </label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder={t('settings.phonePlaceholder', '+351 912 345 678')}
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t('settings.phoneHint', 'Enter your phone number with country code (e.g., +351912345678)')}
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={handleSavePhone}
+              disabled={isSavingPhone}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {isSavingPhone ? t('settings.saving', 'Saving...') : t('settings.savePhone', 'Save Phone')}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* User Info */}
       <Card>
@@ -127,7 +307,7 @@ export default function Settings() {
                 {t('settings.role', 'Role')}
               </label>
               <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {user?.role === 'admin_manager' ? t('common.admin', 'Admin') : t('common.agent', 'Agent')}
+                {user?.role === 'developer' ? t('common.developer', 'Developer') : user?.role === 'admin_manager' ? t('common.admin', 'Admin') : t('users.user', 'User')}
               </p>
             </div>
           </div>

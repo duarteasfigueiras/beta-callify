@@ -15,6 +15,7 @@ import dashboardRoutes from './routes/dashboard';
 import alertsRoutes from './routes/alerts';
 import webhooksRoutes from './routes/webhooks';
 import n8nRoutes from './routes/n8n';
+import categoriesRoutes from './routes/categories';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -26,14 +27,28 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+const allowedOrigins = [
+  /^http:\/\/localhost:\d+$/,  // localhost on any port
+  /^https:\/\/.*\.vercel\.app$/,  // Vercel preview deployments
+  process.env.FRONTEND_URL,  // Production frontend URL
+].filter(Boolean);
+
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    // Allow localhost on any port
-    if (origin.match(/^http:\/\/localhost:\d+$/)) {
-      return callback(null, true);
+
+    // Check against allowed origins
+    for (const allowed of allowedOrigins) {
+      if (allowed instanceof RegExp && allowed.test(origin)) {
+        return callback(null, true);
+      }
+      if (typeof allowed === 'string' && allowed === origin) {
+        return callback(null, true);
+      }
     }
+
+    console.log('CORS blocked origin:', origin);
     return callback(null, false);
   },
   credentials: true,
@@ -52,6 +67,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/n8n', n8nRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

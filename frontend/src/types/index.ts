@@ -1,5 +1,12 @@
 // User Roles
-export type UserRole = 'admin_manager' | 'agent';
+export type UserRole = 'developer' | 'admin_manager' | 'agent';
+
+// User categories for criteria assignment
+export type UserCategory = 'comercial' | 'suporte' | 'tecnico' | 'supervisor' | 'all';
+
+// Helper functions for role checks
+export const isDeveloper = (role: UserRole): boolean => role === 'developer';
+export const isAdminOrDeveloper = (role: UserRole): boolean => ['developer', 'admin_manager'].includes(role);
 
 // Language preferences
 export type Language = 'pt' | 'en';
@@ -13,12 +20,26 @@ export type CallDirection = 'inbound' | 'outbound' | 'meeting';
 // Alert types
 export type AlertType = 'low_score' | 'risk_words' | 'long_duration' | 'no_next_step';
 
+// Company model
+export interface Company {
+  id: number;
+  name: string;
+  invite_limit: number;
+  users_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // User model (without password)
 export interface User {
   id: number;
-  company_id: number;
+  company_id: number | null;  // null for developer role
+  company_name?: string;      // included when fetching all users as developer
   username: string;
   role: UserRole;
+  custom_role_name?: string | null;  // custom display name for the role (e.g., "Vendedor", "Suporte")
+  display_name?: string | null;  // user's real name for call association
+  phone_number?: string | null;  // phone number for call association
   language_preference: Language;
   theme_preference: Theme;
   created_at: string;
@@ -33,6 +54,7 @@ export interface Criterion {
   description: string;
   weight: number;
   is_active: boolean;
+  category: UserCategory;  // Which user category this criterion applies to ('all' for all categories)
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +64,7 @@ export interface Call {
   id: number;
   company_id: number;
   agent_id: number;
-  agent_username?: string;
+  agent_name?: string;  // display_name or username
   phone_number: string;
   direction: CallDirection;
   duration_seconds: number;
@@ -170,6 +192,7 @@ export interface DashboardOverview {
 export interface ScoreByAgent {
   agent_id: number;
   agent_username: string;
+  agent_name: string;  // display_name or username
   average_score: number;
   total_calls: number;
 }
@@ -200,6 +223,7 @@ export interface CriterionFormData {
   name: string;
   description: string;
   weight: number;
+  category?: UserCategory;
 }
 
 export interface UserFormData {

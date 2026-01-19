@@ -40,6 +40,13 @@ router.post('/login', async (req, res: Response) => {
     };
     const token = generateToken(payload);
 
+    console.log('=== LOGIN SUCCESS ===');
+    console.log('Username:', user.username);
+    console.log('User ID:', user.id);
+    console.log('Company ID:', user.company_id);
+    console.log('Role:', user.role);
+    console.log('=====================');
+
     // Return user data (without password)
     const { password_hash, ...userWithoutPassword } = user;
     return res.json({
@@ -108,6 +115,7 @@ router.post('/register', async (req, res: Response) => {
       username,
       password_hash: passwordHash,
       role: invitation.role,
+      custom_role_name: invitation.custom_role_name || null,
       language_preference: 'pt',
       theme_preference: 'light'
     });

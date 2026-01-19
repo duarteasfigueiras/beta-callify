@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
 
@@ -71,10 +72,10 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
   }
 });
 
-// Get all calls (admin sees all, agent sees only own)
+// Get all calls (developer sees all, admin sees company, agent sees only own)
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, agent_id, date_from, date_to, score_min, score_max, sort_by = 'call_date', sort_order = 'desc' } = req.query;
+    const { page = 1, limit = 20, agent_id, date_from, date_to, score_min, score_max, sort_by = 'call_date', sort_order = 'desc', company_id, direction } = req.query;
 
     // Validate and sanitize page and limit parameters
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
@@ -84,8 +85,18 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     // Build query
     let query = supabase
       .from('calls')
-      .select('*, users!calls_agent_id_fkey(username)', { count: 'exact' })
-      .eq('company_id', req.user!.companyId);
+      .select('*, users!calls_agent_id_fkey(username, display_name), companies(name)', { count: 'exact' });
+
+    // Developer sees all, admin sees company, agent sees own
+    if (isDeveloper(req.user!.role)) {
+      // Developer can optionally filter by company
+      if (company_id) {
+        query = query.eq('company_id', Number(company_id));
+      }
+    } else {
+      // Non-developers are restricted to their company
+      query = query.eq('company_id', req.user!.companyId);
+    }
 
     // Agents can only see their own calls
     if (req.user!.role === 'agent') {
@@ -106,6 +117,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     if (score_max) {
       query = query.lte('final_score', Number(score_max));
     }
+    if (direction && ['inbound', 'outbound', 'meeting'].includes(String(direction))) {
+      query = query.eq('direction', String(direction));
+    }
 
     // Sort
     const allowedSortColumns = ['call_date', 'duration_seconds', 'final_score', 'phone_number'];
@@ -123,8 +137,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     // Transform the data to match expected format
     const transformedCalls = (calls || []).map((call: any) => ({
       ...call,
-      agent_username: call.users?.username || null,
-      users: undefined
+      agent_name: call.users?.display_name || call.users?.username || null,
+      company_name: call.companies?.name || null,
+      users: undefined,
+      companies: undefined
     }));
 
     res.json({
@@ -140,6 +156,81 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// Get calls by risk word
+router.get('/by-risk-word/:word', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const riskWord = req.params.word.toLowerCase();
+    const { page = 1, limit = 50 } = req.query;
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Build query
+    let query = supabase
+      .from('calls')
+      .select('*, users!calls_agent_id_fkey(username, display_name)', { count: 'exact' })
+      .not('risk_words_detected', 'is', null);
+
+    // Developer sees all, admin sees company, agent sees own
+    if (isDeveloper(req.user!.role)) {
+      // Developer can see all
+    } else {
+      query = query.eq('company_id', req.user!.companyId);
+    }
+
+    // Agents can only see their own calls
+    if (req.user!.role === 'agent') {
+      query = query.eq('agent_id', req.user!.userId);
+    }
+
+    // Order by date descending
+    query = query.order('call_date', { ascending: false });
+
+    const { data: allCalls, error } = await query;
+
+    if (error) throw error;
+
+    // Filter calls that contain the specific risk word
+    const filteredCalls = (allCalls || []).filter((call: any) => {
+      try {
+        const riskWords = typeof call.risk_words_detected === 'string'
+          ? JSON.parse(call.risk_words_detected)
+          : call.risk_words_detected;
+
+        if (Array.isArray(riskWords)) {
+          return riskWords.some((w: string) => w.toLowerCase() === riskWord);
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    });
+
+    // Apply pagination to filtered results
+    const total = filteredCalls.length;
+    const paginatedCalls = filteredCalls.slice(offset, offset + limitNum);
+
+    // Transform the data
+    const transformedCalls = paginatedCalls.map((call: any) => ({
+      ...call,
+      agent_name: call.users?.display_name || call.users?.username || null,
+      users: undefined
+    }));
+
+    res.json({
+      data: transformedCalls,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum)
+    });
+  } catch (error) {
+    console.error('Error fetching calls by risk word:', error);
+    res.status(500).json({ error: 'Failed to fetch calls by risk word' });
+  }
+});
+
 // Get single call
 router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -147,9 +238,13 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     let query = supabase
       .from('calls')
-      .select('*, users!calls_agent_id_fkey(username)')
-      .eq('id', callId)
-      .eq('company_id', req.user!.companyId);
+      .select('*, users!calls_agent_id_fkey(username, display_name), companies(name)')
+      .eq('id', callId);
+
+    // Developer sees all, others restricted to their company
+    if (!isDeveloper(req.user!.role)) {
+      query = query.eq('company_id', req.user!.companyId);
+    }
 
     // Agents can only see their own calls
     if (req.user!.role === 'agent') {
@@ -190,8 +285,10 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     res.json({
       ...call,
-      agent_username: call.users?.username || null,
+      agent_name: call.users?.display_name || call.users?.username || null,
+      company_name: call.companies?.name || null,
       users: undefined,
+      companies: undefined,
       criteria_results: transformedCriteriaResults,
       feedback: transformedFeedback
     });
@@ -201,8 +298,8 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Add feedback to a call (admin only)
-router.post('/:id/feedback', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Add feedback to a call (admin or developer)
+router.post('/:id/feedback', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callId = parseInt(req.params.id);
     const { content } = req.body;
@@ -211,13 +308,17 @@ router.post('/:id/feedback', requireRole('admin_manager'), async (req: Authentic
       return res.status(400).json({ error: 'Feedback content is required' });
     }
 
-    // Verify the call exists and belongs to the company
-    const { data: call } = await supabase
+    // Verify the call exists (and belongs to the company if not developer)
+    let callQuery = supabase
       .from('calls')
       .select('id')
-      .eq('id', callId)
-      .eq('company_id', req.user!.companyId)
-      .single();
+      .eq('id', callId);
+
+    if (!isDeveloper(req.user!.role)) {
+      callQuery = callQuery.eq('company_id', req.user!.companyId);
+    }
+
+    const { data: call } = await callQuery.single();
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });

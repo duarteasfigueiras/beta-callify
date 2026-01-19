@@ -1,6 +1,38 @@
 import { supabase } from './supabase';
 import bcrypt from 'bcryptjs';
 
+// Default categories that every new company gets
+const DEFAULT_CATEGORIES = [
+  { key: 'comercial', name: 'Comercial', color_id: 'blue' },
+  { key: 'suporte', name: 'Suporte', color_id: 'green' },
+];
+
+// Function to create default categories for a company
+export async function createDefaultCategories(companyId: number): Promise<void> {
+  for (const category of DEFAULT_CATEGORIES) {
+    // Check if category already exists
+    const { data: existing } = await supabase
+      .from('category_metadata')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('key', category.key)
+      .single();
+
+    if (!existing) {
+      const { error } = await supabase.from('category_metadata').insert({
+        company_id: companyId,
+        key: category.key,
+        name: category.name,
+        color_id: category.color_id
+      });
+
+      if (error) {
+        console.error(`Error creating category ${category.name}:`, error.message);
+      }
+    }
+  }
+}
+
 export async function initDatabase(): Promise<void> {
   console.log('Checking Supabase connection...');
 
@@ -16,6 +48,37 @@ export async function initDatabase(): Promise<void> {
 
 export async function seedDatabase(): Promise<void> {
   console.log('Checking for existing demo data...');
+
+  // First, check and create developer user (independent of companies)
+  const { data: existingDev } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', 'dev')
+    .eq('role', 'developer')
+    .single();
+
+  if (!existingDev) {
+    console.log('Creating developer user...');
+    const devPasswordHash = await bcrypt.hash('dev123', 10);
+    const { error: devError } = await supabase
+      .from('users')
+      .insert({
+        company_id: null,  // Developer has no company
+        username: 'dev',
+        password_hash: devPasswordHash,
+        role: 'developer',
+        language_preference: 'en',
+        theme_preference: 'dark'
+      });
+
+    if (devError) {
+      console.error('Error creating developer user:', devError);
+    } else {
+      console.log('Developer user created (username: dev, password: dev123)');
+    }
+  } else {
+    console.log('Developer user already exists');
+  }
 
   // Check if demo company exists
   const { data: existingCompany } = await supabase
@@ -36,6 +99,10 @@ export async function seedDatabase(): Promise<void> {
 
     if (companyError) throw companyError;
     console.log('Demo company created');
+
+    // Create default categories for the company
+    await createDefaultCategories(company.id);
+    console.log('Default categories created (Comercial, Suporte)');
 
     // Create demo admin user
     const adminPasswordHash = await bcrypt.hash('admin123', 10);
@@ -184,6 +251,9 @@ export async function seedDatabase(): Promise<void> {
     console.log('Demo data seeding completed');
   } else {
     console.log('Demo data already exists, skipping seed');
+
+    // Ensure default categories exist for existing company
+    await createDefaultCategories(existingCompany.id);
   }
 }
 

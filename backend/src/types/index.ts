@@ -1,5 +1,5 @@
 // User Roles
-export type UserRole = 'admin_manager' | 'agent';
+export type UserRole = 'developer' | 'admin_manager' | 'agent';
 
 // Language preferences
 export type Language = 'pt' | 'en';
@@ -23,15 +23,21 @@ export interface Company {
 
 export interface User {
   id: number;
-  company_id: number;
+  company_id: number | null;  // null for developer role
   username: string;
   password_hash: string;
   role: UserRole;
+  custom_role_name: string | null;  // Custom display name for role (e.g., "Vendedor", "Suporte")
+  display_name: string | null;  // User's real name for call association
+  phone_number: string | null;  // Phone number for call association
   language_preference: Language;
   theme_preference: Theme;
   created_at: string;
   updated_at: string;
 }
+
+// User categories (matching frontend)
+export type UserCategory = 'comercial' | 'suporte' | 'tecnico' | 'supervisor' | 'all';
 
 export interface Criterion {
   id: number;
@@ -40,6 +46,7 @@ export interface Criterion {
   description: string;
   weight: number;
   is_active: boolean;
+  category: UserCategory;  // Which user category this criterion applies to ('all' for all categories)
   created_at: string;
   updated_at: string;
 }
@@ -120,6 +127,7 @@ export interface CreateCriterionRequest {
   name: string;
   description: string;
   weight: number;
+  category?: UserCategory;
 }
 
 export interface UpdateCriterionRequest {
@@ -127,6 +135,7 @@ export interface UpdateCriterionRequest {
   description?: string;
   weight?: number;
   is_active?: boolean;
+  category?: UserCategory;
 }
 
 export interface CreateInvitationRequest {
@@ -146,14 +155,24 @@ export interface AddFeedbackRequest {
 export interface UpdateSettingsRequest {
   language_preference?: Language;
   theme_preference?: Theme;
+  display_name?: string | null;
+  phone_number?: string | null;
+}
+
+export interface UpdateUserPhoneRequest {
+  phone_number: string | null;
 }
 
 // JWT Payload
 export interface JWTPayload {
   userId: number;
-  companyId: number;
+  companyId: number | null;  // null for developer role
   role: UserRole;
 }
+
+// Helper functions for role checks
+export const isDeveloper = (role: UserRole): boolean => role === 'developer';
+export const isAdminOrDeveloper = (role: UserRole): boolean => ['developer', 'admin_manager'].includes(role);
 
 // Pagination
 export interface PaginationParams {
