@@ -591,9 +591,94 @@ router.get('/criteria', async (req: Request, res: Response) => {
       }
     }
 
+    // Generate a prompt that can be used directly by the AI agent
+    const criteriaList = criteria.map((c, i) =>
+      `${i + 1}. **${c.name}** (ID: ${c.id}, Peso: ${c.weight})\n   ${c.description || 'Sem descrição'}`
+    ).join('\n');
+
+    // Calculate total weight for scoring guidance
+    const totalWeight = criteria.reduce((sum, c) => sum + (c.weight || 1), 0);
+
+    const aiPrompt = `
+# Instruções para Análise de Chamada
+
+És um especialista em análise de qualidade de atendimento ao cliente. A tua tarefa é avaliar a transcrição de uma chamada de forma objetiva e construtiva.
+
+## Critérios de Avaliação da Empresa
+
+${criteriaList || 'Nenhum critério definido - avalia com base em boas práticas gerais de atendimento.'}
+
+${criteria.length > 0 ? `**Nota:** O peso total dos critérios é ${totalWeight}. Critérios com peso maior devem ter mais impacto na pontuação final.` : ''}
+
+## Como Avaliar
+
+1. **Lê a transcrição completa** antes de começar a avaliar
+2. **Avalia cada critério individualmente**, indicando se foi cumprido ou não
+3. **Sê específico nas justificações** - menciona frases ou momentos concretos da chamada
+4. **Identifica padrões** - tanto positivos como negativos
+5. **Pontuação final** deve refletir o desempenho geral, ponderado pelos pesos dos critérios
+
+## Pontuação (0-10)
+- **0-3**: Mau - Falhas graves, cliente insatisfeito, critérios importantes não cumpridos
+- **4-5**: Abaixo da média - Várias falhas, espaço significativo para melhoria
+- **6-7**: Satisfatório - Cumpre o básico, algumas áreas a melhorar
+- **8-9**: Bom - Maioria dos critérios cumpridos, poucas falhas
+- **10**: Excelente - Todos os critérios cumpridos exemplarmente
+
+## Formato da Resposta (JSON)
+
+Responde APENAS com JSON válido, sem texto adicional:
+
+{
+  "score": 7.5,
+  "resumo": "Resumo conciso da chamada em 2-3 frases. Inclui o motivo do contacto e resultado.",
+  "pontos_fortes": [
+    "Ponto forte específico 1",
+    "Ponto forte específico 2"
+  ],
+  "melhorias": [
+    "Área de melhoria específica 1",
+    "Área de melhoria específica 2"
+  ],
+  "motivos_contacto": [
+    "Motivo principal do contacto"
+  ],
+  "objecoes": [
+    "Objeções ou preocupações levantadas pelo cliente"
+  ],
+  "frases_a_evitar": [
+    "Frases problemáticas usadas pelo agente (se houver)"
+  ],
+  "frases_recomendadas": [
+    "Frases que o agente poderia ter usado"
+  ],
+  "acoes_recomendadas": [
+    "Ação de follow-up recomendada"
+  ],
+  "criteriaResults": [
+    {
+      "criterionId": 1,
+      "passed": true,
+      "justification": "Explicação específica com exemplo da chamada",
+      "timestampReference": "02:30"
+    }
+  ]
+}
+
+## Notas Importantes
+
+- **criterionId** deve corresponder exatamente ao ID do critério listado acima
+- **timestampReference** é opcional, usa formato "MM:SS" quando relevante
+- **Sê construtivo** nas melhorias - foca em como melhorar, não apenas no que está mal
+- Se não houver critérios definidos, avalia com base em: saudação, escuta ativa, resolução, despedida profissional
+    `.trim();
+
     res.json({
       criteria,
+      companyId: targetCompanyId,
       agentCategory: agentCategory || 'all',
+      criteriaCount: criteria.length,
+      aiPrompt,
       analysisInstructions: `
 When analyzing a call, evaluate each criterion and provide:
 - criterionId: The ID of the criterion
