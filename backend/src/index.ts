@@ -24,7 +24,10 @@ import { initDatabase, seedDatabase } from './db/init';
 import { startRetentionScheduler, getRetentionPolicy } from './services/retention';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
+
+console.log('Environment PORT:', process.env.PORT);
+console.log('Using PORT:', PORT);
 
 // Middleware
 const allowedOrigins = [
@@ -99,7 +102,8 @@ async function startServer() {
 
     // Start server - bind to 0.0.0.0 for Railway
     const HOST = '0.0.0.0';
-    app.listen(Number(PORT), HOST, () => {
+    console.log(`Attempting to start server on ${HOST}:${PORT}...`);
+    app.listen(PORT, HOST, () => {
       console.log(`\n========================================`);
       console.log(`Callify Backend Server`);
       console.log(`========================================`);
