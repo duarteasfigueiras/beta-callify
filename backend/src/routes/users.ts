@@ -82,22 +82,100 @@ router.post('/companies', requireRole('developer'), async (req: AuthenticatedReq
   }
 });
 
-// Delete company (developer only)
+// Delete company (developer only) - CASCADE delete all related data
 router.delete('/companies/:id', requireRole('developer'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const companyId = parseInt(req.params.id);
 
-    // Check if company has users
-    const { data: users } = await supabase
-      .from('users')
-      .select('id')
-      .eq('company_id', companyId)
-      .limit(1);
+    // Verify company exists
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('id', companyId)
+      .single();
 
-    if (users && users.length > 0) {
-      return res.status(400).json({ error: 'Cannot delete company with existing users. Delete all users first.' });
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
     }
 
+    console.log(`Deleting company ${companyId} (${company.name}) and all related data...`);
+
+    // Delete in order to respect foreign key constraints:
+    // 1. First delete alerts (references calls and users)
+    const { error: alertsError } = await supabase
+      .from('alerts')
+      .delete()
+      .eq('company_id', companyId);
+    if (alertsError) console.error('Error deleting alerts:', alertsError);
+
+    // 2. Delete call_feedback (references calls and users)
+    // Need to get call IDs first
+    const { data: calls } = await supabase
+      .from('calls')
+      .select('id')
+      .eq('company_id', companyId);
+
+    if (calls && calls.length > 0) {
+      const callIds = calls.map(c => c.id);
+
+      // Delete call_feedback for these calls
+      const { error: feedbackError } = await supabase
+        .from('call_feedback')
+        .delete()
+        .in('call_id', callIds);
+      if (feedbackError) console.error('Error deleting call_feedback:', feedbackError);
+
+      // Delete call_criteria_results for these calls
+      const { error: criteriaResultsError } = await supabase
+        .from('call_criteria_results')
+        .delete()
+        .in('call_id', callIds);
+      if (criteriaResultsError) console.error('Error deleting call_criteria_results:', criteriaResultsError);
+    }
+
+    // 3. Delete calls
+    const { error: callsError } = await supabase
+      .from('calls')
+      .delete()
+      .eq('company_id', companyId);
+    if (callsError) console.error('Error deleting calls:', callsError);
+
+    // 4. Delete invitations
+    const { error: invitationsError } = await supabase
+      .from('invitations')
+      .delete()
+      .eq('company_id', companyId);
+    if (invitationsError) console.error('Error deleting invitations:', invitationsError);
+
+    // 5. Delete criteria
+    const { error: criteriaError } = await supabase
+      .from('criteria')
+      .delete()
+      .eq('company_id', companyId);
+    if (criteriaError) console.error('Error deleting criteria:', criteriaError);
+
+    // 6. Delete alert_settings
+    const { error: alertSettingsError } = await supabase
+      .from('alert_settings')
+      .delete()
+      .eq('company_id', companyId);
+    if (alertSettingsError) console.error('Error deleting alert_settings:', alertSettingsError);
+
+    // 7. Delete category_metadata
+    const { error: categoryError } = await supabase
+      .from('category_metadata')
+      .delete()
+      .eq('company_id', companyId);
+    if (categoryError) console.error('Error deleting category_metadata:', categoryError);
+
+    // 8. Delete users (after calls, since calls reference users via agent_id)
+    const { error: usersError } = await supabase
+      .from('users')
+      .delete()
+      .eq('company_id', companyId);
+    if (usersError) console.error('Error deleting users:', usersError);
+
+    // 9. Finally delete the company
     const { error } = await supabase
       .from('companies')
       .delete()
@@ -105,7 +183,8 @@ router.delete('/companies/:id', requireRole('developer'), async (req: Authentica
 
     if (error) throw error;
 
-    res.json({ message: 'Company deleted successfully' });
+    console.log(`Company ${companyId} deleted successfully with all related data`);
+    res.json({ message: 'Company and all related data deleted successfully' });
   } catch (error) {
     console.error('Error deleting company:', error);
     res.status(500).json({ error: 'Failed to delete company' });
