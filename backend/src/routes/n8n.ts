@@ -735,29 +735,72 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     // Parse agent_output if it's a string
     let aiOutput = agent_output;
     if (typeof agent_output === 'string') {
+      let cleanedOutput = agent_output;
+
+      // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+      cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+      // Also try to extract JSON from within the text if it contains ```json blocks
+      const jsonBlockMatch = agent_output.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (jsonBlockMatch) {
+        cleanedOutput = jsonBlockMatch[1];
+      }
+
+      // Trim whitespace
+      cleanedOutput = cleanedOutput.trim();
+
       try {
         // Try to parse as JSON first
-        aiOutput = JSON.parse(agent_output);
+        aiOutput = JSON.parse(cleanedOutput);
+        console.log('[n8n] Successfully parsed agent_output as JSON');
       } catch {
         // If not valid JSON, try to extract data from text
         console.log('[n8n] agent_output is not valid JSON, trying to extract from text...');
+        console.log('[n8n] Cleaned output was:', cleanedOutput.substring(0, 200));
         aiOutput = {};
 
         // Try to extract score from text (look for patterns like "score: 7.5" or "pontuação: 8")
-        const scoreMatch = agent_output.match(/(?:score|pontuacao|pontuação|nota)[:\s]+(\d+(?:[.,]\d+)?)/i);
+        const scoreMatch = cleanedOutput.match(/(?:"score"|score)[:\s]+(\d+(?:[.,]\d+)?)/i);
         if (scoreMatch) {
           aiOutput.score = parseFloat(scoreMatch[1].replace(',', '.'));
         }
 
-        // Try to extract resumo/summary
-        const resumoMatch = agent_output.match(/(?:resumo|summary)[:\s]+([^\n]+)/i);
+        // Try to extract resumo/summary from JSON-like structure
+        const resumoMatch = cleanedOutput.match(/(?:"resumo"|resumo)[:\s]+"([^"]+)"/i);
         if (resumoMatch) {
           aiOutput.resumo = resumoMatch[1].trim();
         }
 
+        // Try to extract pontos_fortes array
+        const pontosMatch = cleanedOutput.match(/(?:"pontos_fortes"|pontos_fortes)[:\s]*\[([\s\S]*?)\]/i);
+        if (pontosMatch) {
+          try {
+            aiOutput.pontos_fortes = JSON.parse('[' + pontosMatch[1] + ']');
+          } catch {
+            // Extract strings manually
+            const items = pontosMatch[1].match(/"([^"]+)"/g);
+            if (items) {
+              aiOutput.pontos_fortes = items.map(s => s.replace(/"/g, ''));
+            }
+          }
+        }
+
+        // Try to extract melhorias array
+        const melhoriasMatch = cleanedOutput.match(/(?:"melhorias"|melhorias)[:\s]*\[([\s\S]*?)\]/i);
+        if (melhoriasMatch) {
+          try {
+            aiOutput.melhorias = JSON.parse('[' + melhoriasMatch[1] + ']');
+          } catch {
+            const items = melhoriasMatch[1].match(/"([^"]+)"/g);
+            if (items) {
+              aiOutput.melhorias = items.map(s => s.replace(/"/g, ''));
+            }
+          }
+        }
+
         // Store the full text as resumo if nothing else found
-        if (!aiOutput.resumo && agent_output.length > 0) {
-          aiOutput.resumo = agent_output.substring(0, 500);
+        if (!aiOutput.resumo && cleanedOutput.length > 0) {
+          aiOutput.resumo = cleanedOutput.substring(0, 500);
         }
       }
     }
