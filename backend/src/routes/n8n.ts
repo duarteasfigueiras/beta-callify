@@ -651,14 +651,39 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     let aiOutput = agent_output;
     if (typeof agent_output === 'string') {
       try {
+        // Try to parse as JSON first
         aiOutput = JSON.parse(agent_output);
       } catch {
+        // If not valid JSON, try to extract data from text
+        console.log('[n8n] agent_output is not valid JSON, trying to extract from text...');
         aiOutput = {};
+
+        // Try to extract score from text (look for patterns like "score: 7.5" or "pontuação: 8")
+        const scoreMatch = agent_output.match(/(?:score|pontuacao|pontuação|nota)[:\s]+(\d+(?:[.,]\d+)?)/i);
+        if (scoreMatch) {
+          aiOutput.score = parseFloat(scoreMatch[1].replace(',', '.'));
+        }
+
+        // Try to extract resumo/summary
+        const resumoMatch = agent_output.match(/(?:resumo|summary)[:\s]+([^\n]+)/i);
+        if (resumoMatch) {
+          aiOutput.resumo = resumoMatch[1].trim();
+        }
+
+        // Store the full text as resumo if nothing else found
+        if (!aiOutput.resumo && agent_output.length > 0) {
+          aiOutput.resumo = agent_output.substring(0, 500);
+        }
       }
     }
 
     // Use direct fields or from agent_output object
-    const finalScore = score ?? aiOutput?.score;
+    // Default score to 5.0 if not found (middle of the scale)
+    let finalScore = score ?? aiOutput?.score;
+    if (finalScore === undefined || finalScore === null) {
+      console.log('[n8n] No score found, using default of 5.0');
+      finalScore = 5.0;
+    }
     const summary = resumo ?? aiOutput?.resumo ?? '';
     const strengths = pontos_fortes ?? aiOutput?.pontos_fortes ?? [];
     const improvements = melhorias ?? aiOutput?.melhorias ?? [];
@@ -674,21 +699,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const topPerformerComp = comparacao_top_performer ?? aiOutput?.comparacao_top_performer ?? aiOutput?.topPerformerComparison ?? null;
     const skillScoresData = pontuacao_skills ?? aiOutput?.pontuacao_skills ?? aiOutput?.skillScores ?? [];
 
-    if (finalScore === undefined) {
-      return res.status(400).json({
-        error: 'score is required',
-        example: {
-          score: 7.5,
-          resumo: 'Resumo da chamada...',
-          motivos_contacto: [{ text: 'Pedido de informação sobre preços', timestamp: '00:30' }],
-          objecoes: [{ text: 'Preço elevado', timestamp: '02:15' }],
-          pontos_fortes: ['Ponto 1', 'Ponto 2'],
-          melhorias: ['Melhoria 1'],
-          acoes_recomendadas: ['Ação 1'],
-          observacoes: 'Notas adicionais'
-        }
-      });
-    }
+    // Score validation removed - we now use a default of 5.0 if not found
 
     // Get company
     let targetCompanyId = companyId;
