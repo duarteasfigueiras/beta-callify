@@ -2,8 +2,11 @@ import axios from 'axios';
 
 // API URL from environment variable or default to localhost for development
 const envUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001/api';
-// Ensure URL has protocol
-const API_BASE_URL = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+// Ensure URL has protocol and /api suffix
+let API_BASE_URL = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+if (!API_BASE_URL.endsWith('/api')) {
+  API_BASE_URL = API_BASE_URL.replace(/\/$/, '') + '/api';
+}
 console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
