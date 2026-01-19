@@ -97,8 +97,9 @@ async function startServer() {
     // Start retention policy scheduler
     startRetentionScheduler();
 
-    // Start server
-    app.listen(PORT, () => {
+    // Start server - bind to 0.0.0.0 for Railway
+    const HOST = '0.0.0.0';
+    app.listen(Number(PORT), HOST, () => {
       console.log(`\n========================================`);
       console.log(`Callify Backend Server`);
       console.log(`========================================`);
