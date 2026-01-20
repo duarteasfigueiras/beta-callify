@@ -686,24 +686,37 @@ Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code b
 {
   "score": 0.0,
   "resumo": "Resumo factual da chamada em 2-3 frases: quem ligou, porquê, e qual foi o resultado.",
+
   "pontos_fortes": [
-    "Comportamento positivo específico com evidência da transcrição"
+    "O que o agente FEZ BEM - critérios que cumpriu, frases eficazes que usou, comportamentos a MANTER. Cita exemplos concretos da transcrição."
   ],
+
   "melhorias": [
-    "Área específica a melhorar com sugestão concreta"
+    "O que o agente DEVE MELHORAR - critérios que NÃO cumpriu, frases que usou e NÃO deveria ter usado (cita a frase exata), comportamentos a CORRIGIR."
   ],
+
+  "frases_a_evitar": [
+    "Frases EXATAS que o agente disse e que são problemáticas. Ex: 'Não sei se isso é possível', 'Talvez consigamos'"
+  ],
+
+  "frases_recomendadas": [
+    "Frases alternativas que o agente DEVERIA ter usado em vez das problemáticas. Ex: 'Vou verificar isso para si', 'Consigo ajudá-lo com isso'"
+  ],
+
+  "proximo_passo": "O que ficou PENDENTE/ACORDADO na chamada. Ex: 'Enviar email com proposta até sexta-feira', 'Cliente vai testar e liga na próxima semana', 'Agendar reunião para dia 25'",
+
   "motivos_contacto": [
     "Razão principal pela qual o cliente contactou"
   ],
+
   "objecoes": [
-    "Objeções ou preocupações expressas pelo cliente"
+    "Objeções ou preocupações expressas pelo cliente durante a chamada"
   ],
+
   "palavras_risco_detectadas": [
-    "palavra encontrada na transcrição"
+    "palavra de risco encontrada na transcrição"
   ],
-  "acoes_recomendadas": [
-    "Próximo passo concreto recomendado"
-  ],
+
   "criteriaResults": [
     {
       "criterionId": 0,
@@ -790,12 +803,14 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       // New AI-generated fields
       motivos_contacto,  // Contact reasons
       objecoes,          // Objections
+      proximo_passo,     // Next step agreed/pending
       // New AI coaching fields
       frases_a_evitar,           // Phrases to avoid
       frases_recomendadas,       // Recommended phrases
       exemplo_resposta_melhorada, // Response improvement example
       comparacao_top_performer,   // Top performer comparison
-      pontuacao_skills           // Skill scores
+      pontuacao_skills,          // Skill scores
+      palavras_risco_detectadas  // Risk words detected by AI
     } = req.body;
 
     // Parse agent_output if it's a string
@@ -886,12 +901,16 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     // AI-generated contact reasons and objections
     const contactReasons = motivos_contacto ?? aiOutput?.motivos_contacto ?? aiOutput?.contactReasons ?? [];
     const objections = objecoes ?? aiOutput?.objecoes ?? aiOutput?.objections ?? [];
+    // Next step - what was agreed/pending
+    const nextStep = proximo_passo ?? aiOutput?.proximo_passo ?? aiOutput?.nextStep ?? '';
     // AI coaching fields
     const phrasesToAvoid = frases_a_evitar ?? aiOutput?.frases_a_evitar ?? aiOutput?.phrasesToAvoid ?? [];
     const recommendedPhrases = frases_recomendadas ?? aiOutput?.frases_recomendadas ?? aiOutput?.recommendedPhrases ?? [];
     const responseExample = exemplo_resposta_melhorada ?? aiOutput?.exemplo_resposta_melhorada ?? aiOutput?.responseImprovementExample ?? null;
     const topPerformerComp = comparacao_top_performer ?? aiOutput?.comparacao_top_performer ?? aiOutput?.topPerformerComparison ?? null;
     const skillScoresData = pontuacao_skills ?? aiOutput?.pontuacao_skills ?? aiOutput?.skillScores ?? [];
+    // Risk words detected by AI
+    const aiDetectedRiskWords = palavras_risco_detectadas ?? aiOutput?.palavras_risco_detectadas ?? aiOutput?.riskWordsDetected ?? [];
 
     // Score validation removed - we now use a default of 5.0 if not found
 
@@ -938,6 +957,9 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const finalContactReasons = contactReasons.length > 0 ? contactReasons : strengths;
     const finalObjections = objections.length > 0 ? objections : improvements;
 
+    // Combine AI-detected risk words with system-detected ones
+    const allRiskWords = [...new Set([...detectedRiskWords, ...aiDetectedRiskWords])];
+
     // Validate direction (inbound, outbound, or meeting)
     const validDirections = ['inbound', 'outbound', 'meeting'];
     const callDirection = validDirections.includes(direction) ? direction : 'inbound';
@@ -954,12 +976,12 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       call_date: callDate || new Date().toISOString(),
       transcription: transcription || null,
       summary: summary,
-      next_step_recommendation: recommendations.join('\n- '),
+      next_step_recommendation: nextStep || recommendations.join('\n- '),
       final_score: finalScore,
       score_justification: notes,
       what_went_well: JSON.stringify(finalContactReasons),
       what_went_wrong: JSON.stringify(finalObjections),
-      risk_words_detected: JSON.stringify(detectedRiskWords)
+      risk_words_detected: JSON.stringify(allRiskWords)
     };
 
     const coachingFields = {
