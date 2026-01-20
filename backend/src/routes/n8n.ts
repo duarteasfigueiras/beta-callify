@@ -554,6 +554,9 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
  * Get evaluation criteria
  * Accepts optional agentId to filter by agent's category
  */
+// Default risk words (used if company has no custom settings)
+const DEFAULT_RISK_WORDS = 'cancelar,cancelamento,reclamacao,reclamar,advogado,processo,tribunal,insatisfeito,insatisfacao,devolver,devolucao,reembolso,nunca mais,pessimo';
+
 router.get('/criteria', async (req: Request, res: Response) => {
   try {
     const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
@@ -591,6 +594,20 @@ router.get('/criteria', async (req: Request, res: Response) => {
       }
     }
 
+    // Get company's alert settings (includes risk words)
+    let riskWords: string[] = DEFAULT_RISK_WORDS.split(',').map(w => w.trim());
+    if (targetCompanyId) {
+      const { data: alertSettings } = await supabase
+        .from('alert_settings')
+        .select('risk_words_list, risk_words_enabled')
+        .eq('company_id', targetCompanyId)
+        .single();
+
+      if (alertSettings?.risk_words_list && alertSettings?.risk_words_enabled !== false) {
+        riskWords = alertSettings.risk_words_list.split(',').map((w: string) => w.trim()).filter((w: string) => w.length > 0);
+      }
+    }
+
     // Generate a prompt that can be used directly by the AI agent
     const criteriaList = criteria.map((c, i) =>
       `${i + 1}. **${c.name}** (ID: ${c.id}, Peso: ${c.weight})\n   ${c.description || 'Sem descrição'}`
@@ -598,6 +615,9 @@ router.get('/criteria', async (req: Request, res: Response) => {
 
     // Calculate total weight for scoring guidance
     const totalWeight = criteria.reduce((sum, c) => sum + (c.weight || 1), 0);
+
+    // Format risk words for the prompt
+    const riskWordsList = riskWords.map(w => `"${w}"`).join(', ');
 
     const aiPrompt = `
 # Instruções para Análise de Chamada
@@ -609,6 +629,13 @@ router.get('/criteria', async (req: Request, res: Response) => {
 ${criteriaList || 'Nenhum critério definido - avalia com base em boas práticas gerais de atendimento.'}
 
 ${criteria.length > 0 ? `**Nota:** O peso total dos critérios é ${totalWeight}. Critérios com peso maior devem ter mais impacto na pontuação final.` : ''}
+
+## Palavras de Risco
+
+As seguintes palavras/expressões são consideradas de risco e devem ser identificadas na transcrição:
+${riskWordsList}
+
+Se alguma destas palavras for mencionada na chamada (pelo cliente ou agente), inclui-as no campo "palavras_risco_detectadas" da resposta.
 
 ## Como Avaliar
 
@@ -655,6 +682,9 @@ Responde APENAS com JSON válido, sem texto adicional:
   "acoes_recomendadas": [
     "Ação de follow-up recomendada"
   ],
+  "palavras_risco_detectadas": [
+    "palavra de risco encontrada na transcrição (se houver)"
+  ],
   "criteriaResults": [
     {
       "criterionId": 1,
@@ -675,9 +705,11 @@ Responde APENAS com JSON válido, sem texto adicional:
 
     res.json({
       criteria,
+      riskWords,
       companyId: targetCompanyId,
       agentCategory: agentCategory || 'all',
       criteriaCount: criteria.length,
+      riskWordsCount: riskWords.length,
       aiPrompt,
       analysisInstructions: `
 When analyzing a call, evaluate each criterion and provide:
