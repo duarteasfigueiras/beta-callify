@@ -956,9 +956,13 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       viewUrl: `/calls/${callId}`
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[n8n] Error processing AI agent output:', error);
-    res.status(500).json({ error: 'Failed to process AI agent output' });
+    res.status(500).json({
+      error: 'Failed to process AI agent output',
+      details: error?.message || String(error),
+      code: error?.code
+    });
   }
 });
 
