@@ -858,7 +858,37 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         targetAgentId = agentByPhone.id;
         console.log('[n8n] Found agent by phone number:', normalizedPhone, '- Agent ID:', targetAgentId);
       } else {
-        console.log('[n8n] No agent found with phone number:', normalizedPhone, '- will show as "Utilizador não definido"');
+        console.log('[n8n] No agent found with phone number:', normalizedPhone);
+        // Fallback: get any agent from the company (temporary until DB allows null agent_id)
+        const { data: fallbackAgent } = await supabase
+          .from('users')
+          .select('id')
+          .eq('company_id', targetCompanyId)
+          .in('role', ['agent', 'admin_manager'])
+          .limit(1)
+          .single();
+
+        if (fallbackAgent) {
+          targetAgentId = fallbackAgent.id;
+          console.log('[n8n] Using fallback agent:', targetAgentId, '(phone number not matched)');
+        }
+      }
+    }
+
+    // If still no agent found, get any user from company as last resort
+    if (!targetAgentId) {
+      const { data: anyUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', targetCompanyId)
+        .limit(1)
+        .single();
+
+      if (anyUser) {
+        targetAgentId = anyUser.id;
+        console.log('[n8n] Using last resort fallback user:', targetAgentId);
+      } else {
+        return res.status(400).json({ error: 'No user found in company to assign call to' });
       }
     }
 
