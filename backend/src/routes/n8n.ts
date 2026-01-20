@@ -876,37 +876,55 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const callDirection = validDirections.includes(direction) ? direction : 'inbound';
 
     // Create call record with AI analysis
-    const { data: newCall, error } = await supabase
+    // Try with coaching fields first, fallback to basic fields if columns don't exist
+    const baseCallData = {
+      company_id: targetCompanyId,
+      agent_id: targetAgentId,
+      phone_number: phoneNumber || 'AI Analysis',
+      direction: callDirection,
+      duration_seconds: durationSeconds,
+      audio_file_path: audioUrl || null,
+      call_date: callDate || new Date().toISOString(),
+      transcription: transcription || null,
+      summary: summary,
+      next_step_recommendation: recommendations.join('\n- '),
+      final_score: finalScore,
+      score_justification: notes,
+      what_went_well: JSON.stringify(finalContactReasons),
+      what_went_wrong: JSON.stringify(finalObjections),
+      risk_words_detected: JSON.stringify(detectedRiskWords)
+    };
+
+    const coachingFields = {
+      phrases_to_avoid: JSON.stringify(phrasesToAvoid),
+      recommended_phrases: JSON.stringify(recommendedPhrases),
+      response_improvement_example: responseExample ? JSON.stringify(responseExample) : null,
+      top_performer_comparison: topPerformerComp ? JSON.stringify(topPerformerComp) : null,
+      skill_scores: JSON.stringify(skillScoresData)
+    };
+
+    // Try with all fields first
+    let { data: newCall, error } = await supabase
       .from('calls')
-      .insert({
-        company_id: targetCompanyId,
-        agent_id: targetAgentId,
-        phone_number: phoneNumber || 'AI Analysis',
-        direction: callDirection,
-        duration_seconds: durationSeconds,
-        audio_file_path: audioUrl || null,
-        call_date: callDate || new Date().toISOString(),
-        transcription: transcription || null,
-        summary: summary,
-        next_step_recommendation: recommendations.join('\n- '),
-        final_score: finalScore,
-        score_justification: notes,
-        what_went_well: JSON.stringify(finalContactReasons),
-        what_went_wrong: JSON.stringify(finalObjections),
-        risk_words_detected: JSON.stringify(detectedRiskWords),
-        // New AI coaching fields
-        phrases_to_avoid: JSON.stringify(phrasesToAvoid),
-        recommended_phrases: JSON.stringify(recommendedPhrases),
-        response_improvement_example: responseExample ? JSON.stringify(responseExample) : null,
-        top_performer_comparison: topPerformerComp ? JSON.stringify(topPerformerComp) : null,
-        skill_scores: JSON.stringify(skillScoresData)
-      })
+      .insert({ ...baseCallData, ...coachingFields })
       .select('id')
       .single();
 
-    if (error) {
+    // If error mentions unknown column, retry without coaching fields
+    if (error && error.message && error.message.includes('column')) {
+      console.log('[n8n] Coaching columns not found, inserting without them');
+      const retryResult = await supabase
+        .from('calls')
+        .insert(baseCallData)
+        .select('id')
+        .single();
+      newCall = retryResult.data;
+      error = retryResult.error;
+    }
+
+    if (error || !newCall) {
       console.error('[n8n] Error creating call:', error);
-      throw error;
+      throw error || new Error('Failed to create call');
     }
 
     const callId = newCall.id;
