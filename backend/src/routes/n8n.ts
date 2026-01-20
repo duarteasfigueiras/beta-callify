@@ -858,37 +858,8 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         targetAgentId = agentByPhone.id;
         console.log('[n8n] Found agent by phone number:', normalizedPhone, '- Agent ID:', targetAgentId);
       } else {
-        console.log('[n8n] No agent found with phone number:', normalizedPhone);
-        // Fallback: get any agent from the company (temporary until DB allows null agent_id)
-        const { data: fallbackAgent } = await supabase
-          .from('users')
-          .select('id')
-          .eq('company_id', targetCompanyId)
-          .in('role', ['agent', 'admin_manager'])
-          .limit(1)
-          .single();
-
-        if (fallbackAgent) {
-          targetAgentId = fallbackAgent.id;
-          console.log('[n8n] Using fallback agent:', targetAgentId, '(phone number not matched)');
-        }
-      }
-    }
-
-    // If still no agent found, get any user from company as last resort
-    if (!targetAgentId) {
-      const { data: anyUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('company_id', targetCompanyId)
-        .limit(1)
-        .single();
-
-      if (anyUser) {
-        targetAgentId = anyUser.id;
-        console.log('[n8n] Using last resort fallback user:', targetAgentId);
-      } else {
-        return res.status(400).json({ error: 'No user found in company to assign call to' });
+        console.log('[n8n] No agent found with phone number:', normalizedPhone, '- will try null agent_id');
+        // Leave targetAgentId as null - will try to insert without agent
       }
     }
 
@@ -950,6 +921,30 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         .single();
       newCall = retryResult.data;
       error = retryResult.error;
+    }
+
+    // If error is about null agent_id, get a fallback agent and mark in summary
+    if (error && error.message && error.message.includes('agent_id')) {
+      console.log('[n8n] Database requires agent_id, using fallback agent');
+      const { data: fallbackAgent } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', targetCompanyId)
+        .in('role', ['agent', 'admin_manager'])
+        .limit(1)
+        .single();
+
+      if (fallbackAgent) {
+        // Mark in summary that agent was not identified
+        const updatedSummary = summary ? `[Utilizador não identificado pelo telefone] ${summary}` : '[Utilizador não identificado pelo telefone]';
+        const retryResult = await supabase
+          .from('calls')
+          .insert({ ...baseCallData, agent_id: fallbackAgent.id, summary: updatedSummary })
+          .select('id')
+          .single();
+        newCall = retryResult.data;
+        error = retryResult.error;
+      }
     }
 
     if (error || !newCall) {
