@@ -839,20 +839,27 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       targetCompanyId = company.id;
     }
 
-    // Get agent
-    let targetAgentId = agentId;
-    if (!targetAgentId) {
-      const { data: agent } = await supabase
+    // Get agent - try to match by phone number first
+    let targetAgentId: number | null = agentId || null;
+
+    if (!targetAgentId && phoneNumber) {
+      // Try to find agent by phone number
+      // Normalize phone number for comparison (remove spaces)
+      const normalizedPhone = phoneNumber.trim().replace(/\s+/g, '');
+
+      const { data: agentByPhone } = await supabase
         .from('users')
         .select('id')
         .eq('company_id', targetCompanyId)
-        .limit(1)
+        .eq('phone_number', normalizedPhone)
         .single();
 
-      if (!agent) {
-        return res.status(500).json({ error: 'No agent found' });
+      if (agentByPhone) {
+        targetAgentId = agentByPhone.id;
+        console.log('[n8n] Found agent by phone number:', normalizedPhone, '- Agent ID:', targetAgentId);
+      } else {
+        console.log('[n8n] No agent found with phone number:', normalizedPhone, '- will show as "Utilizador não definido"');
       }
-      targetAgentId = agent.id;
     }
 
     // Detect risk words from transcription or summary
@@ -904,16 +911,19 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
     const callId = newCall.id;
 
-    // Generate alerts
-    const alerts = await generateAlerts(
-      callId,
-      targetCompanyId,
-      targetAgentId,
-      finalScore,
-      durationSeconds,
-      detectedRiskWords,
-      recommendations.join(', ')
-    );
+    // Generate alerts (only if agent is defined)
+    let alerts: any[] = [];
+    if (targetAgentId) {
+      alerts = await generateAlerts(
+        callId,
+        targetCompanyId,
+        targetAgentId,
+        finalScore,
+        durationSeconds,
+        detectedRiskWords,
+        recommendations.join(', ')
+      );
+    }
 
     console.log('[n8n] AI agent output processed, call created:', callId);
 
@@ -1552,6 +1562,116 @@ router.post('/generate-test-users-and-calls', async (req: Request, res: Response
   } catch (error) {
     console.error('[n8n] Error generating test users and calls:', error);
     res.status(500).json({ error: 'Failed to generate test users and calls' });
+  }
+});
+
+/**
+ * Fix existing calls - match agent_id by phone number
+ * POST /api/n8n/fix-call-agents
+ *
+ * This will update all calls to match the correct agent based on phone_number
+ */
+router.post('/fix-call-agents', async (req: Request, res: Response) => {
+  try {
+    console.log('[n8n] Starting to fix call agents by phone number...');
+
+    // Get all calls
+    const { data: calls, error: callsError } = await supabase
+      .from('calls')
+      .select('id, phone_number, company_id, agent_id');
+
+    if (callsError) throw callsError;
+
+    if (!calls || calls.length === 0) {
+      return res.json({ message: 'No calls found', updated: 0 });
+    }
+
+    // Get all users with phone numbers
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, phone_number, company_id')
+      .not('phone_number', 'is', null);
+
+    if (usersError) throw usersError;
+
+    // Create a map of phone_number -> user for quick lookup
+    const phoneToUser = new Map<string, { id: number; company_id: number }>();
+    if (users) {
+      for (const user of users) {
+        if (user.phone_number) {
+          const normalizedPhone = user.phone_number.trim().replace(/\s+/g, '');
+          phoneToUser.set(normalizedPhone, { id: user.id, company_id: user.company_id });
+        }
+      }
+    }
+
+    console.log('[n8n] Found', phoneToUser.size, 'users with phone numbers');
+
+    let updated = 0;
+    let notFound = 0;
+    const details: { callId: number; phoneNumber: string; newAgentId: number | null; status: string }[] = [];
+
+    for (const call of calls) {
+      if (!call.phone_number) continue;
+
+      const normalizedPhone = call.phone_number.trim().replace(/\s+/g, '');
+      const matchedUser = phoneToUser.get(normalizedPhone);
+
+      if (matchedUser) {
+        // Found a matching user - update if different
+        if (call.agent_id !== matchedUser.id) {
+          const { error: updateError } = await supabase
+            .from('calls')
+            .update({ agent_id: matchedUser.id })
+            .eq('id', call.id);
+
+          if (!updateError) {
+            updated++;
+            details.push({
+              callId: call.id,
+              phoneNumber: call.phone_number,
+              newAgentId: matchedUser.id,
+              status: 'updated'
+            });
+            console.log(`[n8n] Updated call ${call.id}: ${call.phone_number} -> agent ${matchedUser.id}`);
+          }
+        }
+      } else {
+        // No matching user found - set agent_id to null
+        if (call.agent_id !== null) {
+          const { error: updateError } = await supabase
+            .from('calls')
+            .update({ agent_id: null })
+            .eq('id', call.id);
+
+          if (!updateError) {
+            notFound++;
+            details.push({
+              callId: call.id,
+              phoneNumber: call.phone_number,
+              newAgentId: null,
+              status: 'no_match'
+            });
+            console.log(`[n8n] Call ${call.id}: ${call.phone_number} -> no matching user (set to null)`);
+          }
+        }
+      }
+    }
+
+    console.log(`[n8n] Fix complete: ${updated} updated, ${notFound} set to null`);
+
+    res.json({
+      message: 'Call agents fixed',
+      totalCalls: calls.length,
+      updated,
+      noMatchFound: notFound,
+      usersWithPhones: phoneToUser.size,
+      details
+    });
+
+  } catch (error) {
+    console.error('[n8n] Error fixing call agents:', error);
+    res.status(500).json({ error: 'Failed to fix call agents' });
   }
 });
 

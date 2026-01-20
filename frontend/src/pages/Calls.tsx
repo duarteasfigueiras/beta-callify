@@ -541,7 +541,7 @@ export default function Calls() {
                       </td>
                       {isAdmin && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {call.agent_name || '-'}
+                          {call.agent_name || t('calls.undefinedUser', 'Utilizador não definido')}
                         </td>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
