@@ -56,14 +56,24 @@ export default function Register() {
       return;
     }
 
-    // Validate phone number format if provided
-    if (phoneNumber) {
-      const phoneRegex = /^\+?[0-9]{9,15}$/;
-      const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
-      if (!phoneRegex.test(cleanPhone)) {
-        setError(t('register.invalidPhone', 'Invalid phone number format. Use format: +351912345678'));
-        return;
-      }
+    // Validate display name (required)
+    if (!displayName.trim()) {
+      setError(t('register.displayNameRequired', 'Full name is required'));
+      return;
+    }
+
+    // Validate phone number (required)
+    if (!phoneNumber.trim()) {
+      setError(t('register.phoneRequired', 'Phone number is required'));
+      return;
+    }
+
+    // Validate phone number format
+    const phoneRegex = /^\+?[0-9]{9,15}$/;
+    const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      setError(t('register.invalidPhone', 'Invalid phone number format. Use format: +351912345678'));
+      return;
     }
 
     setIsLoading(true);
@@ -114,7 +124,7 @@ export default function Register() {
             <div className="space-y-2">
               <label htmlFor="displayName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('auth.displayName', 'Full Name')}
-                <span className="text-gray-400 ml-1">({t('common.optional', 'optional')})</span>
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -125,6 +135,7 @@ export default function Register() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder={t('auth.displayNamePlaceholder', 'Enter your full name')}
                   disabled={isLoading || !token}
+                  required
                   autoComplete="name"
                   className="w-full pl-10"
                 />
@@ -134,7 +145,7 @@ export default function Register() {
             <div className="space-y-2">
               <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('auth.phoneNumber', 'Phone Number')}
-                <span className="text-gray-400 ml-1">({t('common.optional', 'optional')})</span>
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
                 <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -145,6 +156,7 @@ export default function Register() {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder={t('auth.phoneNumberPlaceholder', '+351 912 345 678')}
                   disabled={isLoading || !token}
+                  required
                   autoComplete="tel"
                   className="w-full pl-10"
                 />

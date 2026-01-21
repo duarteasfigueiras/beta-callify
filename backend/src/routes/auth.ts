@@ -72,6 +72,14 @@ router.post('/register', async (req, res: Response) => {
       return res.status(400).json({ error: 'Token, username, and password are required' });
     }
 
+    if (!display_name?.trim()) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+
+    if (!phone_number?.trim()) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
     if (username.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters' });
     }
