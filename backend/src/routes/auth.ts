@@ -1,9 +1,20 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { Resend } from 'resend';
 import { supabase } from '../db/supabase';
 import { AuthenticatedRequest, authenticateToken, generateToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
+
+// SECURITY: Generate cryptographically secure tokens
+function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// SECURITY: Hash tokens before storing in database
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const router = Router();
 
@@ -44,12 +55,8 @@ router.post('/login', async (req, res: Response) => {
     };
     const token = generateToken(payload);
 
-    console.log('=== LOGIN SUCCESS ===');
-    console.log('Username:', user.username);
-    console.log('User ID:', user.id);
-    console.log('Company ID:', user.company_id);
-    console.log('Role:', user.role);
-    console.log('=====================');
+    // SECURITY: Only log minimal info, no sensitive data
+    console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}`);
 
     // Return user data (without password)
     const { password_hash, ...userWithoutPassword } = user;
@@ -231,8 +238,19 @@ router.post('/recover-password', async (req, res: Response) => {
       return res.json({ message: 'If the username exists, password reset instructions will be sent to the provided email' });
     }
 
-    // Generate reset token
-    const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+    // SECURITY: Generate cryptographically secure reset token
+    const resetToken = generateSecureToken();
+    const tokenHash = hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 3600000).toISOString();  // 1 hour
+
+    // Store hashed token in database
+    await supabase.from('password_reset_tokens').upsert({
+      user_id: user.id,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      used: false
+    }, { onConflict: 'user_id' });
+
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
@@ -371,20 +389,28 @@ router.post('/reset-password', async (req, res: Response) => {
       return res.status(400).json({ error: 'Token and new password are required' });
     }
 
-    // Decode token
-    let userId: number;
-    let tokenTime: number;
-    try {
-      const decoded = Buffer.from(token, 'base64').toString('utf-8');
-      const [userIdStr, timeStr] = decoded.split(':');
-      userId = parseInt(userIdStr, 10);
-      tokenTime = parseInt(timeStr, 10);
-    } catch {
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // SECURITY: Hash the provided token and look it up
+    const tokenHash = hashToken(token);
+
+    const { data: resetRecord, error: findError } = await supabase
+      .from('password_reset_tokens')
+      .select('user_id, expires_at, used')
+      .eq('token_hash', tokenHash)
+      .single();
+
+    if (findError || !resetRecord) {
       return res.status(400).json({ error: 'Invalid reset token' });
     }
 
-    // Check if token is expired (1 hour validity)
-    if (Date.now() - tokenTime > 3600000) {
+    if (resetRecord.used) {
+      return res.status(400).json({ error: 'Reset token has already been used' });
+    }
+
+    if (new Date(resetRecord.expires_at) < new Date()) {
       return res.status(400).json({ error: 'Reset token has expired' });
     }
 
@@ -392,11 +418,22 @@ router.post('/reset-password', async (req, res: Response) => {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    await supabase
+    const { error: updateError } = await supabase
       .from('users')
       .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq('id', resetRecord.user_id);
 
+    if (updateError) {
+      throw updateError;
+    }
+
+    // SECURITY: Mark token as used (one-time use)
+    await supabase
+      .from('password_reset_tokens')
+      .update({ used: true })
+      .eq('token_hash', tokenHash);
+
+    console.log(`[Auth] Password reset successful for userId=${resetRecord.user_id}`);
     return res.json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error('Password reset error:', error);

@@ -3,6 +3,34 @@ import { supabase } from '../db/supabase';
 
 const router = Router();
 
+// SECURITY: API Key authentication for n8n endpoints
+const N8N_API_KEY = process.env.N8N_API_KEY;
+
+function validateApiKey(req: Request, res: Response, next: Function) {
+  // Skip validation if no API key is configured (development mode)
+  if (!N8N_API_KEY) {
+    console.warn('[n8n] WARNING: N8N_API_KEY not set - endpoints are unprotected!');
+    return next();
+  }
+
+  const providedKey = req.headers['x-api-key'] || req.query.api_key;
+
+  if (!providedKey || providedKey !== N8N_API_KEY) {
+    console.warn('[n8n] Unauthorized access attempt');
+    return res.status(401).json({ error: 'Invalid or missing API key' });
+  }
+
+  next();
+}
+
+// Apply API key validation to all n8n routes (except health check)
+router.use((req, res, next) => {
+  if (req.path === '/health') {
+    return next();
+  }
+  return validateApiKey(req, res, next);
+});
+
 /**
  * Helper to get agent's category/categories
  * Returns both single category (for backwards compat) and array of categories

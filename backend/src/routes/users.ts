@@ -1,7 +1,18 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
+
+// SECURITY: Generate cryptographically secure tokens
+function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// SECURITY: Hash tokens before storing in database
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const router = Router();
 
@@ -454,14 +465,16 @@ router.post('/invite', requireRole('developer', 'admin_manager'), async (req: Au
       }
     }
 
-    // Generate invite token
-    const token = Buffer.from(`${targetCompanyId}:${Date.now()}`).toString('base64');
+    // SECURITY: Generate cryptographically secure invite token
+    const token = generateSecureToken();
+    const tokenHash = hashToken(token);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
     const { error } = await supabase.from('invitations').insert({
       company_id: targetCompanyId,
       invited_by: req.user!.userId,
-      token,
+      token,  // Keep for backwards compatibility during migration
+      token_hash: tokenHash,  // Secure hashed version
       role: inviteRole,
       custom_role_name: roleDisplayName,
       used: false,

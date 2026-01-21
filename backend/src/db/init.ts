@@ -58,13 +58,15 @@ export async function seedDatabase(): Promise<void> {
     .single();
 
   if (!existingDev) {
+    // SECURITY: Use environment variable for developer password, or generate random one
+    const devPassword = process.env.DEV_PASSWORD || require('crypto').randomBytes(16).toString('hex');
     console.log('Creating developer user...');
-    const devPasswordHash = await bcrypt.hash('dev123', 10);
+    const devPasswordHash = await bcrypt.hash(devPassword, 12);  // Higher cost factor
     const { error: devError } = await supabase
       .from('users')
       .insert({
         company_id: null,  // Developer has no company
-        username: 'dev',
+        username: process.env.DEV_USERNAME || 'dev',
         password_hash: devPasswordHash,
         role: 'developer',
         language_preference: 'en',
@@ -74,7 +76,16 @@ export async function seedDatabase(): Promise<void> {
     if (devError) {
       console.error('Error creating developer user:', devError);
     } else {
-      console.log('Developer user created (username: dev, password: dev123)');
+      // SECURITY: Only log password in development mode, never in production
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Developer user created. Set DEV_PASSWORD env var to configure.`);
+        if (!process.env.DEV_PASSWORD) {
+          console.log(`Generated temporary password: ${devPassword}`);
+          console.log('⚠️  Save this password! It will not be shown again.');
+        }
+      } else {
+        console.log('Developer user created');
+      }
     }
   } else {
     console.log('Developer user already exists');

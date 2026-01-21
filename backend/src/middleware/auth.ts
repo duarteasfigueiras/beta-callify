@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { JWTPayload, UserRole } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'callify-secret-key-change-in-production';
+// SECURITY: JWT_SECRET must be set in environment variables
+const JWT_SECRET: Secret = process.env.JWT_SECRET || '';
+if (!JWT_SECRET) {
+  throw new Error('CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.');
+}
 
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
@@ -18,7 +22,8 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    // SECURITY: Use explicit algorithm verification
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
     req.user = decoded;
     next();
   } catch (error) {
@@ -43,5 +48,14 @@ export function requireRole(...roles: UserRole[]) {
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  // SECURITY: Shorter expiration, explicit algorithm
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: '8h',
+    algorithm: 'HS256'
+  });
+}
+
+// SECURITY: Verify with explicit algorithm to prevent algorithm confusion attacks
+export function verifyToken(token: string): JWTPayload {
+  return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
 }

@@ -21,7 +21,7 @@ const LONG_CALL_THRESHOLD_SECONDS = parseInt(process.env.LONG_CALL_THRESHOLD_SEC
  * Helper to get agent's category from custom_role_name
  */
 async function getAgentCategory(agentId: number): Promise<string | null> {
-  const agent = await dbGet('SELECT custom_role_name FROM users WHERE id = ?', [agentId]);
+  const agent = await dbGet<{ custom_role_name: string | null }>('SELECT custom_role_name FROM users WHERE id = ?', [agentId]);
   return agent?.custom_role_name || null;
 }
 
