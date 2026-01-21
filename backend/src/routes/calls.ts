@@ -442,12 +442,11 @@ router.delete('/:id', requireRole('developer'), async (req: AuthenticatedRequest
   try {
     const callId = parseInt(req.params.id);
 
-    // Verify the call exists and belongs to the company
+    // Verify the call exists (developer can delete any call)
     const { data: call } = await supabase
       .from('calls')
       .select('id')
       .eq('id', callId)
-      .eq('company_id', req.user!.companyId)
       .single();
 
     if (!call) {
