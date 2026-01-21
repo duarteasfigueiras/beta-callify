@@ -781,14 +781,34 @@ router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: Aut
       // Continue with deletion even if this fails
     }
 
-    // Delete user's feedback on calls
+    // Delete alerts where this user is the agent (foreign key constraint)
+    const { error: alertsError } = await supabase
+      .from('alerts')
+      .delete()
+      .eq('agent_id', userId);
+
+    if (alertsError) {
+      console.error('Error deleting user alerts:', alertsError);
+    }
+
+    // Delete user's feedback on calls (field is author_id, not user_id)
     const { error: feedbackError } = await supabase
       .from('call_feedback')
       .delete()
-      .eq('user_id', userId);
+      .eq('author_id', userId);
 
     if (feedbackError) {
       console.error('Error deleting user feedback:', feedbackError);
+    }
+
+    // Delete invitations created by this user
+    const { error: invitationsError } = await supabase
+      .from('invitations')
+      .delete()
+      .eq('invited_by', userId);
+
+    if (invitationsError) {
+      console.error('Error deleting user invitations:', invitationsError);
     }
 
     // Delete user
