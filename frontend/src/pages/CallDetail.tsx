@@ -429,17 +429,15 @@ export default function CallDetail() {
                 </h4>
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   {Array.isArray(whatWentWell) ? (
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {isTimestampedArray(whatWentWell) ? (
                         whatWentWell.map((item: TimestampedItem, i: number) => (
-                          <li key={i} className="flex items-center justify-between text-green-800 dark:text-green-200">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              {item.text}
-                            </span>
+                          <li key={i} className="flex items-start gap-3 text-green-800 dark:text-green-200">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                            <span className="flex-1">{item.text}</span>
                             <button
                               onClick={() => goToTranscription(item.timestamp)}
-                              className="text-xs bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 px-2 py-1 rounded cursor-pointer transition-colors"
+                              className="text-xs bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 px-2 py-1 rounded cursor-pointer transition-colors flex-shrink-0 ml-2"
                               title={t('calls.goToTranscription', 'Click to seek to this moment')}
                             >
                               {item.timestamp}
@@ -448,9 +446,9 @@ export default function CallDetail() {
                         ))
                       ) : (
                         whatWentWell.map((item: string, i: number) => (
-                          <li key={i} className="flex items-center gap-2 text-green-800 dark:text-green-200">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            {item}
+                          <li key={i} className="flex items-start gap-3 text-green-800 dark:text-green-200">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                            <span>{item}</span>
                           </li>
                         ))
                       )}
@@ -470,17 +468,15 @@ export default function CallDetail() {
                 </h4>
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   {Array.isArray(whatWentWrong) ? (
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {isTimestampedArray(whatWentWrong) ? (
                         whatWentWrong.map((item: TimestampedItem, i: number) => (
-                          <li key={i} className="flex items-center justify-between text-red-800 dark:text-red-200">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                              {item.text}
-                            </span>
+                          <li key={i} className="flex items-start gap-3 text-red-800 dark:text-red-200">
+                            <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                            <span className="flex-1">{item.text}</span>
                             <button
                               onClick={() => goToTranscription(item.timestamp)}
-                              className="text-xs bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 px-2 py-1 rounded cursor-pointer transition-colors"
+                              className="text-xs bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 px-2 py-1 rounded cursor-pointer transition-colors flex-shrink-0 ml-2"
                               title={t('calls.goToTranscription', 'Click to seek to this moment')}
                             >
                               {item.timestamp}
@@ -489,9 +485,9 @@ export default function CallDetail() {
                         ))
                       ) : (
                         whatWentWrong.map((item: string, i: number) => (
-                          <li key={i} className="flex items-center gap-2 text-red-800 dark:text-red-200">
-                            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                            {item}
+                          <li key={i} className="flex items-start gap-3 text-red-800 dark:text-red-200">
+                            <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                            <span>{item}</span>
                           </li>
                         ))
                       )}

@@ -811,8 +811,9 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       companyId,
       callDate,
       transcription,
-      // AI Agent output format
+      // AI Agent output format (accept both 'agent_output' and 'output' field names)
       agent_output,
+      output,  // Alternative field name from n8n
       // Or direct fields
       score,
       resumo,
@@ -833,10 +834,10 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       palavras_risco_detectadas  // Risk words detected by AI
     } = req.body;
 
-    // Parse agent_output if it's a string
-    let aiOutput = agent_output;
-    if (typeof agent_output === 'string') {
-      let cleanedOutput = agent_output;
+    // Parse agent_output if it's a string (also accept 'output' field name from n8n)
+    let aiOutput = agent_output || output;
+    if (typeof aiOutput === 'string') {
+      let cleanedOutput = aiOutput;
 
       // Replace literal \n with actual newlines (common issue with some AI outputs)
       cleanedOutput = cleanedOutput.replace(/\\n/g, '\n');
@@ -968,6 +969,15 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     // Risk words detected by AI
     const aiDetectedRiskWords = palavras_risco_detectadas ?? aiOutput?.palavras_risco_detectadas ?? aiOutput?.riskWordsDetected ?? [];
 
+    // Log extracted coaching fields for debugging
+    console.log('[n8n] Extracted coaching fields:', {
+      phrasesToAvoid: phrasesToAvoid?.length || 0,
+      recommendedPhrases: recommendedPhrases?.length || 0,
+      skillScores: skillScoresData?.length || 0,
+      contactReasons: contactReasons?.length || 0,
+      responseExample: responseExample ? 'yes' : 'no'
+    });
+
     // Score validation removed - we now use a default of 5.0 if not found
 
     // Get company
@@ -1085,9 +1095,10 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
       if (fallbackAgent) {
         // Use fallback agent but keep original summary (agent shown as "Indefinido" in UI)
+        // Include coachingFields to preserve AI analysis data
         const retryResult = await supabase
           .from('calls')
-          .insert({ ...baseCallData, agent_id: fallbackAgent.id, summary })
+          .insert({ ...baseCallData, ...coachingFields, agent_id: fallbackAgent.id })
           .select('id')
           .single();
         newCall = retryResult.data;
