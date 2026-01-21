@@ -1205,6 +1205,43 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 });
 
 /**
+ * Debug endpoint - check coaching fields for a specific call
+ */
+router.get('/debug-call/:id', async (req: Request, res: Response) => {
+  try {
+    const callId = parseInt(req.params.id);
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .select('id, skill_scores, phrases_to_avoid, recommended_phrases, contact_reasons, objections, response_improvement_example, history_comparison')
+      .eq('id', callId)
+      .single();
+
+    if (error || !call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+    res.json({
+      callId: call.id,
+      hasSkillScores: !!call.skill_scores && call.skill_scores !== '[]',
+      hasPhrasesToAvoid: !!call.phrases_to_avoid && call.phrases_to_avoid !== '[]',
+      hasRecommendedPhrases: !!call.recommended_phrases && call.recommended_phrases !== '[]',
+      hasContactReasons: !!call.contact_reasons && call.contact_reasons !== '[]',
+      hasObjections: !!call.objections && call.objections !== '[]',
+      hasResponseExample: !!call.response_improvement_example,
+      hasHistoryComparison: !!call.history_comparison,
+      rawData: {
+        skill_scores: call.skill_scores,
+        phrases_to_avoid: call.phrases_to_avoid,
+        contact_reasons: call.contact_reasons
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Health check and documentation
  */
 router.get('/health', (req: Request, res: Response) => {
