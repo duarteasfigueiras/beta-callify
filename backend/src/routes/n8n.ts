@@ -846,9 +846,13 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     let aiOutput = agent_output || output;
 
     console.log('[n8n] aiOutput type:', typeof aiOutput);
-    console.log('[n8n] aiOutput sample:', typeof aiOutput === 'string' ? aiOutput.substring(0, 200) : JSON.stringify(aiOutput).substring(0, 200));
+    console.log('[n8n] aiOutput keys:', aiOutput && typeof aiOutput === 'object' ? Object.keys(aiOutput) : 'N/A');
 
-    if (typeof aiOutput === 'string') {
+    // If aiOutput is already a properly parsed object with expected fields, use it directly
+    if (aiOutput && typeof aiOutput === 'object' && (aiOutput.score !== undefined || aiOutput.resumo)) {
+      console.log('[n8n] aiOutput is already a parsed object with score/resumo, using directly');
+      // aiOutput is ready to use
+    } else if (typeof aiOutput === 'string') {
       let cleanedOutput = aiOutput;
 
       // Replace literal \n with actual newlines (common issue with some AI outputs)
