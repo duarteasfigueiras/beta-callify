@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Phone, Eye, EyeOff } from 'lucide-react';
+import { Phone, Eye, EyeOff, User, Smartphone } from 'lucide-react';
 import { authApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -19,6 +19,8 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +56,19 @@ export default function Register() {
       return;
     }
 
+    // Validate phone number format if provided
+    if (phoneNumber) {
+      const phoneRegex = /^\+?[0-9]{9,15}$/;
+      const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
+      if (!phoneRegex.test(cleanPhone)) {
+        setError(t('register.invalidPhone', 'Invalid phone number format. Use format: +351912345678'));
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      await authApi.register(token, username, password);
+      await authApi.register(token, username, password, displayName || undefined, phoneNumber || undefined);
       toast.success(t('register.success', 'Registration successful!'));
 
       // Auto-login after registration and redirect to settings
@@ -98,6 +110,49 @@ export default function Register() {
                 {error}
               </div>
             )}
+
+            <div className="space-y-2">
+              <label htmlFor="displayName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('auth.displayName', 'Full Name')}
+                <span className="text-gray-400 ml-1">({t('common.optional', 'optional')})</span>
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={t('auth.displayNamePlaceholder', 'Enter your full name')}
+                  disabled={isLoading || !token}
+                  autoComplete="name"
+                  className="w-full pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('auth.phoneNumber', 'Phone Number')}
+                <span className="text-gray-400 ml-1">({t('common.optional', 'optional')})</span>
+              </label>
+              <div className="relative">
+                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder={t('auth.phoneNumberPlaceholder', '+351 912 345 678')}
+                  disabled={isLoading || !token}
+                  autoComplete="tel"
+                  className="w-full pl-10"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('auth.phoneNumberHint', 'Used to associate calls with your account')}
+              </p>
+            </div>
 
             <div className="space-y-2">
               <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">

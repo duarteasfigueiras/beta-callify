@@ -33,7 +33,18 @@ const resources = {
         sendResetLink: 'Send Reset Link',
         backToLogin: 'Back to Login',
         invalidCredentials: 'Invalid username or password',
-        recoveryEmailSent: 'If the username exists, password reset instructions will be sent. Check the server console for the reset link.',
+        recoveryEmailSent: 'If the username exists, password reset instructions will be sent to the provided email.',
+        // New fields for registration
+        displayName: 'Full Name',
+        displayNamePlaceholder: 'Enter your full name',
+        phoneNumber: 'Phone Number',
+        phoneNumberPlaceholder: '+351 912 345 678',
+        phoneNumberHint: 'Used to associate calls with your account',
+        // Email for password recovery
+        email: 'Email',
+        emailPlaceholder: 'your.email@example.com',
+        emailHint: 'The reset link will be sent to this email address',
+        invalidEmail: 'Invalid email format',
       },
       // Dashboard
       dashboard: {
@@ -106,6 +117,15 @@ const resources = {
         topPerformer: 'Top Performer',
         insights: 'Insights',
         noTranscription: 'No transcription available for this call',
+        // New fields for contact reasons, objections, and history
+        contactReasons: 'Contact Reasons',
+        objections: 'Customer Objections',
+        historyComparison: 'History Comparison',
+        previousCalls: 'Previous Calls',
+        previousAverage: 'Previous Average',
+        trend: 'Trend',
+        improvedAreas: 'Improved Areas',
+        areasToFocus: 'Areas to Focus',
       },
       // Reports
       reports: {
@@ -439,6 +459,7 @@ const resources = {
         clickToViewDetails: 'Click for details',
         words: 'words',
         back: 'Back',
+        optional: 'optional',
       },
     },
   },
@@ -473,7 +494,18 @@ const resources = {
         sendResetLink: 'Enviar Link de Recuperação',
         backToLogin: 'Voltar ao Login',
         invalidCredentials: 'Nome de utilizador ou palavra-passe inválidos',
-        recoveryEmailSent: 'Se o nome de utilizador existir, as instruções de recuperação serão enviadas. Verifique a consola do servidor para o link de recuperação.',
+        recoveryEmailSent: 'Se o nome de utilizador existir, as instruções de recuperação serão enviadas para o email fornecido.',
+        // Novos campos para registo
+        displayName: 'Nome Completo',
+        displayNamePlaceholder: 'Introduza o seu nome completo',
+        phoneNumber: 'Número de Telemóvel',
+        phoneNumberPlaceholder: '+351 912 345 678',
+        phoneNumberHint: 'Usado para associar chamadas à sua conta',
+        // Email para recuperação de password
+        email: 'Email',
+        emailPlaceholder: 'seu.email@exemplo.com',
+        emailHint: 'O link de recuperação será enviado para este email',
+        invalidEmail: 'Formato de email inválido',
       },
       // Dashboard
       dashboard: {
@@ -566,6 +598,15 @@ const resources = {
         gap: 'Diferença',
         topPerformer: 'Top Performer',
         insights: 'Insights',
+        // New fields for contact reasons, objections, and history
+        contactReasons: 'Motivos de Contacto',
+        objections: 'Objeções do Cliente',
+        historyComparison: 'Comparação com Histórico',
+        previousCalls: 'Chamadas Anteriores',
+        previousAverage: 'Média Anterior',
+        trend: 'Tendência',
+        improvedAreas: 'Áreas Melhoradas',
+        areasToFocus: 'Áreas a Focar',
       },
       // Reports
       reports: {
@@ -1009,6 +1050,7 @@ const resources = {
         unsavedChangesMessage: 'Tem alterações não guardadas. Tem a certeza que quer sair desta página? As suas alterações serão perdidas.',
         stayOnPage: 'Ficar na Página',
         leaveWithoutSaving: 'Sair Sem Guardar',
+        optional: 'opcional',
       },
     },
   },

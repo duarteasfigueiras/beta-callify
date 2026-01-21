@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Phone, ArrowLeft } from 'lucide-react';
+import { Phone, ArrowLeft, Mail } from 'lucide-react';
 import { authApi } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,6 +11,7 @@ export default function ForgotPassword() {
   const { t } = useTranslation();
 
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,10 +19,18 @@ export default function ForgotPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError(t('auth.invalidEmail', 'Invalid email format'));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await authApi.recoverPassword(username);
+      await authApi.recoverPassword(username, email);
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Password recovery error:', err);
@@ -81,6 +90,28 @@ export default function ForgotPassword() {
                   autoComplete="username"
                   className="w-full"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('auth.email', 'Email')}
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder', 'your.email@example.com')}
+                    required
+                    autoComplete="email"
+                    className="w-full pl-10"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('auth.emailHint', 'The reset link will be sent to this email address')}
+                </p>
               </div>
 
               <Button

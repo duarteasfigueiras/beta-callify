@@ -45,6 +45,14 @@ interface TopPerformerComparison {
   insights: string[];
 }
 
+interface HistoryComparison {
+  chamadas_anteriores: number;
+  media_anterior: number;
+  tendencia: 'melhorou' | 'piorou' | 'estavel';
+  areas_melhoradas: string[];
+  areas_a_focar: string[];
+}
+
 interface CallData {
   id: number;
   phone_number: string;
@@ -70,6 +78,10 @@ interface CallData {
   response_improvement_example: string;
   top_performer_comparison: string;
   skill_scores: string;
+  // Contact reasons, objections and history comparison
+  contact_reasons: string;
+  objections: string;
+  history_comparison: string;
 }
 
 export default function CallDetail() {
@@ -211,6 +223,10 @@ export default function CallDetail() {
   const responseExample = parseJSON(call.response_improvement_example) as ResponseExample | null;
   const topPerformerComparison = parseJSON(call.top_performer_comparison) as TopPerformerComparison | null;
   const skillScores = parseJSON(call.skill_scores) as SkillScore[] | null;
+  // New fields
+  const contactReasons = parseJSON(call.contact_reasons);
+  const objections = parseJSON(call.objections);
+  const historyComparison = parseJSON(call.history_comparison) as HistoryComparison | null;
 
   // Helper to get skill color based on score
   const getSkillColor = (score: number) => {
@@ -650,6 +666,137 @@ export default function CallDetail() {
                           <li key={i} className="flex items-start gap-2 text-sm text-cyan-800 dark:text-cyan-200">
                             <span className="mt-1 w-1.5 h-1.5 bg-cyan-500 rounded-full flex-shrink-0"></span>
                             {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Contact Reasons (Motivos de Contacto) */}
+            {contactReasons && Array.isArray(contactReasons) && contactReasons.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-2">
+                  {t('calls.contactReasons', 'Motivos de Contacto')}
+                </h4>
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
+                  <ul className="space-y-2">
+                    {contactReasons.map((reason: string | { text: string; timestamp?: string }, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-teal-800 dark:text-teal-200">
+                        <span className="mt-1.5 w-2 h-2 bg-teal-500 rounded-full flex-shrink-0"></span>
+                        <span>{typeof reason === 'string' ? reason : reason.text}</span>
+                        {typeof reason !== 'string' && reason.timestamp && (
+                          <button
+                            onClick={() => goToTranscription(reason.timestamp!)}
+                            className="text-xs bg-teal-200 dark:bg-teal-800 hover:bg-teal-300 dark:hover:bg-teal-700 px-2 py-1 rounded cursor-pointer transition-colors ml-auto"
+                          >
+                            {reason.timestamp}
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Objections (Objeções) */}
+            {objections && Array.isArray(objections) && objections.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-2">
+                  {t('calls.objections', 'Objeções do Cliente')}
+                </h4>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                  <ul className="space-y-2">
+                    {objections.map((objection: string | { text: string; timestamp?: string }, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-orange-800 dark:text-orange-200">
+                        <span className="mt-1.5 w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></span>
+                        <span>{typeof objection === 'string' ? objection : objection.text}</span>
+                        {typeof objection !== 'string' && objection.timestamp && (
+                          <button
+                            onClick={() => goToTranscription(objection.timestamp!)}
+                            className="text-xs bg-orange-200 dark:bg-orange-800 hover:bg-orange-300 dark:hover:bg-orange-700 px-2 py-1 rounded cursor-pointer transition-colors ml-auto"
+                          >
+                            {objection.timestamp}
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* History Comparison (Comparação com Histórico) */}
+            {historyComparison && (
+              <div>
+                <h4 className="text-sm font-medium text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2">
+                  {t('calls.historyComparison', 'Comparação com Histórico')}
+                </h4>
+                <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.previousCalls', 'Chamadas Anteriores')}
+                      </p>
+                      <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">
+                        {historyComparison.chamadas_anteriores}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.previousAverage', 'Média Anterior')}
+                      </p>
+                      <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">
+                        {historyComparison.media_anterior?.toFixed(1) || '-'}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        {t('calls.trend', 'Tendência')}
+                      </p>
+                      <p className={`text-lg font-bold ${
+                        historyComparison.tendencia === 'melhorou'
+                          ? 'text-green-600 dark:text-green-400'
+                          : historyComparison.tendencia === 'piorou'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {historyComparison.tendencia === 'melhorou' && '↑ Melhorou'}
+                        {historyComparison.tendencia === 'piorou' && '↓ Piorou'}
+                        {historyComparison.tendencia === 'estavel' && '→ Estável'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {historyComparison.areas_melhoradas && historyComparison.areas_melhoradas.length > 0 && (
+                    <div className="border-t border-violet-200 dark:border-violet-800 pt-3 mt-3">
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
+                        {t('calls.improvedAreas', 'Áreas Melhoradas')}
+                      </p>
+                      <ul className="space-y-1">
+                        {historyComparison.areas_melhoradas.map((area: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-green-800 dark:text-green-200">
+                            <span className="mt-1 w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                            {area}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {historyComparison.areas_a_focar && historyComparison.areas_a_focar.length > 0 && (
+                    <div className="border-t border-violet-200 dark:border-violet-800 pt-3 mt-3">
+                      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
+                        {t('calls.areasToFocus', 'Áreas a Focar')}
+                      </p>
+                      <ul className="space-y-1">
+                        {historyComparison.areas_a_focar.map((area: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+                            <span className="mt-1 w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
+                            {area}
                           </li>
                         ))}
                       </ul>

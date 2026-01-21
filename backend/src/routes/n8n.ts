@@ -465,11 +465,6 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
     const textLower = transcription.toLowerCase();
     const detectedRiskWords = RISK_WORDS.filter(word => textLower.includes(word.toLowerCase()));
 
-    // Use contactReasons for what_went_well if provided, otherwise use whatWentWell
-    // Use objections for what_went_wrong if provided, otherwise use whatWentWrong
-    const finalContactReasons = contactReasons.length > 0 ? contactReasons : whatWentWell;
-    const finalObjections = objections.length > 0 ? objections : whatWentWrong;
-
     // Validate direction (inbound, outbound, or meeting)
     const validDirections = ['inbound', 'outbound', 'meeting'];
     const callDirection = validDirections.includes(direction) ? direction : 'inbound';
@@ -491,15 +486,18 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
         next_step_recommendation: nextStepRecommendation || '',
         final_score: finalScore,
         score_justification: scoreJustification || '',
-        what_went_well: JSON.stringify(finalContactReasons),
-        what_went_wrong: JSON.stringify(finalObjections),
+        what_went_well: JSON.stringify(whatWentWell),
+        what_went_wrong: JSON.stringify(whatWentWrong),
         risk_words_detected: JSON.stringify(detectedRiskWords),
         // New AI coaching fields
         phrases_to_avoid: JSON.stringify(phrasesToAvoid),
         recommended_phrases: JSON.stringify(recommendedPhrases),
         response_improvement_example: responseImprovementExample ? JSON.stringify(responseImprovementExample) : null,
         top_performer_comparison: topPerformerComparison ? JSON.stringify(topPerformerComparison) : null,
-        skill_scores: JSON.stringify(skillScores)
+        skill_scores: JSON.stringify(skillScores),
+        // Contact reasons and objections
+        contact_reasons: JSON.stringify(contactReasons),
+        objections: JSON.stringify(objections)
       })
       .select('id')
       .single();
@@ -747,7 +745,29 @@ Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code b
 - **Sem áudio/só silêncio**: score = 0, resumo explica a situação
 - **Chamada de teste**: Avalia normalmente, a menos que seja claramente um teste técnico
 
-Agora analisa a transcrição fornecida seguindo esta metodologia.
+---
+
+## INSTRUÇÕES PARA N8N
+
+**IMPORTANTE:** Este prompt deve ser seguido da transcrição da chamada.
+
+No n8n, configura o campo "Prompt (User Message)" assim:
+
+\`\`\`
+{{ $json.aiPrompt }}
+
+---
+
+## TRANSCRIÇÃO DA CHAMADA A AVALIAR
+
+{{ $('NomeDoNoTranscricao').item.json.transcription }}
+\`\`\`
+
+Substitui 'NomeDoNoTranscricao' pelo nome do nó que contém a transcrição.
+
+---
+
+Agora analisa a transcrição fornecida abaixo seguindo esta metodologia:
     `.trim();
 
     res.json({
@@ -818,11 +838,14 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     if (typeof agent_output === 'string') {
       let cleanedOutput = agent_output;
 
+      // Replace literal \n with actual newlines (common issue with some AI outputs)
+      cleanedOutput = cleanedOutput.replace(/\\n/g, '\n');
+
       // Remove markdown code blocks (```json ... ``` or ``` ... ```)
       cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
 
       // Also try to extract JSON from within the text if it contains ```json blocks
-      const jsonBlockMatch = agent_output.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      const jsonBlockMatch = cleanedOutput.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
       if (jsonBlockMatch) {
         cleanedOutput = jsonBlockMatch[1];
       }
@@ -830,11 +853,32 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       // Trim whitespace
       cleanedOutput = cleanedOutput.trim();
 
-      try {
-        // Try to parse as JSON first
-        aiOutput = JSON.parse(cleanedOutput);
-        console.log('[n8n] Successfully parsed agent_output as JSON');
-      } catch {
+      // If the string starts with { and ends with }, try to parse it directly
+      if (cleanedOutput.startsWith('{') && cleanedOutput.endsWith('}')) {
+        try {
+          aiOutput = JSON.parse(cleanedOutput);
+          console.log('[n8n] Successfully parsed agent_output as JSON');
+        } catch (parseError) {
+          console.log('[n8n] First JSON parse failed, trying with escaped newlines fix');
+          // Try replacing escaped quotes and other common issues
+          try {
+            const fixedOutput = cleanedOutput
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\');
+            aiOutput = JSON.parse(fixedOutput);
+            console.log('[n8n] Successfully parsed agent_output after fixing escapes');
+          } catch {
+            console.log('[n8n] Could not parse JSON even after fixes');
+          }
+        }
+      }
+
+      if (!aiOutput || typeof aiOutput !== 'object') {
+        try {
+          // Try to parse as JSON first
+          aiOutput = JSON.parse(cleanedOutput);
+          console.log('[n8n] Successfully parsed agent_output as JSON');
+        } catch {
         // If not valid JSON, try to extract data from text
         console.log('[n8n] agent_output is not valid JSON, trying to extract from text...');
         console.log('[n8n] Cleaned output was:', cleanedOutput.substring(0, 200));
@@ -879,9 +923,21 @@ router.post('/agent-output', async (req: Request, res: Response) => {
           }
         }
 
+        // Try to extract criteriaResults array
+        const criteriaMatch = cleanedOutput.match(/(?:"criteriaResults"|criteriaResults)[:\s]*\[([\s\S]*?)\]/i);
+        if (criteriaMatch) {
+          try {
+            aiOutput.criteriaResults = JSON.parse('[' + criteriaMatch[1] + ']');
+            console.log('[n8n] Extracted criteriaResults from text:', aiOutput.criteriaResults?.length);
+          } catch (e) {
+            console.log('[n8n] Could not parse criteriaResults from text');
+          }
+        }
+
         // Store the full text as resumo if nothing else found
         if (!aiOutput.resumo && cleanedOutput.length > 0) {
           aiOutput.resumo = cleanedOutput.substring(0, 500);
+        }
         }
       }
     }
@@ -952,13 +1008,14 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const textToCheck = (transcription || summary || '').toLowerCase();
     const detectedRiskWords = RISK_WORDS.filter(word => textToCheck.includes(word.toLowerCase()));
 
-    // Use contactReasons if provided, otherwise fall back to strengths (pontos_fortes)
-    // Use objections if provided, otherwise fall back to improvements (melhorias)
-    const finalContactReasons = contactReasons.length > 0 ? contactReasons : strengths;
-    const finalObjections = objections.length > 0 ? objections : improvements;
-
     // Combine AI-detected risk words with system-detected ones
     const allRiskWords = [...new Set([...detectedRiskWords, ...aiDetectedRiskWords])];
+
+    // History comparison from AI
+    const historyComparison = aiOutput?.comparacao_historico ?? aiOutput?.historyComparison ?? null;
+
+    // Criteria results from AI
+    const criteriaResults = aiOutput?.criteriaResults ?? aiOutput?.criteria_results ?? [];
 
     // Validate direction (inbound, outbound, or meeting)
     const validDirections = ['inbound', 'outbound', 'meeting'];
@@ -979,8 +1036,8 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       next_step_recommendation: nextStep || recommendations.join('\n- '),
       final_score: finalScore,
       score_justification: notes,
-      what_went_well: JSON.stringify(finalContactReasons),
-      what_went_wrong: JSON.stringify(finalObjections),
+      what_went_well: JSON.stringify(strengths),
+      what_went_wrong: JSON.stringify(improvements),
       risk_words_detected: JSON.stringify(allRiskWords)
     };
 
@@ -989,7 +1046,11 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       recommended_phrases: JSON.stringify(recommendedPhrases),
       response_improvement_example: responseExample ? JSON.stringify(responseExample) : null,
       top_performer_comparison: topPerformerComp ? JSON.stringify(topPerformerComp) : null,
-      skill_scores: JSON.stringify(skillScoresData)
+      skill_scores: JSON.stringify(skillScoresData),
+      // New fields for contact reasons, objections and history comparison
+      contact_reasons: JSON.stringify(contactReasons),
+      objections: JSON.stringify(objections),
+      history_comparison: historyComparison ? JSON.stringify(historyComparison) : null
     };
 
     // Try with all fields first
@@ -1042,6 +1103,37 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
     const callId = newCall.id;
 
+    // Save criteria results if provided
+    if (criteriaResults && Array.isArray(criteriaResults) && criteriaResults.length > 0) {
+      console.log('[n8n] Saving criteria results:', criteriaResults.length);
+      console.log('[n8n] Criteria results data:', JSON.stringify(criteriaResults, null, 2));
+      let savedCount = 0;
+      for (const cr of criteriaResults) {
+        const criterionId = cr.criterionId ?? cr.criterion_id;
+        console.log('[n8n] Processing criterion:', { criterionId, passed: cr.passed, justification: cr.justification?.substring(0, 50) });
+        if (criterionId) {
+          const { error: crError } = await supabase.from('call_criteria_results').insert({
+            call_id: callId,
+            criterion_id: criterionId,
+            passed: cr.passed ?? false,
+            justification: cr.justification ?? '',
+            timestamp_reference: cr.timestampReference ?? cr.timestamp_reference ?? null
+          });
+          if (crError) {
+            console.error('[n8n] Error saving criterion result:', crError.message, 'criterionId:', criterionId);
+          } else {
+            savedCount++;
+            console.log('[n8n] Saved criterion result for criterionId:', criterionId);
+          }
+        } else {
+          console.log('[n8n] Skipping criterion - no ID found:', cr);
+        }
+      }
+      console.log('[n8n] Total criteria results saved:', savedCount, 'of', criteriaResults.length);
+    } else {
+      console.log('[n8n] No criteria results to save. criteriaResults:', criteriaResults);
+    }
+
     // Generate alerts (only if agent is defined)
     let alerts: any[] = [];
     if (targetAgentId) {
@@ -1056,7 +1148,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       );
     }
 
-    console.log('[n8n] AI agent output processed, call created:', callId);
+    console.log('[n8n] AI agent output processed, call created:', callId, 'criteria:', criteriaResults?.length || 0);
 
     res.status(201).json({
       success: true,
@@ -1066,6 +1158,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       summary,
       riskWordsDetected: detectedRiskWords,
       alertsGenerated: alerts.length,
+      criteriaEvaluated: criteriaResults?.length || 0,
       viewUrl: `/calls/${callId}`
     });
 

@@ -1,10 +1,14 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { Resend } from 'resend';
 import { supabase } from '../db/supabase';
 import { AuthenticatedRequest, authenticateToken, generateToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
 
 const router = Router();
+
+// Initialize Resend for email sending (optional - works without API key in dev mode)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Login
 router.post('/login', async (req, res: Response) => {
@@ -62,7 +66,7 @@ router.post('/login', async (req, res: Response) => {
 // Register with invitation token
 router.post('/register', async (req, res: Response) => {
   try {
-    const { token, username, password } = req.body;
+    const { token, username, password, display_name, phone_number } = req.body;
 
     if (!token || !username || !password) {
       return res.status(400).json({ error: 'Token, username, and password are required' });
@@ -106,16 +110,42 @@ router.post('/register', async (req, res: Response) => {
       return res.status(400).json({ error: 'Username already taken' });
     }
 
+    // Validate phone number format if provided
+    let normalizedPhone: string | null = null;
+    if (phone_number) {
+      const phoneRegex = /^\+?[0-9]{9,15}$/;
+      const cleanPhone = phone_number.replace(/[\s-]/g, '');
+      if (!phoneRegex.test(cleanPhone)) {
+        return res.status(400).json({ error: 'Invalid phone number format. Use format: +351912345678' });
+      }
+
+      // Check if phone number already exists in the company
+      const { data: existingPhone } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', invitation.company_id)
+        .eq('phone_number', cleanPhone)
+        .single();
+
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Phone number already in use' });
+      }
+
+      normalizedPhone = cleanPhone;
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user with optional display_name and phone_number
     await supabase.from('users').insert({
       company_id: invitation.company_id,
       username,
       password_hash: passwordHash,
       role: invitation.role,
       custom_role_name: invitation.custom_role_name || null,
+      display_name: display_name?.trim() || null,
+      phone_number: normalizedPhone,
       language_preference: 'pt',
       theme_preference: 'light'
     });
@@ -163,36 +193,111 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-// Password recovery request (logs to console in dev mode)
+// Password recovery request - accepts username and email, sends reset link via email
 router.post('/recover-password', async (req, res: Response) => {
   try {
-    const { username } = req.body;
+    const { username, email } = req.body;
 
     if (!username) {
       return res.status(400).json({ error: 'Username is required' });
     }
 
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     const { data: user } = await supabase
       .from('users')
-      .select('*')
+      .select('*, companies(name)')
       .eq('username', username)
       .single();
 
     if (!user) {
-      // Don't reveal if user exists or not
-      return res.json({ message: 'If the username exists, password reset instructions will be sent' });
+      // Don't reveal if user exists or not - always return success message
+      return res.json({ message: 'If the username exists, password reset instructions will be sent to the provided email' });
     }
 
-    // Generate reset token (in production, this would be sent via email)
+    // Generate reset token
     const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
-    console.log('\n========================================');
-    console.log('PASSWORD RESET LINK (Development Mode)');
-    console.log('========================================');
-    console.log(`User: ${username}`);
-    console.log(`Reset URL: http://localhost:5173/reset-password?token=${resetToken}`);
-    console.log('========================================\n');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    return res.json({ message: 'If the username exists, password reset instructions will be sent' });
+    // Try to send email via Resend, fallback to console log in dev mode
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Callify <noreply@callify.app>',
+          to: email,
+          subject: 'Recuperação de Password - Callify',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Recuperação de Password</h1>
+                </div>
+                <div class="content">
+                  <p>Olá <strong>${user.display_name || user.username}</strong>,</p>
+                  <p>Recebemos um pedido para recuperar a password da sua conta no Callify${user.companies?.name ? ` (${user.companies.name})` : ''}.</p>
+                  <p>Clique no botão abaixo para definir uma nova password:</p>
+                  <p style="text-align: center;">
+                    <a href="${resetUrl}" class="button">Redefinir Password</a>
+                  </p>
+                  <p>Ou copie e cole este link no seu navegador:</p>
+                  <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">${resetUrl}</p>
+                  <p><strong>Este link é válido por 1 hora.</strong></p>
+                  <p>Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
+                </div>
+                <div class="footer">
+                  <p>© ${new Date().getFullYear()} Callify - Sistema de Avaliação de Chamadas</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `
+        });
+        console.log(`[Auth] Password reset email sent to: ${email} for user: ${username}`);
+      } catch (emailError) {
+        console.error('[Auth] Failed to send email via Resend:', emailError);
+        // Fall back to console log
+        console.log('\n========================================');
+        console.log('PASSWORD RESET LINK (Email failed, showing in console)');
+        console.log('========================================');
+        console.log(`User: ${username}`);
+        console.log(`Email: ${email}`);
+        console.log(`Reset URL: ${resetUrl}`);
+        console.log('========================================\n');
+      }
+    } else {
+      // No Resend API key configured - log to console (development mode)
+      console.log('\n========================================');
+      console.log('PASSWORD RESET LINK (Development Mode)');
+      console.log('========================================');
+      console.log(`User: ${username}`);
+      console.log(`Email: ${email}`);
+      console.log(`Reset URL: ${resetUrl}`);
+      console.log('========================================\n');
+    }
+
+    return res.json({ message: 'If the username exists, password reset instructions will be sent to the provided email' });
   } catch (error) {
     console.error('Password recovery error:', error);
     return res.status(500).json({ error: 'Internal server error' });
