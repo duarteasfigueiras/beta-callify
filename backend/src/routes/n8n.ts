@@ -1084,11 +1084,10 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         .single();
 
       if (fallbackAgent) {
-        // Mark in summary that agent was not identified
-        const updatedSummary = summary ? `[Utilizador não identificado pelo telefone] ${summary}` : '[Utilizador não identificado pelo telefone]';
+        // Use fallback agent but keep original summary (agent shown as "Indefinido" in UI)
         const retryResult = await supabase
           .from('calls')
-          .insert({ ...baseCallData, agent_id: fallbackAgent.id, summary: updatedSummary })
+          .insert({ ...baseCallData, agent_id: fallbackAgent.id, summary })
           .select('id')
           .single();
         newCall = retryResult.data;
