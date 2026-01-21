@@ -799,7 +799,15 @@ When analyzing a call, evaluate each criterion and provide:
  */
 router.post('/agent-output', async (req: Request, res: Response) => {
   try {
-    console.log('[n8n] Received AI agent output:', JSON.stringify(req.body, null, 2));
+    // Handle both direct object and array format from n8n
+    // n8n sometimes sends [{"output": "..."}] instead of {"output": "..."}
+    let requestBody = req.body;
+    if (Array.isArray(requestBody) && requestBody.length > 0) {
+      console.log('[n8n] Received array format, extracting first element');
+      requestBody = requestBody[0];
+    }
+
+    console.log('[n8n] Received AI agent output:', JSON.stringify(requestBody, null, 2));
 
     const {
       // Call metadata (optional)
@@ -832,7 +840,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       comparacao_top_performer,   // Top performer comparison
       pontuacao_skills,          // Skill scores
       palavras_risco_detectadas  // Risk words detected by AI
-    } = req.body;
+    } = requestBody;
 
     // Parse agent_output if it's a string (also accept 'output' field name from n8n)
     let aiOutput = agent_output || output;
@@ -1062,6 +1070,14 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       objections: JSON.stringify(objections),
       history_comparison: historyComparison ? JSON.stringify(historyComparison) : null
     };
+
+    // Log coaching fields being saved
+    console.log('[n8n] Coaching fields to save:', {
+      phrases_to_avoid: coachingFields.phrases_to_avoid?.substring(0, 100),
+      recommended_phrases: coachingFields.recommended_phrases?.substring(0, 100),
+      skill_scores: coachingFields.skill_scores?.substring(0, 100),
+      response_example: coachingFields.response_improvement_example ? 'present' : 'null'
+    });
 
     // Try with all fields first
     let { data: newCall, error } = await supabase
