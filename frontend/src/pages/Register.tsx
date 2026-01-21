@@ -19,7 +19,8 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -41,8 +42,34 @@ export default function Register() {
       return;
     }
 
+    // Validate first name (required)
+    if (!firstName.trim()) {
+      setError(t('register.firstNameRequired', 'First name is required'));
+      return;
+    }
+
+    // Validate last name (required)
+    if (!lastName.trim()) {
+      setError(t('register.lastNameRequired', 'Last name is required'));
+      return;
+    }
+
+    // Validate phone number (required)
+    if (!phoneNumber.trim()) {
+      setError(t('register.phoneRequired', 'Phone number is required'));
+      return;
+    }
+
+    // Validate phone number format (9 digits only)
+    const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
+    const phoneRegex = /^[0-9]{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setError(t('register.invalidPhone', 'Phone number must have exactly 9 digits'));
+      return;
+    }
+
     if (username.length < 3) {
-      setError(t('register.usernameTooShort', 'Username must be at least 3 characters'));
+      setError(t('register.usernameTooShort', 'Access name must be at least 3 characters'));
       return;
     }
 
@@ -56,29 +83,13 @@ export default function Register() {
       return;
     }
 
-    // Validate display name (required)
-    if (!displayName.trim()) {
-      setError(t('register.displayNameRequired', 'Full name is required'));
-      return;
-    }
-
-    // Validate phone number (required)
-    if (!phoneNumber.trim()) {
-      setError(t('register.phoneRequired', 'Phone number is required'));
-      return;
-    }
-
-    // Validate phone number format
-    const phoneRegex = /^\+?[0-9]{9,15}$/;
-    const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
-    if (!phoneRegex.test(cleanPhone)) {
-      setError(t('register.invalidPhone', 'Invalid phone number format. Use format: +351912345678'));
-      return;
-    }
-
     setIsLoading(true);
     try {
-      await authApi.register(token, username, password, displayName || undefined, phoneNumber || undefined);
+      // Combine first and last name, add +351 prefix to phone
+      const displayName = `${firstName.trim()} ${lastName.trim()}`;
+      const fullPhoneNumber = `+351${cleanPhone}`;
+
+      await authApi.register(token, username, password, displayName, fullPhoneNumber);
       toast.success(t('register.success', 'Registration successful!'));
 
       // Auto-login after registration and redirect to settings
@@ -121,23 +132,44 @@ export default function Register() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="displayName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.displayName', 'Full Name')}
-                <span className="text-red-500 ml-1">*</span>
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            {/* First and Last Name in a row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('auth.firstName', 'First Name')}
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder={t('auth.firstNamePlaceholder', 'First name')}
+                    disabled={isLoading || !token}
+                    required
+                    autoComplete="given-name"
+                    className="w-full pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('auth.lastName', 'Last Name')}
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
                 <Input
-                  id="displayName"
+                  id="lastName"
                   type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder={t('auth.displayNamePlaceholder', 'Enter your full name')}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder={t('auth.lastNamePlaceholder', 'Last name')}
                   disabled={isLoading || !token}
                   required
-                  autoComplete="name"
-                  className="w-full pl-10"
+                  autoComplete="family-name"
+                  className="w-full"
                 />
               </div>
             </div>
@@ -148,17 +180,22 @@ export default function Register() {
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
-                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">+351</span>
                 <Input
                   id="phoneNumber"
                   type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder={t('auth.phoneNumberPlaceholder', '+351 912 345 678')}
+                  onChange={(e) => {
+                    // Only allow digits
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setPhoneNumber(value);
+                  }}
+                  placeholder={t('auth.phoneNumberPlaceholder', '912 345 678')}
                   disabled={isLoading || !token}
                   required
                   autoComplete="tel"
-                  className="w-full pl-10"
+                  className="w-full pl-14"
+                  maxLength={9}
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -168,24 +205,29 @@ export default function Register() {
 
             <div className="space-y-2">
               <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('register.username', 'Username')}
+                {t('register.accessName', 'Access Name')}
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <Input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={t('register.usernamePlaceholder', 'Enter your username')}
+                placeholder={t('register.accessNamePlaceholder', 'Choose an access name')}
                 disabled={isLoading || !token}
                 required
                 autoComplete="username"
                 className="w-full"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('register.accessNameHint', 'This will be used to log in to your account')}
+              </p>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('register.password', 'Password')}
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
                 <Input
@@ -212,6 +254,7 @@ export default function Register() {
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('register.confirmPassword', 'Confirm Password')}
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
                 <Input
