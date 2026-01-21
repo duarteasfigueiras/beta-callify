@@ -1187,9 +1187,56 @@ router.get('/health', (req: Request, res: Response) => {
       'POST /api/n8n/agent-output': 'Receive AI agent output (Portuguese format)',
       'GET /api/n8n/calls/:id/status': 'Get call processing status',
       'GET /api/n8n/criteria': 'Get evaluation criteria for analysis',
-      'GET /api/n8n/health': 'This endpoint'
+      'GET /api/n8n/health': 'This endpoint',
+      'POST /api/n8n/cleanup-summaries': 'Remove legacy text from call summaries'
     }
   });
+});
+
+/**
+ * Cleanup call summaries - remove "[Utilizador não identificado pelo telefone]" text
+ */
+router.post('/cleanup-summaries', async (_req: Request, res: Response) => {
+  try {
+    // Find calls with the legacy text
+    const { data: calls, error: findError } = await supabase
+      .from('calls')
+      .select('id, summary')
+      .like('summary', '%[Utilizador não identificado pelo telefone]%');
+
+    if (findError) {
+      throw findError;
+    }
+
+    if (!calls || calls.length === 0) {
+      return res.json({ message: 'No calls to clean up', updated: 0 });
+    }
+
+    let updatedCount = 0;
+    for (const call of calls) {
+      const cleanedSummary = call.summary
+        .replace('[Utilizador não identificado pelo telefone] ', '')
+        .replace('[Utilizador não identificado pelo telefone]', '');
+
+      const { error: updateError } = await supabase
+        .from('calls')
+        .update({ summary: cleanedSummary || null })
+        .eq('id', call.id);
+
+      if (!updateError) {
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      message: 'Cleanup completed',
+      found: calls.length,
+      updated: updatedCount
+    });
+  } catch (error) {
+    console.error('[n8n] Error cleaning up summaries:', error);
+    res.status(500).json({ error: 'Failed to clean up summaries' });
+  }
 });
 
 /**
