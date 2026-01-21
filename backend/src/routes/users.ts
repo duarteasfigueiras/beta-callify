@@ -755,7 +755,7 @@ router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: Aut
     // Build query based on role
     let query = supabase
       .from('users')
-      .select('id, role')
+      .select('id, role, company_id')
       .eq('id', userId)
       .neq('role', 'developer');  // Can never delete developer accounts
 
@@ -770,6 +770,28 @@ router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: Aut
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Set agent_id to NULL for all calls from this user (keep calls but unlink agent)
+    const { error: callsError } = await supabase
+      .from('calls')
+      .update({ agent_id: null })
+      .eq('agent_id', userId);
+
+    if (callsError) {
+      console.error('Error unlinking calls from user:', callsError);
+      // Continue with deletion even if this fails
+    }
+
+    // Delete user's feedback on calls
+    const { error: feedbackError } = await supabase
+      .from('call_feedback')
+      .delete()
+      .eq('user_id', userId);
+
+    if (feedbackError) {
+      console.error('Error deleting user feedback:', feedbackError);
+    }
+
+    // Delete user
     const { error } = await supabase.from('users').delete().eq('id', userId);
 
     if (error) throw error;
