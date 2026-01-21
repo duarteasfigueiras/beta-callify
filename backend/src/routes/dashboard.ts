@@ -444,19 +444,21 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Get top objections for reports (admin or developer)
+// Objections are concerns/objections raised BY THE CUSTOMER during the call
+// (e.g., "Preço muito alto", "Prazo de entrega longo")
 router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!isAdminOrDeveloper(req.user!.role)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { company_id } = req.query;
+    const { date_from, date_to, company_id } = req.query;
 
-    // Get calls with what_went_wrong data
+    // Get calls with objections data (customer objections, not evaluation critiques)
     let query = supabase
       .from('calls')
-      .select('what_went_wrong')
-      .not('what_went_wrong', 'is', null);
+      .select('objections')
+      .not('objections', 'is', null);
 
     if (isDeveloper(req.user!.role)) {
       if (company_id) {
@@ -466,49 +468,46 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
       query = query.eq('company_id', req.user!.companyId);
     }
 
+    if (date_from) {
+      query = query.gte('call_date', String(date_from));
+    }
+    if (date_to) {
+      query = query.lte('call_date', String(date_to));
+    }
+
     const { data: calls, error } = await query;
 
     if (error) throw error;
 
-    console.log('Top objections - Found calls with what_went_wrong:', calls?.length || 0);
-    if (calls && calls.length > 0) {
-      console.log('Sample what_went_wrong data:', JSON.stringify(calls[0].what_went_wrong).substring(0, 200));
-    }
-
-    // Count objections from what_went_wrong
+    // Count objections from the objections field
     const objectionCounts: Record<string, number> = {};
 
     (calls || []).forEach((call: any) => {
-      if (!call.what_went_wrong) return;
+      if (!call.objections) return;
 
       try {
         // Parse the JSON array of objections
-        const items = typeof call.what_went_wrong === 'string'
-          ? JSON.parse(call.what_went_wrong)
-          : call.what_went_wrong;
-
-        console.log('Parsed what_went_wrong items:', typeof items, Array.isArray(items) ? items.length : 'not array');
+        const items = typeof call.objections === 'string'
+          ? JSON.parse(call.objections)
+          : call.objections;
 
         if (Array.isArray(items)) {
           items.forEach((item: any) => {
             // Each item may have a 'text' property or be a string directly
-            const text = typeof item === 'string' ? item : (item?.text || item?.description || item?.reason);
+            let text = '';
+            if (typeof item === 'string') {
+              text = item.trim();
+            } else if (item && item.text) {
+              text = item.text.trim();
+            }
+
             if (text) {
-              // Truncate to first 50 chars for grouping similar objections
-              const key = text.substring(0, 50);
-              objectionCounts[key] = (objectionCounts[key] || 0) + 1;
+              objectionCounts[text] = (objectionCounts[text] || 0) + 1;
             }
           });
-        } else if (typeof items === 'object' && items !== null) {
-          // Handle case where what_went_wrong is a single object
-          const text = items.text || items.description || items.reason;
-          if (text) {
-            const key = text.substring(0, 50);
-            objectionCounts[key] = (objectionCounts[key] || 0) + 1;
-          }
         }
       } catch (e) {
-        console.log('Parse error for what_went_wrong:', e);
+        // Ignore parse errors
       }
     });
 
@@ -516,7 +515,7 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
     const results = Object.entries(objectionCounts)
       .map(([objection, count]) => ({ objection, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .slice(0, 15);
 
     res.json(results);
   } catch (error) {

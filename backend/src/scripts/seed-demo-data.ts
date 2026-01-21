@@ -193,6 +193,62 @@ async function seedDemoData() {
     [],
   ];
 
+  // Contact reasons by category (why customers called)
+  const contactReasonsByCategory: Record<string, { text: string; timestamp: string }[][]> = {
+    'Vendas': [
+      [{ text: 'Pedido de informação sobre preços', timestamp: '00:15' }],
+      [{ text: 'Interesse em novo produto', timestamp: '00:20' }, { text: 'Comparação com concorrência', timestamp: '01:30' }],
+      [{ text: 'Renovação de contrato', timestamp: '00:10' }],
+      [{ text: 'Solicitação de proposta comercial', timestamp: '00:25' }],
+    ],
+    'Suporte Técnico': [
+      [{ text: 'Problema técnico no sistema', timestamp: '00:15' }],
+      [{ text: 'Erro de login', timestamp: '00:10' }, { text: 'Necessidade de reset de password', timestamp: '00:45' }],
+      [{ text: 'Configuração de funcionalidade', timestamp: '00:20' }],
+      [{ text: 'Bug no software', timestamp: '00:15' }],
+    ],
+    'Retenção': [
+      [{ text: 'Pedido de cancelamento', timestamp: '00:10' }],
+      [{ text: 'Insatisfação com serviço', timestamp: '00:15' }, { text: 'Reclamação de preço', timestamp: '01:00' }],
+      [{ text: 'Comparação com concorrência', timestamp: '00:20' }],
+      [{ text: 'Problemas recorrentes não resolvidos', timestamp: '00:15' }],
+    ],
+    'Atendimento Geral': [
+      [{ text: 'Dúvida sobre faturação', timestamp: '00:10' }],
+      [{ text: 'Atualização de dados cadastrais', timestamp: '00:15' }],
+      [{ text: 'Informações sobre serviços', timestamp: '00:20' }],
+      [{ text: 'Agendamento de serviço', timestamp: '00:10' }],
+    ],
+  };
+
+  // Customer objections (concerns raised by customers)
+  const objectionsByCategory: Record<string, { text: string; timestamp: string }[][]> = {
+    'Vendas': [
+      [{ text: 'Preço elevado', timestamp: '02:15' }],
+      [{ text: 'Prazo de entrega longo', timestamp: '03:00' }, { text: 'Falta de funcionalidades', timestamp: '04:30' }],
+      [{ text: 'Já tenho fornecedor', timestamp: '01:45' }],
+      [],
+    ],
+    'Suporte Técnico': [
+      [{ text: 'Problema já ocorreu antes', timestamp: '02:00' }],
+      [{ text: 'Tempo de resposta lento', timestamp: '01:30' }],
+      [],
+      [],
+    ],
+    'Retenção': [
+      [{ text: 'Preço muito alto', timestamp: '01:00' }, { text: 'Serviço não corresponde às expectativas', timestamp: '02:30' }],
+      [{ text: 'Concorrência oferece melhor preço', timestamp: '01:45' }],
+      [{ text: 'Má experiência anterior', timestamp: '02:00' }],
+      [{ text: 'Falta de funcionalidades necessárias', timestamp: '01:30' }],
+    ],
+    'Atendimento Geral': [
+      [{ text: 'Tempo de espera elevado', timestamp: '00:30' }],
+      [{ text: 'Informação confusa no site', timestamp: '01:15' }],
+      [],
+      [],
+    ],
+  };
+
   for (let i = 0; i < 50; i++) {
     const agent = agents[Math.floor(Math.random() * agents.length)];
 
@@ -217,6 +273,12 @@ async function seedDemoData() {
     const whatWentWell = whatWentWellExamples[Math.floor(Math.random() * whatWentWellExamples.length)];
     const whatWentWrong = whatWentWrongExamples[Math.floor(Math.random() * whatWentWrongExamples.length)];
 
+    // Get contact reasons and objections for this category
+    const categoryReasons = contactReasonsByCategory[agent.category] || contactReasonsByCategory['Atendimento Geral'];
+    const categoryObjections = objectionsByCategory[agent.category] || objectionsByCategory['Atendimento Geral'];
+    const contactReasons = categoryReasons[Math.floor(Math.random() * categoryReasons.length)];
+    const objections = categoryObjections[Math.floor(Math.random() * categoryObjections.length)];
+
     // Generate phone number
     const phoneNumber = `+351 9${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`;
 
@@ -233,6 +295,8 @@ async function seedDemoData() {
       risk_words_detected: riskWords.length > 0 ? JSON.stringify(riskWords) : null,
       what_went_well: whatWentWell.length > 0 ? JSON.stringify(whatWentWell) : null,
       what_went_wrong: whatWentWrong.length > 0 ? JSON.stringify(whatWentWrong) : null,
+      contact_reasons: contactReasons.length > 0 ? JSON.stringify(contactReasons) : null,
+      objections: objections.length > 0 ? JSON.stringify(objections) : null,
     });
   }
 
