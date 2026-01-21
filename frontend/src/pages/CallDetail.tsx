@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { isAdminOrDeveloper } from '../types';
+import { isDeveloper } from '../types';
 import toast from 'react-hot-toast';
 
 interface TimestampedItem {
@@ -293,7 +293,7 @@ export default function CallDetail() {
             </p>
           </div>
         </div>
-        {user?.role && isAdminOrDeveloper(user.role) && (
+        {user?.role && isDeveloper(user.role) && (
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
@@ -887,7 +887,7 @@ export default function CallDetail() {
             )}
 
             {/* Add Feedback Form (Admin only) */}
-            {user?.role && isAdminOrDeveloper(user.role) && (
+            {user?.role && isDeveloper(user.role) && (
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                   {t('calls.addFeedback', 'Add Feedback')}

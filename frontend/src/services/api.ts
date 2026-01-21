@@ -16,9 +16,9 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Add token to requests (check both localStorage and sessionStorage)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -32,8 +32,12 @@ api.interceptors.response.use(
     // Don't redirect on 401 for login endpoint - let the component handle it
     const isLoginRequest = error.config?.url?.includes('/auth/login');
     if (error.response?.status === 401 && !isLoginRequest) {
+      // Clear both storages
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('rememberMe');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

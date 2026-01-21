@@ -395,8 +395,8 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
   }
 });
 
-// Delete call (admin only)
-router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Delete call (developer only - to preserve data for analysis)
+router.delete('/:id', requireRole('developer'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callId = parseInt(req.params.id);
 

@@ -34,6 +34,7 @@ const resources = {
         backToLogin: 'Back to Login',
         invalidCredentials: 'Invalid username or password',
         recoveryEmailSent: 'If the username exists, password reset instructions will be sent to the provided email.',
+        rememberMe: 'Keep me signed in',
         // New fields for registration
         firstName: 'First Name',
         firstNamePlaceholder: 'First name',
@@ -523,6 +524,7 @@ const resources = {
         backToLogin: 'Voltar ao Login',
         invalidCredentials: 'Nome de utilizador ou palavra-passe inválidos',
         recoveryEmailSent: 'Se o nome de utilizador existir, as instruções de recuperação serão enviadas para o email fornecido.',
+        rememberMe: 'Manter sessão iniciada',
         // Novos campos para registo
         firstName: 'Primeiro Nome',
         firstNamePlaceholder: 'Primeiro nome',

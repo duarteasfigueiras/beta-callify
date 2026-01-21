@@ -3,12 +3,68 @@ import { User, AuthState, LoginCredentials } from '../types';
 import { authApi, usersApi } from '../services/api';
 
 interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// Session timeout: 24 hours in milliseconds
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+
+// Helper to get storage based on rememberMe preference
+const getStorage = (): Storage => {
+  // Check if we're using localStorage (rememberMe was checked)
+  const rememberMe = localStorage.getItem('rememberMe') === 'true';
+  return rememberMe ? localStorage : sessionStorage;
+};
+
+// Helper to get token from either storage
+const getToken = (): string | null => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+// Helper to get user from either storage
+const getUser = (): string | null => {
+  return localStorage.getItem('user') || sessionStorage.getItem('user');
+};
+
+// Helper to get last activity timestamp
+const getLastActivity = (): number | null => {
+  const timestamp = localStorage.getItem('lastActivity') || sessionStorage.getItem('lastActivity');
+  return timestamp ? parseInt(timestamp, 10) : null;
+};
+
+// Helper to update last activity timestamp
+const updateLastActivity = () => {
+  const rememberMe = localStorage.getItem('rememberMe') === 'true';
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem('lastActivity', Date.now().toString());
+};
+
+// Helper to check if session has expired (only for non-rememberMe sessions)
+const isSessionExpired = (): boolean => {
+  const rememberMe = localStorage.getItem('rememberMe') === 'true';
+  // If rememberMe is checked, session never expires due to inactivity
+  if (rememberMe) return false;
+
+  const lastActivity = getLastActivity();
+  if (!lastActivity) return false;
+
+  return Date.now() - lastActivity > SESSION_TIMEOUT;
+};
+
+// Helper to clear both storages
+const clearAuth = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('rememberMe');
+  localStorage.removeItem('lastActivity');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('lastActivity');
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -20,12 +76,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const token = getToken();
+    const userStr = getUser();
+
+    // Check if session has expired due to inactivity
+    if (token && userStr && isSessionExpired()) {
+      clearAuth();
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
 
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
+        // Update last activity on session restore
+        updateLastActivity();
         setState({
           user,
           token,
@@ -33,8 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isLoading: false,
         });
       } catch {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearAuth();
         setState(prev => ({ ...prev, isLoading: false }));
       }
     } else {
@@ -42,12 +106,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  // Track user activity and check for session expiration
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+
+    // Update activity on user interactions
+    const handleActivity = () => {
+      updateLastActivity();
+    };
+
+    // Check session expiration periodically (every minute)
+    const checkExpiration = () => {
+      if (isSessionExpired()) {
+        clearAuth();
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        window.location.href = '/login';
+      }
+    };
+
+    // Listen for user activity events
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, handleActivity));
+
+    // Check expiration every minute
+    const interval = setInterval(checkExpiration, 60 * 1000);
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, handleActivity));
+      clearInterval(interval);
+    };
+  }, [state.isAuthenticated]);
+
+  const login = useCallback(async (credentials: LoginCredentials, rememberMe: boolean = false) => {
     const response = await authApi.login(credentials.username, credentials.password);
     const { token, user } = response;
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    // Clear any existing auth data first
+    clearAuth();
+
+    // Store rememberMe preference in localStorage (always persists to remember the choice)
+    localStorage.setItem('rememberMe', rememberMe.toString());
+
+    // Use appropriate storage based on rememberMe
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem('token', token);
+    storage.setItem('user', JSON.stringify(user));
+    // Set initial last activity timestamp
+    storage.setItem('lastActivity', Date.now().toString());
 
     setState({
       user,
@@ -64,8 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore errors on logout
     }
 
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuth();
 
     setState({
       user: null,
@@ -78,7 +187,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const user = await usersApi.getMe();
-      localStorage.setItem('user', JSON.stringify(user));
+      const storage = getStorage();
+      storage.setItem('user', JSON.stringify(user));
       setState(prev => ({
         ...prev,
         user,

@@ -25,6 +25,7 @@ export default function Login() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +35,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login({ username, password });
+      await login({ username, password }, rememberMe);
       // Redirect to the intended page or home
       navigate(from, { replace: true });
     } catch (err: unknown) {
@@ -98,6 +99,19 @@ export default function Login() {
                 autoComplete="current-password"
                 className="w-full"
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                {t('auth.rememberMe', 'Manter sessão iniciada')}
+              </label>
             </div>
 
             <Button
