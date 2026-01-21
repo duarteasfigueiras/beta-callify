@@ -844,6 +844,10 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
     // Parse agent_output if it's a string (also accept 'output' field name from n8n)
     let aiOutput = agent_output || output;
+
+    console.log('[n8n] aiOutput type:', typeof aiOutput);
+    console.log('[n8n] aiOutput sample:', typeof aiOutput === 'string' ? aiOutput.substring(0, 200) : JSON.stringify(aiOutput).substring(0, 200));
+
     if (typeof aiOutput === 'string') {
       let cleanedOutput = aiOutput;
 
@@ -985,6 +989,8 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       contactReasons: contactReasons?.length || 0,
       responseExample: responseExample ? 'yes' : 'no'
     });
+    console.log('[n8n] skillScoresData:', JSON.stringify(skillScoresData));
+    console.log('[n8n] phrasesToAvoid:', JSON.stringify(phrasesToAvoid));
 
     // Score validation removed - we now use a default of 5.0 if not found
 
