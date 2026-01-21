@@ -846,115 +846,138 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     let aiOutput = agent_output || output;
 
     console.log('[n8n] aiOutput type:', typeof aiOutput);
-    console.log('[n8n] aiOutput keys:', aiOutput && typeof aiOutput === 'object' ? Object.keys(aiOutput) : 'N/A');
+    console.log('[n8n] aiOutput raw value (first 500 chars):', typeof aiOutput === 'string' ? aiOutput.substring(0, 500) : JSON.stringify(aiOutput)?.substring(0, 500));
 
     // If aiOutput is already a properly parsed object with expected fields, use it directly
-    if (aiOutput && typeof aiOutput === 'object' && (aiOutput.score !== undefined || aiOutput.resumo)) {
-      console.log('[n8n] aiOutput is already a parsed object with score/resumo, using directly');
+    if (aiOutput && typeof aiOutput === 'object' && !Array.isArray(aiOutput) && (aiOutput.score !== undefined || aiOutput.resumo || aiOutput.pontos_fortes)) {
+      console.log('[n8n] aiOutput is already a parsed object, using directly');
+      console.log('[n8n] aiOutput keys:', Object.keys(aiOutput));
       // aiOutput is ready to use
     } else if (typeof aiOutput === 'string') {
+      console.log('[n8n] aiOutput is a string, attempting to parse...');
       let cleanedOutput = aiOutput;
 
-      // Replace literal \n with actual newlines (common issue with some AI outputs)
-      cleanedOutput = cleanedOutput.replace(/\\n/g, '\n');
-
-      // Remove markdown code blocks (```json ... ``` or ``` ... ```)
-      cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-
-      // Also try to extract JSON from within the text if it contains ```json blocks
-      const jsonBlockMatch = cleanedOutput.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-      if (jsonBlockMatch) {
-        cleanedOutput = jsonBlockMatch[1];
-      }
-
-      // Trim whitespace
-      cleanedOutput = cleanedOutput.trim();
-
-      // If the string starts with { and ends with }, try to parse it directly
-      if (cleanedOutput.startsWith('{') && cleanedOutput.endsWith('}')) {
+      // Check if it's a double-encoded JSON string (starts and ends with quotes)
+      // This happens when n8n uses JSON.stringify($json.output)
+      if (cleanedOutput.startsWith('"') && cleanedOutput.endsWith('"')) {
+        console.log('[n8n] Detected double-encoded JSON, unwrapping...');
         try {
-          aiOutput = JSON.parse(cleanedOutput);
-          console.log('[n8n] Successfully parsed agent_output as JSON');
-        } catch (parseError) {
-          console.log('[n8n] First JSON parse failed, trying with escaped newlines fix');
-          // Try replacing escaped quotes and other common issues
-          try {
-            const fixedOutput = cleanedOutput
-              .replace(/\\"/g, '"')
-              .replace(/\\\\/g, '\\');
-            aiOutput = JSON.parse(fixedOutput);
-            console.log('[n8n] Successfully parsed agent_output after fixing escapes');
-          } catch {
-            console.log('[n8n] Could not parse JSON even after fixes');
-          }
+          cleanedOutput = JSON.parse(cleanedOutput);
+          console.log('[n8n] Unwrapped string, now type:', typeof cleanedOutput);
+        } catch (e) {
+          console.log('[n8n] Failed to unwrap double-encoded string');
         }
       }
 
-      if (!aiOutput || typeof aiOutput !== 'object') {
-        try {
-          // Try to parse as JSON first
-          aiOutput = JSON.parse(cleanedOutput);
-          console.log('[n8n] Successfully parsed agent_output as JSON');
-        } catch {
-        // If not valid JSON, try to extract data from text
-        console.log('[n8n] agent_output is not valid JSON, trying to extract from text...');
-        console.log('[n8n] Cleaned output was:', cleanedOutput.substring(0, 200));
-        aiOutput = {};
+      // If after unwrapping it's now an object, use it directly
+      if (typeof cleanedOutput === 'object' && cleanedOutput !== null) {
+        aiOutput = cleanedOutput;
+        console.log('[n8n] After unwrapping, aiOutput is now an object with keys:', Object.keys(aiOutput));
+      } else {
+        // Continue with string parsing
+        cleanedOutput = String(cleanedOutput);
 
-        // Try to extract score from text (look for patterns like "score: 7.5" or "pontuação: 8")
-        const scoreMatch = cleanedOutput.match(/(?:"score"|score)[:\s]+(\d+(?:[.,]\d+)?)/i);
-        if (scoreMatch) {
-          aiOutput.score = parseFloat(scoreMatch[1].replace(',', '.'));
+        // Replace literal \n with actual newlines (common issue with some AI outputs)
+        cleanedOutput = cleanedOutput.replace(/\\n/g, '\n');
+
+        // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+        cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+        // Also try to extract JSON from within the text if it contains ```json blocks
+        const jsonBlockMatch = cleanedOutput.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (jsonBlockMatch) {
+          cleanedOutput = jsonBlockMatch[1];
         }
 
-        // Try to extract resumo/summary from JSON-like structure
-        const resumoMatch = cleanedOutput.match(/(?:"resumo"|resumo)[:\s]+"([^"]+)"/i);
-        if (resumoMatch) {
-          aiOutput.resumo = resumoMatch[1].trim();
-        }
+        // Trim whitespace
+        cleanedOutput = cleanedOutput.trim();
 
-        // Try to extract pontos_fortes array
-        const pontosMatch = cleanedOutput.match(/(?:"pontos_fortes"|pontos_fortes)[:\s]*\[([\s\S]*?)\]/i);
-        if (pontosMatch) {
+        // If the string starts with { and ends with }, try to parse it directly
+        if (cleanedOutput.startsWith('{') && cleanedOutput.endsWith('}')) {
           try {
-            aiOutput.pontos_fortes = JSON.parse('[' + pontosMatch[1] + ']');
-          } catch {
-            // Extract strings manually
-            const items = pontosMatch[1].match(/"([^"]+)"/g);
-            if (items) {
-              aiOutput.pontos_fortes = items.map(s => s.replace(/"/g, ''));
+            aiOutput = JSON.parse(cleanedOutput);
+            console.log('[n8n] Successfully parsed agent_output as JSON');
+          } catch (parseError) {
+            console.log('[n8n] First JSON parse failed, trying with escaped newlines fix');
+            // Try replacing escaped quotes and other common issues
+            try {
+              const fixedOutput = cleanedOutput
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+              aiOutput = JSON.parse(fixedOutput);
+              console.log('[n8n] Successfully parsed agent_output after fixing escapes');
+            } catch {
+              console.log('[n8n] Could not parse JSON even after fixes');
             }
           }
         }
 
-        // Try to extract melhorias array
-        const melhoriasMatch = cleanedOutput.match(/(?:"melhorias"|melhorias)[:\s]*\[([\s\S]*?)\]/i);
-        if (melhoriasMatch) {
+        if (!aiOutput || typeof aiOutput !== 'object') {
           try {
-            aiOutput.melhorias = JSON.parse('[' + melhoriasMatch[1] + ']');
+            // Try to parse as JSON first
+            aiOutput = JSON.parse(cleanedOutput);
+            console.log('[n8n] Successfully parsed agent_output as JSON');
           } catch {
-            const items = melhoriasMatch[1].match(/"([^"]+)"/g);
-            if (items) {
-              aiOutput.melhorias = items.map(s => s.replace(/"/g, ''));
+            // If not valid JSON, try to extract data from text
+            console.log('[n8n] agent_output is not valid JSON, trying to extract from text...');
+            console.log('[n8n] Cleaned output was:', cleanedOutput.substring(0, 200));
+            aiOutput = {};
+
+            // Try to extract score from text (look for patterns like "score: 7.5" or "pontuação: 8")
+            const scoreMatch = cleanedOutput.match(/(?:"score"|score)[:\s]+(\d+(?:[.,]\d+)?)/i);
+            if (scoreMatch) {
+              aiOutput.score = parseFloat(scoreMatch[1].replace(',', '.'));
+            }
+
+            // Try to extract resumo/summary from JSON-like structure
+            const resumoMatch = cleanedOutput.match(/(?:"resumo"|resumo)[:\s]+"([^"]+)"/i);
+            if (resumoMatch) {
+              aiOutput.resumo = resumoMatch[1].trim();
+            }
+
+            // Try to extract pontos_fortes array
+            const pontosMatch = cleanedOutput.match(/(?:"pontos_fortes"|pontos_fortes)[:\s]*\[([\s\S]*?)\]/i);
+            if (pontosMatch) {
+              try {
+                aiOutput.pontos_fortes = JSON.parse('[' + pontosMatch[1] + ']');
+              } catch {
+                // Extract strings manually
+                const items = pontosMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.pontos_fortes = items.map(s => s.replace(/"/g, ''));
+                }
+              }
+            }
+
+            // Try to extract melhorias array
+            const melhoriasMatch = cleanedOutput.match(/(?:"melhorias"|melhorias)[:\s]*\[([\s\S]*?)\]/i);
+            if (melhoriasMatch) {
+              try {
+                aiOutput.melhorias = JSON.parse('[' + melhoriasMatch[1] + ']');
+              } catch {
+                const items = melhoriasMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.melhorias = items.map(s => s.replace(/"/g, ''));
+                }
+              }
+            }
+
+            // Try to extract criteriaResults array
+            const criteriaMatch = cleanedOutput.match(/(?:"criteriaResults"|criteriaResults)[:\s]*\[([\s\S]*?)\]/i);
+            if (criteriaMatch) {
+              try {
+                aiOutput.criteriaResults = JSON.parse('[' + criteriaMatch[1] + ']');
+                console.log('[n8n] Extracted criteriaResults from text:', aiOutput.criteriaResults?.length);
+              } catch (e) {
+                console.log('[n8n] Could not parse criteriaResults from text');
+              }
+            }
+
+            // Store the full text as resumo if nothing else found
+            if (!aiOutput.resumo && cleanedOutput.length > 0) {
+              aiOutput.resumo = cleanedOutput.substring(0, 500);
             }
           }
-        }
-
-        // Try to extract criteriaResults array
-        const criteriaMatch = cleanedOutput.match(/(?:"criteriaResults"|criteriaResults)[:\s]*\[([\s\S]*?)\]/i);
-        if (criteriaMatch) {
-          try {
-            aiOutput.criteriaResults = JSON.parse('[' + criteriaMatch[1] + ']');
-            console.log('[n8n] Extracted criteriaResults from text:', aiOutput.criteriaResults?.length);
-          } catch (e) {
-            console.log('[n8n] Could not parse criteriaResults from text');
-          }
-        }
-
-        // Store the full text as resumo if nothing else found
-        if (!aiOutput.resumo && cleanedOutput.length > 0) {
-          aiOutput.resumo = cleanedOutput.substring(0, 500);
-        }
         }
       }
     }
