@@ -395,6 +395,48 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
   }
 });
 
+// Debug endpoint to check coaching fields for a call (admin or developer)
+router.get('/:id/debug-coaching', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const callId = parseInt(req.params.id);
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .select('id, skill_scores, phrases_to_avoid, recommended_phrases, contact_reasons, objections, response_improvement_example, history_comparison, top_performer_comparison')
+      .eq('id', callId)
+      .single();
+
+    if (error || !call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+    res.json({
+      callId: call.id,
+      hasSkillScores: !!call.skill_scores && call.skill_scores !== '[]' && call.skill_scores !== 'null',
+      hasPhrasesToAvoid: !!call.phrases_to_avoid && call.phrases_to_avoid !== '[]' && call.phrases_to_avoid !== 'null',
+      hasRecommendedPhrases: !!call.recommended_phrases && call.recommended_phrases !== '[]' && call.recommended_phrases !== 'null',
+      hasContactReasons: !!call.contact_reasons && call.contact_reasons !== '[]' && call.contact_reasons !== 'null',
+      hasObjections: !!call.objections && call.objections !== '[]' && call.objections !== 'null',
+      hasResponseExample: !!call.response_improvement_example && call.response_improvement_example !== 'null',
+      hasHistoryComparison: !!call.history_comparison && call.history_comparison !== 'null',
+      hasTopPerformerComparison: !!call.top_performer_comparison && call.top_performer_comparison !== 'null',
+      rawData: {
+        skill_scores: call.skill_scores,
+        phrases_to_avoid: call.phrases_to_avoid,
+        recommended_phrases: call.recommended_phrases,
+        contact_reasons: call.contact_reasons,
+        objections: call.objections,
+        response_improvement_example: call.response_improvement_example,
+        history_comparison: call.history_comparison,
+        top_performer_comparison: call.top_performer_comparison
+      }
+    });
+  } catch (error: any) {
+    console.error('Error debugging call:', error);
+    res.status(500).json({ error: error.message || 'Failed to debug call' });
+  }
+});
+
 // Delete call (developer only - to preserve data for analysis)
 router.delete('/:id', requireRole('developer'), async (req: AuthenticatedRequest, res: Response) => {
   try {
