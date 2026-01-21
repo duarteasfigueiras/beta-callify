@@ -54,10 +54,11 @@ export default function Users() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSavingPhone, setIsSavingPhone] = useState(false);
 
-  // Change category modal state
+  // Change category modal state (supports multiple categories)
   const [showChangeCategoryModal, setShowChangeCategoryModal] = useState(false);
   const [userToChangeCategory, setUserToChangeCategory] = useState<UserWithCompany | null>(null);
   const [editSelectedCategory, setEditSelectedCategory] = useState<string>('comercial');
+  const [editSelectedCategories, setEditSelectedCategories] = useState<string[]>([]);  // Multiple categories support
   const [isChangingCategory, setIsChangingCategory] = useState(false);
 
   // Company invite limit (dynamic from backend)
@@ -157,7 +158,7 @@ export default function Users() {
     });
   };
 
-  const getRoleBadge = (role: string, customRoleName?: string | null) => {
+  const getRoleBadge = (role: string, customRoleName?: string | null, userCategories?: string[]) => {
     if (role === 'admin_manager') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
@@ -175,30 +176,39 @@ export default function Users() {
       );
     }
 
-    // For 'agent' role (users), find matching category by name
-    if (customRoleName) {
-      // Find category by matching the custom_role_name with category name (case-insensitive)
-      const matchedCategory = categories.find(c =>
-        c.name.toLowerCase() === customRoleName.toLowerCase() ||
-        c.key.toLowerCase() === customRoleName.toLowerCase()
-      );
+    // For 'agent' role (users), check if they have multiple categories
+    const categoriesToShow = userCategories && userCategories.length > 0
+      ? userCategories
+      : customRoleName ? [customRoleName] : [];
 
-      if (matchedCategory) {
-        // Use the dynamic color_classes from the category
-        return (
-          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${matchedCategory.color_classes}`}>
-            <UserIcon className="w-3 h-3" />
-            {customRoleName}
-          </span>
-        );
-      }
-
-      // Fallback: Custom category not found in list - use gray
+    if (categoriesToShow.length > 0) {
+      // Show multiple category badges
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          <UserIcon className="w-3 h-3" />
-          {customRoleName}
-        </span>
+        <div className="flex flex-wrap gap-1">
+          {categoriesToShow.map((catName, idx) => {
+            const matchedCategory = categories.find(c =>
+              c.name.toLowerCase() === catName.toLowerCase() ||
+              c.key.toLowerCase() === catName.toLowerCase()
+            );
+
+            if (matchedCategory) {
+              return (
+                <span key={idx} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${matchedCategory.color_classes}`}>
+                  <UserIcon className="w-3 h-3" />
+                  {catName}
+                </span>
+              );
+            }
+
+            // Fallback: Custom category not found in list - use gray
+            return (
+              <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <UserIcon className="w-3 h-3" />
+                {catName}
+              </span>
+            );
+          })}
+        </div>
       );
     }
 
@@ -415,23 +425,51 @@ export default function Users() {
 
   const handleChangeCategoryClick = (user: UserWithCompany) => {
     setUserToChangeCategory(user);
-    // Determine current category from custom_role_name
-    if (user.custom_role_name) {
-      // Try to find matching category
+
+    // Load existing categories from user (supports multiple categories)
+    const userCategories = user.categories && Array.isArray(user.categories) && user.categories.length > 0
+      ? user.categories
+      : user.custom_role_name ? [user.custom_role_name] : [];
+
+    // Map category names to category keys
+    const selectedKeys = userCategories.map(catName => {
       const matchedCategory = categories.find(c =>
-        c.name.toLowerCase() === user.custom_role_name?.toLowerCase() ||
-        c.key === user.custom_role_name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '_')
+        c.name.toLowerCase() === catName.toLowerCase() ||
+        c.key === catName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '_')
       );
-      if (matchedCategory) {
-        setEditSelectedCategory(matchedCategory.key);
-      } else {
-        // If no match found, default to first category
-        setEditSelectedCategory(categories[0]?.key || 'comercial');
-      }
-    } else {
-      setEditSelectedCategory(categories[0]?.key || 'comercial');
-    }
+      return matchedCategory?.key || null;
+    }).filter(Boolean) as string[];
+
+    // Set multiple categories
+    setEditSelectedCategories(selectedKeys.length > 0 ? selectedKeys : [categories[0]?.key || 'comercial']);
+
+    // Also set single category for backwards compatibility
+    setEditSelectedCategory(selectedKeys[0] || categories[0]?.key || 'comercial');
+
     setShowChangeCategoryModal(true);
+  };
+
+  // Toggle a category in the multi-select
+  const toggleCategorySelection = (categoryKey: string) => {
+    setEditSelectedCategories(prev => {
+      if (prev.includes(categoryKey)) {
+        // Remove if already selected (but keep at least one)
+        if (prev.length > 1) {
+          return prev.filter(k => k !== categoryKey);
+        }
+        return prev;
+      } else {
+        // Add to selection
+        return [...prev, categoryKey];
+      }
+    });
+  };
+
+  const getEditFinalRoleNames = (): string[] => {
+    return editSelectedCategories.map(key => {
+      const category = categories.find(c => c.key === key);
+      return category ? category.name : null;
+    }).filter(Boolean) as string[];
   };
 
   const getEditFinalRoleName = () => {
@@ -444,10 +482,15 @@ export default function Users() {
 
     setIsChangingCategory(true);
     try {
-      const newRoleName = getEditFinalRoleName();
-      await usersApi.updateCategory(userToChangeCategory.id, newRoleName);
+      const categoryNames = getEditFinalRoleNames();
+      // Send categories array to API
+      await usersApi.updateCategory(userToChangeCategory.id, categoryNames[0] || null, categoryNames);
       setUsers(users.map(u =>
-        u.id === userToChangeCategory.id ? { ...u, custom_role_name: newRoleName } : u
+        u.id === userToChangeCategory.id ? {
+          ...u,
+          custom_role_name: categoryNames[0] || null,
+          categories: categoryNames
+        } : u
       ));
       toast.success(t('users.categoryChangeSuccess', 'User category updated successfully'));
       setShowChangeCategoryModal(false);
@@ -614,7 +657,7 @@ export default function Users() {
                                       </div>
                                     </td>
                                     <td className="py-3 px-4">
-                                      {getRoleBadge(user.role, user.custom_role_name)}
+                                      {getRoleBadge(user.role, user.custom_role_name, user.categories)}
                                     </td>
                                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                                       {formatDate(user.created_at)}
@@ -673,7 +716,7 @@ export default function Users() {
                                       </div>
                                     </td>
                                     <td className="py-3 px-4">
-                                      {getRoleBadge(user.role, user.custom_role_name)}
+                                      {getRoleBadge(user.role, user.custom_role_name, user.categories)}
                                     </td>
                                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                                       {formatDate(user.created_at)}
@@ -1158,7 +1201,7 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        {getRoleBadge(user.role, user.custom_role_name)}
+                        {getRoleBadge(user.role, user.custom_role_name, user.categories)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -1559,16 +1602,19 @@ export default function Users() {
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('users.selectCategory', 'Select Category')}
+                {t('users.selectCategories', 'Select Categories (multiple allowed)')}
               </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                {t('users.multipleCategoriesHint', 'Select multiple categories if this agent works in different areas. The AI will detect which category applies to each call.')}
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {categories.map((category) => (
                   <div key={category.key} className="relative group">
                     <button
                       type="button"
-                      onClick={() => setEditSelectedCategory(category.key)}
+                      onClick={() => toggleCategorySelection(category.key)}
                       className={`w-full p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                        editSelectedCategory === category.key
+                        editSelectedCategories.includes(category.key)
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
@@ -1576,6 +1622,9 @@ export default function Users() {
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${category.color_classes}`}>
                         {category.name}
                       </span>
+                      {editSelectedCategories.includes(category.key) && (
+                        <span className="ml-2 text-green-600">✓</span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -1605,6 +1654,11 @@ export default function Users() {
                   {t('users.newCategory', 'New')}
                 </button>
               </div>
+              {editSelectedCategories.length > 1 && (
+                <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                  {t('users.multipleCategoriesSelected', '{{count}} categories selected. AI will detect category per call.', { count: editSelectedCategories.length })}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-3">

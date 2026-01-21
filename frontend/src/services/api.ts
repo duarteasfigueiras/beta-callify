@@ -179,8 +179,11 @@ export const usersApi = {
     const response = await api.patch(`/users/${id}/phone`, { phone_number });
     return response.data;
   },
-  updateCategory: async (id: number, custom_role_name: string | null) => {
-    const response = await api.patch(`/users/${id}/category`, { custom_role_name });
+  updateCategory: async (id: number, custom_role_name: string | null, categories?: string[]) => {
+    const response = await api.patch(`/users/${id}/category`, {
+      custom_role_name,
+      categories: categories || (custom_role_name ? [custom_role_name] : [])
+    });
     return response.data;
   },
   delete: async (id: number) => {

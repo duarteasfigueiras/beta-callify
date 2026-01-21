@@ -82,6 +82,8 @@ interface CallData {
   contact_reasons: string;
   objections: string;
   history_comparison: string;
+  // AI-detected category (when agent has multiple categories)
+  detected_category?: string;
 }
 
 export default function CallDetail() {
@@ -331,6 +333,13 @@ export default function CallDetail() {
           <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
             {call.agent_name}
           </p>
+          {call.detected_category && (
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <span className="bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                {call.detected_category}
+              </span>
+            </p>
+          )}
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">

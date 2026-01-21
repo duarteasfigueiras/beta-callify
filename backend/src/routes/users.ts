@@ -201,7 +201,7 @@ router.get('/', requireRole('developer', 'admin_manager'), async (req: Authentic
 
     let query = supabase
       .from('users')
-      .select('id, company_id, username, role, custom_role_name, display_name, phone_number, language_preference, theme_preference, created_at, updated_at, companies(name)')
+      .select('id, company_id, username, role, custom_role_name, categories, display_name, phone_number, language_preference, theme_preference, created_at, updated_at, companies(name)')
       .order('created_at', { ascending: false });
 
     if (isDeveloper(req.user!.role)) {
@@ -245,7 +245,7 @@ router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, company_id, username, role, custom_role_name, display_name, phone_number, language_preference, theme_preference, created_at, updated_at')
+      .select('id, company_id, username, role, custom_role_name, categories, display_name, phone_number, language_preference, theme_preference, created_at, updated_at')
       .eq('id', req.user!.userId)
       .single();
 
@@ -313,7 +313,7 @@ router.patch('/me/preferences', async (req: AuthenticatedRequest, res: Response)
       .from('users')
       .update(updateData)
       .eq('id', req.user!.userId)
-      .select('id, company_id, username, role, custom_role_name, display_name, phone_number, language_preference, theme_preference, created_at, updated_at')
+      .select('id, company_id, username, role, custom_role_name, categories, display_name, phone_number, language_preference, theme_preference, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -354,7 +354,7 @@ router.get('/:id', requireRole('developer', 'admin_manager'), async (req: Authen
   try {
     let query = supabase
       .from('users')
-      .select('id, company_id, username, role, custom_role_name, display_name, phone_number, language_preference, theme_preference, created_at, updated_at, companies(name)')
+      .select('id, company_id, username, role, custom_role_name, categories, display_name, phone_number, language_preference, theme_preference, created_at, updated_at, companies(name)')
       .eq('id', req.params.id)
       .neq('role', 'developer');  // Never expose developer accounts
 
@@ -564,11 +564,19 @@ const mapToUserCategory = (customRoleName: string | null): string => {
   return 'all';
 };
 
-// Update user category (custom_role_name) - admin or developer
+// Update user categories (supports multiple categories) - admin or developer
 router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
-    const { custom_role_name } = req.body;
+    const { custom_role_name, categories } = req.body;
+
+    // Support both old format (custom_role_name string) and new format (categories array)
+    let categoriesArray: string[] = [];
+    if (categories && Array.isArray(categories)) {
+      categoriesArray = categories.filter((c: string) => c && c.trim()).map((c: string) => c.trim());
+    } else if (custom_role_name) {
+      categoriesArray = [custom_role_name.trim()];
+    }
 
     // Build query based on role
     let query = supabase
@@ -593,24 +601,31 @@ router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (
       return res.status(400).json({ error: 'Category can only be set for users (agents), not admins' });
     }
 
-    const cleanedRoleName = custom_role_name?.trim() || null;
+    // Use first category as custom_role_name for backwards compatibility
+    const cleanedRoleName = categoriesArray.length > 0 ? categoriesArray[0] : null;
     const userCategory = mapToUserCategory(cleanedRoleName);
 
-    // Update the user's category
+    // Update the user's categories (both old field and new array)
     const { error } = await supabase
       .from('users')
-      .update({ custom_role_name: cleanedRoleName, updated_at: new Date().toISOString() })
+      .update({
+        custom_role_name: cleanedRoleName,
+        categories: categoriesArray,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', userId);
 
     if (error) throw error;
 
-    // Check if default criteria already exist for this category in this company
-    if (cleanedRoleName) {
+    // Check if default criteria already exist for each category in this company
+    for (const categoryName of categoriesArray) {
+      if (!categoryName) continue;
       // For custom categories, use the actual category name (lowercase) instead of 'all'
       // This allows each custom category to have its own set of criteria
-      const categoryToCheck = userCategory === 'all'
-        ? cleanedRoleName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '_')
-        : userCategory;
+      const mappedCategory = mapToUserCategory(categoryName);
+      const categoryToCheck = mappedCategory === 'all'
+        ? categoryName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '_')
+        : mappedCategory;
 
       const { data: existingCriterion } = await supabase
         .from('criteria')
@@ -621,7 +636,7 @@ router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (
 
       // If no criterion exists for this category, create default criteria set
       if (!existingCriterion || existingCriterion.length === 0) {
-        const categoryDisplayName = cleanedRoleName;
+        const categoryDisplayName = categoryName;
 
         // Create a full set of default criteria for this category
         const defaultCriteria = [
@@ -688,7 +703,11 @@ router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (
       }
     }
 
-    res.json({ message: 'User category updated successfully', custom_role_name: cleanedRoleName });
+    res.json({
+      message: 'User category updated successfully',
+      custom_role_name: cleanedRoleName,
+      categories: categoriesArray
+    });
   } catch (error) {
     console.error('Error updating user category:', error);
     res.status(500).json({ error: 'Failed to update user category' });

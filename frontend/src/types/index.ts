@@ -38,6 +38,7 @@ export interface User {
   username: string;
   role: UserRole;
   custom_role_name?: string | null;  // custom display name for the role (e.g., "Vendedor", "Suporte")
+  categories?: string[];  // multiple categories for agents (e.g., ["Vendas", "Suporte"])
   display_name?: string | null;  // user's real name for call association
   phone_number?: string | null;  // phone number for call association
   language_preference: Language;
@@ -78,6 +79,7 @@ export interface Call {
   what_went_well: TimestampedItem[] | null;
   what_went_wrong: TimestampedItem[] | null;
   risk_words_detected: string[] | null;
+  detected_category?: string | null;  // AI-detected category (when agent has multiple categories)
   call_date: string;
   created_at: string;
   expires_at: string;

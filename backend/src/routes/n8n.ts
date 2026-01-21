@@ -4,16 +4,35 @@ import { supabase } from '../db/supabase';
 const router = Router();
 
 /**
- * Helper to get agent's category from custom_role_name
+ * Helper to get agent's category/categories
+ * Returns both single category (for backwards compat) and array of categories
  */
-async function getAgentCategory(agentId: number): Promise<string | null> {
+async function getAgentCategories(agentId: number): Promise<{ category: string | null; categories: string[] }> {
   const { data: agent } = await supabase
     .from('users')
-    .select('custom_role_name')
+    .select('custom_role_name, categories')
     .eq('id', agentId)
     .single();
 
-  return agent?.custom_role_name || null;
+  if (!agent) {
+    return { category: null, categories: [] };
+  }
+
+  // If agent has categories array, use it
+  const categories = agent.categories && Array.isArray(agent.categories) && agent.categories.length > 0
+    ? agent.categories
+    : agent.custom_role_name ? [agent.custom_role_name] : [];
+
+  return {
+    category: agent.custom_role_name || (categories.length > 0 ? categories[0] : null),
+    categories
+  };
+}
+
+// Backwards compatibility wrapper
+async function getAgentCategory(agentId: number): Promise<string | null> {
+  const { category } = await getAgentCategories(agentId);
+  return category;
 }
 
 // Risk words list (system-level)
@@ -189,48 +208,65 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
       })
       .eq('id', callId);
 
-    // Get agent's category to filter criteria (normalize to lowercase)
-    const rawAgentCategory = call.agent_id ? await getAgentCategory(call.agent_id) : null;
-    const agentCategory = rawAgentCategory ? rawAgentCategory.toLowerCase() : null;
+    // Get agent's categories (supports multiple categories)
+    const agentData = call.agent_id ? await getAgentCategories(call.agent_id) : { category: null, categories: [] };
+    const agentCategories = agentData.categories;
+    const hasMultipleCategories = agentCategories.length > 1;
+
+    // Normalize categories to lowercase for DB queries
+    const normalizedCategories = agentCategories.map(c => c.toLowerCase());
 
     // Get criteria for analysis - include 'all' criteria + category-specific criteria
     let criteria: any[] = [];
-    if (agentCategory) {
-      // Get criteria that are either 'all' (global) or match the agent's category
+    if (normalizedCategories.length > 0) {
+      // Get criteria that are either 'all' (global) or match any of the agent's categories
       const { data } = await supabase
         .from('criteria')
-        .select('id, name, description, weight')
+        .select('id, name, description, weight, category')
         .eq('company_id', call.company_id)
         .eq('is_active', true)
-        .in('category', ['all', agentCategory]);
+        .in('category', ['all', ...normalizedCategories]);
       criteria = data || [];
     } else {
       // No category - get all company criteria
       const { data } = await supabase
         .from('criteria')
-        .select('id, name, description, weight')
+        .select('id, name, description, weight, category')
         .eq('company_id', call.company_id)
         .eq('is_active', true);
       criteria = data || [];
     }
 
-    console.log(`[n8n] Transcription saved, agent category: ${agentCategory || 'none'}, criteria count:`, criteria?.length || 0);
+    console.log(`[n8n] Transcription saved, agent categories: ${agentCategories.join(', ') || 'none'}, hasMultiple: ${hasMultipleCategories}, criteria count:`, criteria?.length || 0);
 
-    res.json({
+    // Build response with category detection instructions if agent has multiple categories
+    const response: any = {
       success: true,
       callId,
       status: 'pending_analysis',
       transcriptionLength: transcription.length,
-      agentCategory: agentCategory || null,
+      agentCategory: agentData.category?.toLowerCase() || null,
+      agentCategories: agentCategories,
+      hasMultipleCategories,
       nextStep: `/api/n8n/calls/${callId}/analysis`,
       criteria: (criteria || []).map(c => ({
         id: c.id,
         name: c.name,
         description: c.description,
-        weight: c.weight
+        weight: c.weight,
+        category: c.category
       })),
-      analysisPrompt: generateAnalysisPrompt(transcription, criteria || [])
-    });
+      analysisPrompt: generateAnalysisPrompt(transcription, criteria || [], hasMultipleCategories ? agentCategories : undefined)
+    };
+
+    // If multiple categories, add instructions for AI to detect which one
+    if (hasMultipleCategories) {
+      response.categoryDetectionRequired = true;
+      response.possibleCategories = agentCategories;
+      response.categoryDetectionInstructions = `Este agente trabalha em múltiplas categorias: ${agentCategories.join(', ')}. Analisa a transcrição e determina qual categoria está a ser exercida nesta chamada específica. Devolve o campo "detected_category" com o nome exato da categoria detectada.`;
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('[n8n] Error saving transcription:', error);
@@ -255,7 +291,8 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
       objections = [],      // AI-generated objections
       whatWentWell = [],
       whatWentWrong = [],
-      criteriaResults = []
+      criteriaResults = [],
+      detected_category      // AI-detected category (when agent has multiple categories)
     } = req.body;
 
     if (finalScore === undefined || !summary) {
@@ -291,18 +328,27 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
     const finalContactReasons = contactReasons.length > 0 ? contactReasons : whatWentWell;
     const finalObjections = objections.length > 0 ? objections : whatWentWrong;
 
+    // Build update object
+    const updateData: any = {
+      summary,
+      next_step_recommendation: nextStepRecommendation || '',
+      final_score: finalScore,
+      score_justification: scoreJustification || '',
+      what_went_well: JSON.stringify(finalContactReasons),
+      what_went_wrong: JSON.stringify(finalObjections),
+      risk_words_detected: JSON.stringify(detectedRiskWords)
+    };
+
+    // Add detected_category if provided (for agents with multiple categories)
+    if (detected_category) {
+      updateData.detected_category = detected_category;
+      console.log(`[n8n] AI detected category: ${detected_category}`);
+    }
+
     // Update call with analysis
     await supabase
       .from('calls')
-      .update({
-        summary,
-        next_step_recommendation: nextStepRecommendation || '',
-        final_score: finalScore,
-        score_justification: scoreJustification || '',
-        what_went_well: JSON.stringify(finalContactReasons),
-        what_went_wrong: JSON.stringify(finalObjections),
-        risk_words_detected: JSON.stringify(detectedRiskWords)
-      })
+      .update(updateData)
       .eq('id', callId);
 
     // Save criteria results
@@ -1483,11 +1529,27 @@ router.post('/cleanup-summaries', async (_req: Request, res: Response) => {
 
 /**
  * Generate a prompt for LLM analysis
+ * @param transcription - The call transcription
+ * @param criteria - Evaluation criteria
+ * @param multipleCategories - If agent has multiple categories, include them for detection
  */
-function generateAnalysisPrompt(transcription: string, criteria: any[]): string {
+function generateAnalysisPrompt(transcription: string, criteria: any[], multipleCategories?: string[]): string {
   const criteriaList = criteria.map(c =>
-    `- ${c.name} (ID: ${c.id}, Weight: ${c.weight}): ${c.description}`
+    `- ${c.name} (ID: ${c.id}, Weight: ${c.weight}${c.category ? `, Category: ${c.category}` : ''}): ${c.description}`
   ).join('\n');
+
+  // Add category detection section if agent has multiple categories
+  const categoryDetectionSection = multipleCategories && multipleCategories.length > 1 ? `
+CATEGORY DETECTION:
+This agent works in multiple categories: ${multipleCategories.join(', ')}
+Based on the call content, determine which category is being exercised in this specific call.
+Include "detected_category" in your response with the EXACT name of the detected category.
+Only use criteria that match the detected category or are marked as 'all'.
+` : '';
+
+  const detectedCategoryField = multipleCategories && multipleCategories.length > 1
+    ? `  "detected_category": "${multipleCategories[0]}",  // REQUIRED: Which category is this call? Must be one of: ${multipleCategories.join(', ')}\n`
+    : '';
 
   return `
 Analyze the following call transcription and evaluate it based on the criteria below.
@@ -1497,10 +1559,10 @@ ${transcription}
 
 EVALUATION CRITERIA:
 ${criteriaList}
-
+${categoryDetectionSection}
 Please provide your analysis in the following JSON format:
 {
-  "summary": "Brief summary of the call (2-3 sentences)",
+${detectedCategoryField}  "summary": "Brief summary of the call (2-3 sentences)",
   "nextStepRecommendation": "Recommended next action",
   "finalScore": 7.5,
   "scoreJustification": "Explanation for the score",
@@ -1526,7 +1588,8 @@ IMPORTANT INSTRUCTIONS:
 - "contactReasons": Extract the MAIN REASON(S) why the customer called. Be specific and concise (e.g., "Pedido de orçamento", "Dúvida sobre faturação", "Reclamação de entrega"). Generate these dynamically based on the conversation content.
 - "objections": Extract any OBJECTIONS or CONCERNS the customer raised during the call (e.g., "Preço muito alto", "Prazo de entrega longo", "Funcionalidade em falta"). If no objections, return empty array.
 - "whatWentWell": Focus on AGENT PERFORMANCE - what the agent did well
-- "whatWentWrong": Focus on AGENT PERFORMANCE - what the agent could improve
+- "whatWentWrong": Focus on AGENT PERFORMANCE - what the agent could improve${multipleCategories && multipleCategories.length > 1 ? `
+- "detected_category": REQUIRED - Identify which category this call belongs to based on the conversation content` : ''}
   `.trim();
 }
 
