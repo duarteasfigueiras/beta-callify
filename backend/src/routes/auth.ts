@@ -21,30 +21,51 @@ const router = Router();
 // Initialize Resend for email sending (optional - works without API key in dev mode)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Login
+// Login - supports both email and username for backwards compatibility
 router.post('/login', async (req, res: Response) => {
   try {
-    const { username, password }: LoginRequest = req.body;
+    const { email, username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+    // Support both email (new) and username (legacy)
+    const loginIdentifier = email || username;
+
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user by username
-    const { data: user, error } = await supabase
+    // Find user by email first, then fallback to username
+    let user = null;
+    let error = null;
+
+    // Try email first
+    const emailResult = await supabase
       .from('users')
       .select('*')
-      .eq('username', username)
+      .eq('email', loginIdentifier)
       .single();
 
+    if (emailResult.data) {
+      user = emailResult.data;
+    } else {
+      // Fallback to username for backwards compatibility
+      const usernameResult = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', loginIdentifier)
+        .single();
+
+      user = usernameResult.data;
+      error = usernameResult.error;
+    }
+
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Generate JWT token
@@ -73,10 +94,10 @@ router.post('/login', async (req, res: Response) => {
 // Register with invitation token
 router.post('/register', async (req, res: Response) => {
   try {
-    const { token, username, password, display_name, phone_number } = req.body;
+    const { token, email, password, display_name, phone_number } = req.body;
 
-    if (!token || !username || !password) {
-      return res.status(400).json({ error: 'Token, username, and password are required' });
+    if (!token || !email || !password) {
+      return res.status(400).json({ error: 'Token, email, and password are required' });
     }
 
     if (!display_name?.trim()) {
@@ -87,8 +108,10 @@ router.post('/register', async (req, res: Response) => {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
-    if (username.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
     }
 
     if (password.length < 6) {
@@ -114,15 +137,15 @@ router.post('/register', async (req, res: Response) => {
       return res.status(400).json({ error: 'Invitation has expired' });
     }
 
-    // Check if username already exists
+    // Check if email already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('username', username)
+      .eq('email', email)
       .single();
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Username already taken' });
+      return res.status(400).json({ error: 'Email already registered' });
     }
 
     // Validate phone number format if provided
@@ -152,10 +175,11 @@ router.post('/register', async (req, res: Response) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user with optional display_name and phone_number
+    // Create user with email and other fields
     await supabase.from('users').insert({
       company_id: invitation.company_id,
-      username,
+      email,
+      username: email,  // Use email as username for backwards compatibility
       password_hash: passwordHash,
       role: invitation.role,
       custom_role_name: invitation.custom_role_name || null,
@@ -208,14 +232,10 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-// Password recovery request - accepts username and email, sends reset link via email
+// Password recovery request - accepts email, sends reset link
 router.post('/recover-password', async (req, res: Response) => {
   try {
-    const { username, email } = req.body;
-
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
-    }
+    const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -230,12 +250,12 @@ router.post('/recover-password', async (req, res: Response) => {
     const { data: user } = await supabase
       .from('users')
       .select('*, companies(name)')
-      .eq('username', username)
+      .eq('email', email)
       .single();
 
     if (!user) {
       // Don't reveal if user exists or not - always return success message
-      return res.json({ message: 'If the username exists, password reset instructions will be sent to the provided email' });
+      return res.json({ message: 'If the email exists, password reset instructions will be sent' });
     }
 
     // SECURITY: Generate cryptographically secure reset token
@@ -300,14 +320,13 @@ router.post('/recover-password', async (req, res: Response) => {
             </html>
           `
         });
-        console.log(`[Auth] Password reset email sent to: ${email} for user: ${username}`);
+        console.log(`[Auth] Password reset email sent to: ${email}`);
       } catch (emailError) {
         console.error('[Auth] Failed to send email via Resend:', emailError);
         // Fall back to console log
         console.log('\n========================================');
         console.log('PASSWORD RESET LINK (Email failed, showing in console)');
         console.log('========================================');
-        console.log(`User: ${username}`);
         console.log(`Email: ${email}`);
         console.log(`Reset URL: ${resetUrl}`);
         console.log('========================================\n');
@@ -317,13 +336,12 @@ router.post('/recover-password', async (req, res: Response) => {
       console.log('\n========================================');
       console.log('PASSWORD RESET LINK (Development Mode)');
       console.log('========================================');
-      console.log(`User: ${username}`);
       console.log(`Email: ${email}`);
       console.log(`Reset URL: ${resetUrl}`);
       console.log('========================================\n');
     }
 
-    return res.json({ message: 'If the username exists, password reset instructions will be sent to the provided email' });
+    return res.json({ message: 'If the email exists, password reset instructions will be sent' });
   } catch (error) {
     console.error('Password recovery error:', error);
     return res.status(500).json({ error: 'Internal server error' });

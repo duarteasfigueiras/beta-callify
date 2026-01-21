@@ -143,7 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.isAuthenticated]);
 
   const login = useCallback(async (credentials: LoginCredentials, rememberMe: boolean = false) => {
-    const response = await authApi.login(credentials.username, credentials.password);
+    // Support both email (new) and username (legacy)
+    const loginIdentifier = credentials.email || credentials.username;
+    const response = await authApi.login(loginIdentifier, credentials.password);
     const { token, user } = response;
 
     // Clear any existing auth data first

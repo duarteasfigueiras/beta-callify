@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Phone, Eye, EyeOff, User, Smartphone } from 'lucide-react';
+import { Phone, Eye, EyeOff, User, Mail } from 'lucide-react';
 import { authApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -16,7 +16,7 @@ export default function Register() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -68,8 +68,10 @@ export default function Register() {
       return;
     }
 
-    if (username.length < 3) {
-      setError(t('register.usernameTooShort', 'Access name must be at least 3 characters'));
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError(t('register.invalidEmail', 'Please enter a valid email address'));
       return;
     }
 
@@ -89,12 +91,12 @@ export default function Register() {
       const displayName = `${firstName.trim()} ${lastName.trim()}`;
       const fullPhoneNumber = `+351${cleanPhone}`;
 
-      await authApi.register(token, username, password, displayName, fullPhoneNumber);
+      await authApi.register(token, email, password, displayName, fullPhoneNumber);
       toast.success(t('register.success', 'Registration successful!'));
 
       // Auto-login after registration and redirect to settings
       try {
-        await login({ username, password });
+        await login({ email, password });
         // Redirect to settings with newUser flag so they can configure their profile
         navigate('/settings?newUser=true');
       } catch (loginError) {
@@ -204,23 +206,26 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('register.accessName', 'Access Name')}
+              <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('auth.email', 'Email')}
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={t('register.accessNamePlaceholder', 'Choose an access name')}
-                disabled={isLoading || !token}
-                required
-                autoComplete="username"
-                className="w-full"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.emailPlaceholder', 'your@email.com')}
+                  disabled={isLoading || !token}
+                  required
+                  autoComplete="email"
+                  className="w-full pl-10"
+                />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('register.accessNameHint', 'This will be used to log in to your account')}
+                {t('register.emailHint', 'This will be used to log in to your account')}
               </p>
             </div>
 

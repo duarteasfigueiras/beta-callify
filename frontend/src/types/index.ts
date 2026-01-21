@@ -151,7 +151,8 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  username: string;
+  email?: string;
+  username?: string;  // Legacy support
   password: string;
 }
 

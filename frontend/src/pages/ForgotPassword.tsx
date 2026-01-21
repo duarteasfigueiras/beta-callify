@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 export default function ForgotPassword() {
   const { t } = useTranslation();
 
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +29,7 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      await authApi.recoverPassword(username, email);
+      await authApi.recoverPassword(email);
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Password recovery error:', err);
@@ -58,7 +57,7 @@ export default function ForgotPassword() {
           {success ? (
             <div className="space-y-4">
               <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 rounded-md">
-                {t('auth.recoveryEmailSent') || 'If the username exists, password reset instructions will be sent. Check the server console for the reset link.'}
+                {t('auth.recoveryEmailSent') || 'If the email is registered, password reset instructions will be sent.'}
               </div>
               <Link
                 to="/login"
@@ -77,22 +76,6 @@ export default function ForgotPassword() {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('auth.username')}
-                </label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={t('auth.username')}
-                  required
-                  autoComplete="username"
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t('auth.email', 'Email')}
                 </label>
@@ -103,7 +86,7 @@ export default function ForgotPassword() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.emailPlaceholder', 'your.email@example.com')}
+                    placeholder={t('auth.emailPlaceholder', 'your@email.com')}
                     required
                     autoComplete="email"
                     className="w-full pl-10"

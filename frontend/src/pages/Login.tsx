@@ -23,7 +23,7 @@ export default function Login() {
   const state = location.state as LocationState;
   const from = state?.from?.pathname || '/';
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +35,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login({ username, password }, rememberMe);
+      await login({ email, password }, rememberMe);
       // Redirect to the intended page or home
       navigate(from, { replace: true });
     } catch (err: unknown) {
@@ -70,17 +70,17 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.username')}
+              <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('auth.email')}
               </label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={t('auth.username')}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
                 required
-                autoComplete="username"
+                autoComplete="email"
                 className="w-full"
               />
             </div>

@@ -48,8 +48,8 @@ export default api;
 
 // Auth API
 export const authApi = {
-  login: async (username: string, password: string) => {
-    const response = await api.post('/auth/login', { username, password });
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
     return response.data;
   },
   logout: async () => {
@@ -60,12 +60,12 @@ export const authApi = {
     const response = await api.get('/auth/me');
     return response.data;
   },
-  register: async (token: string, username: string, password: string, display_name?: string, phone_number?: string) => {
-    const response = await api.post('/auth/register', { token, username, password, display_name, phone_number });
+  register: async (token: string, email: string, password: string, display_name?: string, phone_number?: string) => {
+    const response = await api.post('/auth/register', { token, email, password, display_name, phone_number });
     return response.data;
   },
-  recoverPassword: async (username: string, email: string) => {
-    const response = await api.post('/auth/recover-password', { username, email });
+  recoverPassword: async (email: string) => {
+    const response = await api.post('/auth/recover-password', { email });
     return response.data;
   },
   resetPassword: async (token: string, newPassword: string) => {

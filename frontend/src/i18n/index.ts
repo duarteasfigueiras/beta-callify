@@ -21,7 +21,8 @@ const resources = {
       auth: {
         login: 'Login',
         logout: 'Logout',
-        username: 'Username',
+        email: 'Email',
+        emailPlaceholder: 'your@email.com',
         password: 'Password',
         loginButton: 'Sign In',
         loggingIn: 'Signing in...',
@@ -32,8 +33,8 @@ const resources = {
         confirmPassword: 'Confirm Password',
         sendResetLink: 'Send Reset Link',
         backToLogin: 'Back to Login',
-        invalidCredentials: 'Invalid username or password',
-        recoveryEmailSent: 'If the username exists, password reset instructions will be sent to the provided email.',
+        invalidCredentials: 'Invalid email or password',
+        recoveryEmailSent: 'If the email is registered, password reset instructions will be sent.',
         rememberMe: 'Keep me signed in',
         // New fields for registration
         firstName: 'First Name',
@@ -43,9 +44,7 @@ const resources = {
         phoneNumber: 'Phone Number',
         phoneNumberPlaceholder: '912 345 678',
         phoneNumberHint: 'Used to associate calls with your account',
-        // Email for password recovery
-        email: 'Email',
-        emailPlaceholder: 'your.email@example.com',
+        // Email hints
         emailHint: 'The reset link will be sent to this email address',
         invalidEmail: 'Invalid email format',
       },
@@ -467,7 +466,7 @@ const resources = {
       // Register
       register: {
         invalidToken: 'Invalid or missing invitation token',
-        usernameTooShort: 'Access name must be at least 3 characters',
+        invalidEmail: 'Please enter a valid email address',
         passwordTooShort: 'Password must be at least 6 characters',
         passwordMismatch: 'Passwords do not match',
         firstNameRequired: 'First name is required',
@@ -478,9 +477,7 @@ const resources = {
         error: 'Registration failed',
         title: 'Create Account',
         subtitle: 'Complete your registration to join the team',
-        accessName: 'Access Name',
-        accessNamePlaceholder: 'Choose an access name',
-        accessNameHint: 'This will be used to log in to your account',
+        emailHint: 'This will be used to log in to your account',
         password: 'Password',
         passwordPlaceholder: 'Enter your password',
         confirmPassword: 'Confirm Password',
@@ -511,7 +508,8 @@ const resources = {
       auth: {
         login: 'Entrar',
         logout: 'Sair',
-        username: 'Nome de utilizador',
+        email: 'Email',
+        emailPlaceholder: 'seu@email.com',
         password: 'Palavra-passe',
         loginButton: 'Entrar',
         loggingIn: 'A entrar...',
@@ -522,8 +520,8 @@ const resources = {
         confirmPassword: 'Confirmar Palavra-passe',
         sendResetLink: 'Enviar Link de Recuperação',
         backToLogin: 'Voltar ao Login',
-        invalidCredentials: 'Nome de utilizador ou palavra-passe inválidos',
-        recoveryEmailSent: 'Se o nome de utilizador existir, as instruções de recuperação serão enviadas para o email fornecido.',
+        invalidCredentials: 'Email ou palavra-passe inválidos',
+        recoveryEmailSent: 'Se o email estiver registado, as instruções de recuperação serão enviadas.',
         rememberMe: 'Manter sessão iniciada',
         // Novos campos para registo
         firstName: 'Primeiro Nome',
@@ -533,9 +531,7 @@ const resources = {
         phoneNumber: 'Número de Telemóvel',
         phoneNumberPlaceholder: '912 345 678',
         phoneNumberHint: 'Usado para associar chamadas à sua conta',
-        // Email para recuperação de password
-        email: 'Email',
-        emailPlaceholder: 'seu.email@exemplo.com',
+        // Email hints
         emailHint: 'O link de recuperação será enviado para este email',
         invalidEmail: 'Formato de email inválido',
       },
@@ -1000,7 +996,7 @@ const resources = {
       // Register
       register: {
         invalidToken: 'Token de convite inválido ou em falta',
-        usernameTooShort: 'O nome de acesso deve ter pelo menos 3 caracteres',
+        invalidEmail: 'Por favor introduza um email válido',
         passwordTooShort: 'A palavra-passe deve ter pelo menos 6 caracteres',
         passwordMismatch: 'As palavras-passe não coincidem',
         firstNameRequired: 'O primeiro nome é obrigatório',
@@ -1011,9 +1007,7 @@ const resources = {
         error: 'Falha no registo',
         title: 'Criar Conta',
         subtitle: 'Complete o seu registo para entrar na equipa',
-        accessName: 'Nome de Acesso',
-        accessNamePlaceholder: 'Escolha um nome de acesso',
-        accessNameHint: 'Este será usado para entrar na sua conta',
+        emailHint: 'Este será usado para entrar na sua conta',
         password: 'Palavra-passe',
         passwordPlaceholder: 'Introduza a sua palavra-passe',
         confirmPassword: 'Confirmar Palavra-passe',
