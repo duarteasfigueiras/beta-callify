@@ -770,18 +770,41 @@ router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: Aut
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Set agent_id to NULL for all calls from this user (keep calls but unlink agent)
-    const { error: callsError } = await supabase
+    // Get all calls from this user
+    const { data: userCalls } = await supabase
       .from('calls')
-      .update({ agent_id: null })
+      .select('id')
       .eq('agent_id', userId);
 
-    if (callsError) {
-      console.error('Error unlinking calls from user:', callsError);
-      // Continue with deletion even if this fails
+    if (userCalls && userCalls.length > 0) {
+      const callIds = userCalls.map(c => c.id);
+
+      // Delete call_criteria_results for these calls
+      await supabase
+        .from('call_criteria_results')
+        .delete()
+        .in('call_id', callIds);
+
+      // Delete call_feedback for these calls
+      await supabase
+        .from('call_feedback')
+        .delete()
+        .in('call_id', callIds);
+
+      // Delete alerts for these calls
+      await supabase
+        .from('alerts')
+        .delete()
+        .in('call_id', callIds);
+
+      // Delete the calls themselves
+      await supabase
+        .from('calls')
+        .delete()
+        .eq('agent_id', userId);
     }
 
-    // Delete alerts where this user is the agent (foreign key constraint)
+    // Delete any remaining alerts where this user is the agent
     const { error: alertsError } = await supabase
       .from('alerts')
       .delete()
@@ -791,7 +814,7 @@ router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: Aut
       console.error('Error deleting user alerts:', alertsError);
     }
 
-    // Delete user's feedback on calls (field is author_id, not user_id)
+    // Delete user's feedback on other calls (field is author_id)
     const { error: feedbackError } = await supabase
       .from('call_feedback')
       .delete()
