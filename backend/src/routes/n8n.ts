@@ -31,6 +31,9 @@ const RISK_WORDS = [
 const LOW_SCORE_THRESHOLD = parseFloat(process.env.LOW_SCORE_THRESHOLD || '5.0');
 const LONG_CALL_THRESHOLD_SECONDS = parseInt(process.env.LONG_CALL_THRESHOLD_SECONDS || '1800');
 
+// Minimum call duration to process (skip unanswered/very short calls)
+const MIN_CALL_DURATION_SECONDS = parseInt(process.env.MIN_CALL_DURATION_SECONDS || '10');
+
 /**
  * Step 1: Create a new call record
  */
@@ -52,6 +55,16 @@ router.post('/calls', async (req: Request, res: Response) => {
       return res.status(400).json({
         error: 'phoneNumber is required',
         example: { phoneNumber: '+351912345678', direction: 'inbound | outbound | meeting', durationSeconds: 180 }
+      });
+    }
+
+    // Skip very short calls (unanswered, missed, etc.)
+    if (durationSeconds > 0 && durationSeconds < MIN_CALL_DURATION_SECONDS) {
+      console.log(`[n8n] Skipping short call (${durationSeconds}s < ${MIN_CALL_DURATION_SECONDS}s minimum)`);
+      return res.status(200).json({
+        skipped: true,
+        reason: `Call duration (${durationSeconds}s) below minimum threshold (${MIN_CALL_DURATION_SECONDS}s)`,
+        message: 'Call not recorded - too short (likely unanswered)'
       });
     }
 
@@ -393,6 +406,17 @@ router.get('/calls/:id/status', async (req: Request, res: Response) => {
 router.post('/calls/complete', async (req: Request, res: Response) => {
   try {
     console.log('[n8n] Received complete call processing request');
+
+    // Check duration early to skip short calls
+    const callDuration = req.body.durationSeconds || 0;
+    if (callDuration > 0 && callDuration < MIN_CALL_DURATION_SECONDS) {
+      console.log(`[n8n] Skipping short call (${callDuration}s < ${MIN_CALL_DURATION_SECONDS}s minimum)`);
+      return res.status(200).json({
+        skipped: true,
+        reason: `Call duration (${callDuration}s) below minimum threshold (${MIN_CALL_DURATION_SECONDS}s)`,
+        message: 'Call not recorded - too short (likely unanswered)'
+      });
+    }
 
     const {
       phoneNumber,
@@ -807,7 +831,23 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       requestBody = requestBody[0];
     }
 
-    console.log('[n8n] Received AI agent output:', JSON.stringify(requestBody, null, 2));
+    console.log('[n8n] Received AI agent output:', JSON.stringify(requestBody, null, 2).substring(0, 2000));
+    console.log('[n8n] Request body keys:', Object.keys(requestBody));
+    console.log('[n8n] Has agent_output:', !!requestBody.agent_output);
+    console.log('[n8n] Has output:', !!requestBody.output);
+    console.log('[n8n] agent_output type:', typeof requestBody.agent_output);
+    console.log('[n8n] output type:', typeof requestBody.output);
+
+    // Check duration early to skip short calls
+    const callDuration = requestBody.durationSeconds || 0;
+    if (callDuration > 0 && callDuration < MIN_CALL_DURATION_SECONDS) {
+      console.log(`[n8n] Skipping short call (${callDuration}s < ${MIN_CALL_DURATION_SECONDS}s minimum)`);
+      return res.status(200).json({
+        skipped: true,
+        reason: `Call duration (${callDuration}s) below minimum threshold (${MIN_CALL_DURATION_SECONDS}s)`,
+        message: 'Call not recorded - too short (likely unanswered)'
+      });
+    }
 
     const {
       // Call metadata (optional)
@@ -847,6 +887,23 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
     console.log('[n8n] aiOutput type:', typeof aiOutput);
     console.log('[n8n] aiOutput raw value (first 500 chars):', typeof aiOutput === 'string' ? aiOutput.substring(0, 500) : JSON.stringify(aiOutput)?.substring(0, 500));
+
+    // Special handling: if aiOutput is a string that looks like it contains literal \n characters
+    // (common when n8n sends the AI Agent output as a string)
+    if (typeof aiOutput === 'string' && aiOutput.includes('\\n')) {
+      console.log('[n8n] Detected literal \\n in string, attempting to fix and parse...');
+      try {
+        // Replace literal \n with nothing (remove them for JSON parsing)
+        const fixedString = aiOutput.replace(/\\n/g, ' ').replace(/\s+/g, ' ');
+        const parsed = JSON.parse(fixedString);
+        if (parsed && typeof parsed === 'object') {
+          aiOutput = parsed;
+          console.log('[n8n] Successfully parsed after removing literal \\n, keys:', Object.keys(aiOutput));
+        }
+      } catch (e) {
+        console.log('[n8n] Could not parse with \\n fix, continuing with other methods');
+      }
+    }
 
     // If aiOutput is already a properly parsed object with expected fields, use it directly
     if (aiOutput && typeof aiOutput === 'object' && !Array.isArray(aiOutput) && (aiOutput.score !== undefined || aiOutput.resumo || aiOutput.pontos_fortes)) {
@@ -973,6 +1030,73 @@ router.post('/agent-output', async (req: Request, res: Response) => {
               }
             }
 
+            // Try to extract frases_a_evitar array
+            const frasesEvitarMatch = cleanedOutput.match(/(?:"frases_a_evitar"|frases_a_evitar)[:\s]*\[([\s\S]*?)\]/i);
+            if (frasesEvitarMatch) {
+              try {
+                aiOutput.frases_a_evitar = JSON.parse('[' + frasesEvitarMatch[1] + ']');
+                console.log('[n8n] Extracted frases_a_evitar from text:', aiOutput.frases_a_evitar?.length);
+              } catch {
+                const items = frasesEvitarMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.frases_a_evitar = items.map((s: string) => s.replace(/"/g, ''));
+                }
+              }
+            }
+
+            // Try to extract frases_recomendadas array
+            const frasesRecMatch = cleanedOutput.match(/(?:"frases_recomendadas"|frases_recomendadas)[:\s]*\[([\s\S]*?)\]/i);
+            if (frasesRecMatch) {
+              try {
+                aiOutput.frases_recomendadas = JSON.parse('[' + frasesRecMatch[1] + ']');
+                console.log('[n8n] Extracted frases_recomendadas from text:', aiOutput.frases_recomendadas?.length);
+              } catch {
+                const items = frasesRecMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.frases_recomendadas = items.map((s: string) => s.replace(/"/g, ''));
+                }
+              }
+            }
+
+            // Try to extract pontuacao_skills array (complex objects)
+            const skillsMatch = cleanedOutput.match(/(?:"pontuacao_skills"|pontuacao_skills)[:\s]*\[([\s\S]*?)\]/i);
+            if (skillsMatch) {
+              try {
+                aiOutput.pontuacao_skills = JSON.parse('[' + skillsMatch[1] + ']');
+                console.log('[n8n] Extracted pontuacao_skills from text:', aiOutput.pontuacao_skills?.length);
+              } catch (e) {
+                console.log('[n8n] Could not parse pontuacao_skills from text');
+              }
+            }
+
+            // Try to extract motivos_contacto array
+            const motivosMatch = cleanedOutput.match(/(?:"motivos_contacto"|motivos_contacto)[:\s]*\[([\s\S]*?)\]/i);
+            if (motivosMatch) {
+              try {
+                aiOutput.motivos_contacto = JSON.parse('[' + motivosMatch[1] + ']');
+                console.log('[n8n] Extracted motivos_contacto from text:', aiOutput.motivos_contacto?.length);
+              } catch {
+                const items = motivosMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.motivos_contacto = items.map((s: string) => s.replace(/"/g, ''));
+                }
+              }
+            }
+
+            // Try to extract objecoes array
+            const objecoesMatch = cleanedOutput.match(/(?:"objecoes"|objecoes)[:\s]*\[([\s\S]*?)\]/i);
+            if (objecoesMatch) {
+              try {
+                aiOutput.objecoes = JSON.parse('[' + objecoesMatch[1] + ']');
+                console.log('[n8n] Extracted objecoes from text:', aiOutput.objecoes?.length);
+              } catch {
+                const items = objecoesMatch[1].match(/"([^"]+)"/g);
+                if (items) {
+                  aiOutput.objecoes = items.map((s: string) => s.replace(/"/g, ''));
+                }
+              }
+            }
+
             // Store the full text as resumo if nothing else found
             if (!aiOutput.resumo && cleanedOutput.length > 0) {
               aiOutput.resumo = cleanedOutput.substring(0, 500);
@@ -980,6 +1104,16 @@ router.post('/agent-output', async (req: Request, res: Response) => {
           }
         }
       }
+    }
+
+    // Log all aiOutput fields for debugging
+    console.log('[n8n] Final aiOutput keys:', aiOutput ? Object.keys(aiOutput) : 'null');
+    if (aiOutput) {
+      console.log('[n8n] aiOutput.frases_a_evitar:', JSON.stringify(aiOutput.frases_a_evitar)?.substring(0, 200));
+      console.log('[n8n] aiOutput.frases_recomendadas:', JSON.stringify(aiOutput.frases_recomendadas)?.substring(0, 200));
+      console.log('[n8n] aiOutput.pontuacao_skills:', JSON.stringify(aiOutput.pontuacao_skills)?.substring(0, 200));
+      console.log('[n8n] aiOutput.motivos_contacto:', JSON.stringify(aiOutput.motivos_contacto)?.substring(0, 200));
+      console.log('[n8n] aiOutput.objecoes:', JSON.stringify(aiOutput.objecoes)?.substring(0, 200));
     }
 
     // Use direct fields or from agent_output object
@@ -999,7 +1133,11 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const objections = objecoes ?? aiOutput?.objecoes ?? aiOutput?.objections ?? [];
     // Next step - what was agreed/pending
     const nextStep = proximo_passo ?? aiOutput?.proximo_passo ?? aiOutput?.nextStep ?? '';
-    // AI coaching fields
+    // AI coaching fields - log intermediate values for debugging
+    console.log('[n8n] Direct body frases_a_evitar:', JSON.stringify(frases_a_evitar));
+    console.log('[n8n] Direct body frases_recomendadas:', JSON.stringify(frases_recomendadas));
+    console.log('[n8n] Direct body pontuacao_skills:', JSON.stringify(pontuacao_skills));
+
     const phrasesToAvoid = frases_a_evitar ?? aiOutput?.frases_a_evitar ?? aiOutput?.phrasesToAvoid ?? [];
     const recommendedPhrases = frases_recomendadas ?? aiOutput?.frases_recomendadas ?? aiOutput?.recommendedPhrases ?? [];
     const responseExample = exemplo_resposta_melhorada ?? aiOutput?.exemplo_resposta_melhorada ?? aiOutput?.responseImprovementExample ?? null;
@@ -1105,12 +1243,19 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     };
 
     // Log coaching fields being saved
+    console.log('[n8n] ========== COACHING FIELDS DEBUG ==========');
+    console.log('[n8n] phrasesToAvoid value:', JSON.stringify(phrasesToAvoid));
+    console.log('[n8n] recommendedPhrases value:', JSON.stringify(recommendedPhrases));
+    console.log('[n8n] skillScoresData value:', JSON.stringify(skillScoresData));
+    console.log('[n8n] contactReasons value:', JSON.stringify(contactReasons));
+    console.log('[n8n] objections value:', JSON.stringify(objections));
     console.log('[n8n] Coaching fields to save:', {
       phrases_to_avoid: coachingFields.phrases_to_avoid?.substring(0, 100),
       recommended_phrases: coachingFields.recommended_phrases?.substring(0, 100),
       skill_scores: coachingFields.skill_scores?.substring(0, 100),
       response_example: coachingFields.response_improvement_example ? 'present' : 'null'
     });
+    console.log('[n8n] ============================================');
 
     // Try with all fields first
     let { data: newCall, error } = await supabase

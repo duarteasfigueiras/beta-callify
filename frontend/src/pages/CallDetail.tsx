@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { isDeveloper } from '../types';
+import { isDeveloper, isAdminOrDeveloper } from '../types';
 import toast from 'react-hot-toast';
 
 interface TimestampedItem {
@@ -358,16 +358,9 @@ export default function CallDetail() {
       {/* Main Score Badge */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('calls.overallScore', 'Overall Score')}
-            </h3>
-            {call.score_justification && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {call.score_justification}
-              </p>
-            )}
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {t('calls.overallScore', 'Overall Score')}
+          </h3>
           <div className={`text-4xl font-bold px-6 py-3 rounded-xl ${getScoreColor(call.final_score || 0)}`}>
             {call.final_score?.toFixed(1) || '-'}
           </div>
@@ -882,8 +875,8 @@ export default function CallDetail() {
               </p>
             )}
 
-            {/* Add Feedback Form (Admin only) */}
-            {user?.role && isDeveloper(user.role) && (
+            {/* Add Feedback Form (Admin and Developer) */}
+            {user?.role && isAdminOrDeveloper(user.role) && (
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                   {t('calls.addFeedback', 'Add Feedback')}

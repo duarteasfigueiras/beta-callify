@@ -377,8 +377,8 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
 
     let query = supabase
       .from('calls')
-      .select('what_went_well')
-      .not('what_went_well', 'is', null);
+      .select('contact_reasons')
+      .not('contact_reasons', 'is', null);
 
     if (isDeveloper(req.user!.role)) {
       if (company_id) {
@@ -402,22 +402,26 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
     const reasonCounts: Record<string, number> = {};
 
     (calls || []).forEach((call: any) => {
-      if (!call.what_went_well) return;
+      if (!call.contact_reasons) return;
 
       try {
-        // Parse the what_went_well JSON array
-        const wentWell = typeof call.what_went_well === 'string'
-          ? JSON.parse(call.what_went_well)
-          : call.what_went_well;
+        // Parse the contact_reasons JSON array
+        const reasons = typeof call.contact_reasons === 'string'
+          ? JSON.parse(call.contact_reasons)
+          : call.contact_reasons;
 
-        if (Array.isArray(wentWell)) {
-          wentWell.forEach((item: any) => {
-            if (item && item.text) {
-              // Use the text directly as the reason
-              const reason = item.text.trim();
-              if (reason) {
-                reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
-              }
+        if (Array.isArray(reasons)) {
+          reasons.forEach((item: any) => {
+            // Handle both string format and object format with text field
+            let reason = '';
+            if (typeof item === 'string') {
+              reason = item.trim();
+            } else if (item && item.text) {
+              reason = item.text.trim();
+            }
+
+            if (reason) {
+              reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
             }
           });
         }
