@@ -63,7 +63,7 @@ export default function Login() {
   };
 
   // Check if still blocked
-  const isBlocked = blockedUntil && Date.now() < blockedUntil;
+  const isBlocked = !!(blockedUntil && Date.now() < blockedUntil);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 p-4">
@@ -98,12 +98,12 @@ export default function Login() {
               </label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
                 required
-                autoComplete="email"
+                autoComplete="username"
                 className="w-full"
               />
             </div>
