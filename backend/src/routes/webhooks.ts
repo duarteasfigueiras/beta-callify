@@ -238,7 +238,7 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
 
     // Process the simulated call
     // For developer users without a company, we need to get a company first
-    let targetCompanyId = req.user!.companyId;
+    let targetCompanyId: number | null = req.user!.companyId;
     if (!targetCompanyId) {
       const { data: company } = await supabase
         .from('companies')
@@ -253,7 +253,7 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
     }
 
     const result = await simulateTwilioWebhook(
-      targetCompanyId,
+      targetCompanyId as number,
       targetAgentId,
       phoneNumber,
       durationSeconds

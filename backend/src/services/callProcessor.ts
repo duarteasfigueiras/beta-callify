@@ -29,7 +29,7 @@ interface CallData {
   companyId: number;
   agentId: number;
   phoneNumber: string;
-  direction: 'inbound' | 'outbound';
+  direction: 'inbound' | 'outbound' | 'meeting';
   durationSeconds: number;
   audioUrl?: string;
   audioFilePath?: string;
