@@ -98,7 +98,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-600 text-white">
               <Phone className="w-5 h-5" />
             </div>
-            <span className="text-xl font-bold text-green-600">Callify</span>
+            <span className="text-xl font-bold text-green-600">AI CoachCall</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}

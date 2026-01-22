@@ -1,7 +1,7 @@
 {
-  "name": "callify-backend",
+  "name": "aicoachcall-backend",
   "version": "1.0.0",
-  "description": "Callify - Call Qualification Platform Backend",
+  "description": "AI CoachCall - Call Qualification Platform Backend",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

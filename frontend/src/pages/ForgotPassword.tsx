@@ -48,7 +48,7 @@ export default function ForgotPassword() {
               <Phone className="w-8 h-8" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-green-600">Callify</CardTitle>
+          <CardTitle className="text-2xl font-bold text-green-600">AI CoachCall</CardTitle>
           <CardDescription>
             {t('auth.recoverPassword')}
           </CardDescription>

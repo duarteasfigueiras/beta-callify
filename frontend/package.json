@@ -1,7 +1,7 @@
 {
-  "name": "callify-frontend",
+  "name": "aicoachcall-frontend",
   "version": "1.0.0",
-  "description": "Callify - Call Qualification Platform Frontend",
+  "description": "AI CoachCall - Call Qualification Platform Frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",

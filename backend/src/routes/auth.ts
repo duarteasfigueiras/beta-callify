@@ -294,7 +294,7 @@ router.post('/register', async (req, res: Response) => {
       .eq('id', invitation.company_id)
       .single();
 
-    const companyName = company?.name || 'Callify';
+    const companyName = company?.name || 'AI CoachCall';
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const loginUrl = `${frontendUrl}/login`;
 
@@ -302,9 +302,9 @@ router.post('/register', async (req, res: Response) => {
     if (resend) {
       try {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Callify <noreply@callify.app>',
+          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@callify.app>',
           to: email,
-          subject: `Bem-vindo ao Callify - ${companyName}`,
+          subject: `Bem-vindo ao AI CoachCall - ${companyName}`,
           html: `
             <!DOCTYPE html>
             <html>
@@ -331,17 +331,17 @@ router.post('/register', async (req, res: Response) => {
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>🎉 Bem-vindo ao Callify!</h1>
+                  <h1>🎉 Bem-vindo ao AI CoachCall!</h1>
                   <p>A sua conta foi criada com sucesso</p>
                 </div>
                 <div class="content">
                   <div class="welcome-box">
                     <p>Olá <strong>${display_name?.trim() || 'Utilizador'}</strong>,</p>
-                    <p>A sua conta no <strong>Callify</strong> foi criada com sucesso para a empresa <strong>${companyName}</strong>.</p>
+                    <p>A sua conta no <strong>AI CoachCall</strong> foi criada com sucesso para a empresa <strong>${companyName}</strong>.</p>
                     <p>Agora pode começar a utilizar o sistema de avaliação de chamadas para melhorar o desempenho da sua equipa.</p>
                   </div>
 
-                  <h3 style="color: #15803d; margin-bottom: 15px;">O que pode fazer no Callify:</h3>
+                  <h3 style="color: #15803d; margin-bottom: 15px;">O que pode fazer no AI CoachCall:</h3>
 
                   <div class="feature">
                     <div class="feature-icon">📞</div>
@@ -380,7 +380,7 @@ router.post('/register', async (req, res: Response) => {
                   </div>
 
                   <p style="text-align: center;">
-                    <a href="${loginUrl}" class="button">Aceder ao Callify</a>
+                    <a href="${loginUrl}" class="button">Aceder ao AI CoachCall</a>
                   </p>
 
                   <p style="text-align: center; color: #6b7280; font-size: 14px;">
@@ -388,7 +388,7 @@ router.post('/register', async (req, res: Response) => {
                   </p>
                 </div>
                 <div class="footer">
-                  <p>© ${new Date().getFullYear()} Callify - Sistema de Avaliação de Chamadas</p>
+                  <p>© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas</p>
                   <p>Este email foi enviado automaticamente. Por favor não responda.</p>
                 </div>
               </div>
@@ -488,9 +488,9 @@ router.post('/recover-password', async (req, res: Response) => {
     if (resend) {
       try {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Callify <noreply@callify.app>',
+          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@callify.app>',
           to: email,
-          subject: 'Recuperação de Password - Callify',
+          subject: 'Recuperação de Password - AI CoachCall',
           html: `
             <!DOCTYPE html>
             <html>
@@ -512,7 +512,7 @@ router.post('/recover-password', async (req, res: Response) => {
                 </div>
                 <div class="content">
                   <p>Olá <strong>${user.display_name || user.username}</strong>,</p>
-                  <p>Recebemos um pedido para recuperar a password da sua conta no Callify${user.companies?.name ? ` (${user.companies.name})` : ''}.</p>
+                  <p>Recebemos um pedido para recuperar a password da sua conta no AI CoachCall${user.companies?.name ? ` (${user.companies.name})` : ''}.</p>
                   <p>Clique no botão abaixo para definir uma nova password:</p>
                   <p style="text-align: center;">
                     <a href="${resetUrl}" class="button">Redefinir Password</a>
@@ -523,7 +523,7 @@ router.post('/recover-password', async (req, res: Response) => {
                   <p>Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
                 </div>
                 <div class="footer">
-                  <p>© ${new Date().getFullYear()} Callify - Sistema de Avaliação de Chamadas</p>
+                  <p>© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas</p>
                 </div>
               </div>
             </body>
