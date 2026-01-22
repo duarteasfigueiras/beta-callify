@@ -382,6 +382,13 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
     // Save criteria results
     for (const result of criteriaResults) {
       if (result.criterionId) {
+        // Get criterion name for historical reference
+        const { data: criterion } = await supabase
+          .from('criteria')
+          .select('name')
+          .eq('id', result.criterionId)
+          .single();
+
         // Delete existing result if any
         await supabase
           .from('call_criteria_results')
@@ -389,10 +396,11 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
           .eq('call_id', callId)
           .eq('criterion_id', result.criterionId);
 
-        // Insert new result
+        // Insert new result with criterion name for historical reference
         await supabase.from('call_criteria_results').insert({
           call_id: callId,
           criterion_id: result.criterionId,
+          criterion_name: criterion?.name || result.criterionName || null,
           passed: result.passed || false,
           justification: result.justification || '',
           timestamp_reference: result.timestampReference || null
@@ -607,9 +615,17 @@ router.post('/calls/complete', async (req: Request, res: Response) => {
     // Save criteria results
     for (const cr of criteriaResults) {
       if (cr.criterionId) {
+        // Get criterion name for historical reference
+        const { data: criterion } = await supabase
+          .from('criteria')
+          .select('name')
+          .eq('id', cr.criterionId)
+          .single();
+
         await supabase.from('call_criteria_results').insert({
           call_id: callId,
           criterion_id: cr.criterionId,
+          criterion_name: criterion?.name || cr.criterionName || null,
           passed: cr.passed || false,
           justification: cr.justification || '',
           timestamp_reference: cr.timestampReference || null
@@ -1390,9 +1406,17 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         const criterionId = cr.criterionId ?? cr.criterion_id;
         console.log('[n8n] Processing criterion:', { criterionId, passed: cr.passed, justification: cr.justification?.substring(0, 50) });
         if (criterionId) {
+          // Get criterion name for historical reference
+          const { data: criterion } = await supabase
+            .from('criteria')
+            .select('name')
+            .eq('id', criterionId)
+            .single();
+
           const { error: crError } = await supabase.from('call_criteria_results').insert({
             call_id: callId,
             criterion_id: criterionId,
+            criterion_name: criterion?.name || cr.criterionName ?? cr.criterion_name ?? null,
             passed: cr.passed ?? false,
             justification: cr.justification ?? '',
             timestamp_reference: cr.timestampReference ?? cr.timestamp_reference ?? null

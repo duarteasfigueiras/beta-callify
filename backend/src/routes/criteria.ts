@@ -308,7 +308,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     // Check criterion exists and belongs to company
     const { data: existing } = await supabase
       .from('criteria')
-      .select('id')
+      .select('id, name')
       .eq('id', criterionId)
       .eq('company_id', req.user!.companyId)
       .single();
@@ -317,16 +317,25 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       return res.status(404).json({ error: 'Criterion not found' });
     }
 
-    // First, delete all call_criteria_results that reference this criterion
-    // This is needed because the foreign key doesn't have ON DELETE CASCADE
-    const { error: resultsError } = await supabase
+    // Set criterion_id to NULL in call_criteria_results to preserve historical data
+    // The criterion_name field already stores the name, so results remain meaningful
+    const { error: updateError } = await supabase
       .from('call_criteria_results')
-      .delete()
+      .update({ criterion_id: null })
       .eq('criterion_id', criterionId);
 
-    if (resultsError) {
-      console.error('Error deleting criterion results:', resultsError);
-      // Continue anyway - the results table might not have any records
+    if (updateError) {
+      console.error('Error updating criterion results:', updateError);
+      // If update fails, it might be because the column doesn't allow NULL
+      // In that case, we need to delete the results (fallback)
+      const { error: deleteError } = await supabase
+        .from('call_criteria_results')
+        .delete()
+        .eq('criterion_id', criterionId);
+
+      if (deleteError) {
+        console.error('Error deleting criterion results:', deleteError);
+      }
     }
 
     // Now delete the criterion
