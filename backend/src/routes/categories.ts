@@ -288,13 +288,50 @@ router.put('/:key', requireRole('admin_manager', 'developer'), async (req: Authe
     // Check if the old category exists in metadata
     const { data: existingMetadata } = await supabase
       .from('category_metadata')
-      .select('id')
+      .select('id, name')
       .eq('company_id', companyId)
       .eq('key', oldKey)
       .limit(1);
 
-    if (!existingMetadata || existingMetadata.length === 0) {
-      return res.status(404).json({ error: 'Category not found' });
+    // If category doesn't exist in metadata, it might have been created from user custom_role_name
+    // In this case, we need to create the metadata entry first
+    let categoryExistsInMetadata = existingMetadata && existingMetadata.length > 0;
+
+    if (!categoryExistsInMetadata) {
+      // Check if category exists via users' custom_role_name
+      const { data: usersWithCategory } = await supabase
+        .from('users')
+        .select('custom_role_name')
+        .eq('company_id', companyId)
+        .not('custom_role_name', 'is', null);
+
+      const categoryFromUsers = usersWithCategory?.find(u => {
+        const userKey = normalizeKey(u.custom_role_name || '');
+        return userKey === oldKey;
+      });
+
+      if (!categoryFromUsers) {
+        return res.status(404).json({ error: 'Category not found' });
+      }
+
+      // Create the metadata entry for this category
+      const defaultColorId = PREDEFINED_COLORS[0].id;
+      const { error: createError } = await supabase
+        .from('category_metadata')
+        .insert({
+          company_id: companyId,
+          key: oldKey,
+          name: categoryFromUsers.custom_role_name,
+          color_id: defaultColorId
+        });
+
+      if (createError) {
+        console.error('Error creating category metadata:', createError);
+        return res.status(500).json({ error: 'Failed to initialize category' });
+      }
+
+      categoryExistsInMetadata = true;
+      console.log(`Created metadata entry for category "${oldKey}" from user custom_role_name`);
     }
 
     // If key is changing, check if new key already exists
