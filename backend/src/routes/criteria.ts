@@ -317,6 +317,19 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       return res.status(404).json({ error: 'Criterion not found' });
     }
 
+    // First, delete all call_criteria_results that reference this criterion
+    // This is needed because the foreign key doesn't have ON DELETE CASCADE
+    const { error: resultsError } = await supabase
+      .from('call_criteria_results')
+      .delete()
+      .eq('criterion_id', criterionId);
+
+    if (resultsError) {
+      console.error('Error deleting criterion results:', resultsError);
+      // Continue anyway - the results table might not have any records
+    }
+
+    // Now delete the criterion
     const { error } = await supabase
       .from('criteria')
       .delete()
