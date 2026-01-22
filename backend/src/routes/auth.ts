@@ -108,18 +108,18 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // SECURITY: Check rate limit (by IP + email combination for better protection)
-    const clientIP = getClientIP(req);
-    const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
-    const rateLimit = checkRateLimit(rateLimitKey);
+    // SECURITY: Rate limiting temporarily disabled
+    // const clientIP = getClientIP(req);
+    // const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
+    // const rateLimit = checkRateLimit(rateLimitKey);
 
-    if (!rateLimit.allowed) {
-      res.setHeader('Retry-After', rateLimit.retryAfterSeconds?.toString() || '900');
-      return res.status(429).json({
-        error: 'Too many login attempts. Please try again later.',
-        retryAfterSeconds: rateLimit.retryAfterSeconds
-      });
-    }
+    // if (!rateLimit.allowed) {
+    //   res.setHeader('Retry-After', rateLimit.retryAfterSeconds?.toString() || '900');
+    //   return res.status(429).json({
+    //     error: 'Too many login attempts. Please try again later.',
+    //     retryAfterSeconds: rateLimit.retryAfterSeconds
+    //   });
+    // }
 
     // Find user by email first, then fallback to username
     let user = null;
@@ -147,25 +147,18 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     if (error || !user) {
-      // Don't reset rate limit on failed attempt
       return res.status(401).json({
-        error: 'Invalid email or password',
-        remainingAttempts: rateLimit.remainingAttempts
+        error: 'Invalid email or password'
       });
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      // Don't reset rate limit on failed attempt
       return res.status(401).json({
-        error: 'Invalid email or password',
-        remainingAttempts: rateLimit.remainingAttempts
+        error: 'Invalid email or password'
       });
     }
-
-    // SECURITY: Reset rate limit on successful login
-    resetRateLimit(rateLimitKey);
 
     // Generate JWT token
     const payload: JWTPayload = {
