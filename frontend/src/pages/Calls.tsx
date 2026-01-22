@@ -100,12 +100,18 @@ export default function Calls() {
           score_max?: number;
           sort_by?: string;
           sort_order?: string;
+          direction?: string;
         } = {
           page,
           limit: 10,
           sort_by: sortBy,
           sort_order: sortOrder,
         };
+
+        // Filter by direction (tab) - only send if not 'all'
+        if (activeTab !== 'all') {
+          params.direction = activeTab;
+        }
 
         if (dateFrom) {
           params.date_from = dateFrom;
@@ -136,7 +142,7 @@ export default function Calls() {
     };
 
     fetchCalls();
-  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder]);
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, activeTab]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -241,15 +247,9 @@ export default function Calls() {
       : <ArrowDown className="w-4 h-4 ml-1" />;
   };
 
+  // Direction filtering is now done server-side via the API
+  // Only filter by search term locally
   const filteredCalls = calls.filter(call => {
-    // Filter by tab (direction) - 'all' shows everything
-    if (activeTab !== 'all') {
-      if (activeTab === 'inbound' && call.direction !== 'inbound') return false;
-      if (activeTab === 'outbound' && call.direction !== 'outbound') return false;
-      if (activeTab === 'meeting' && call.direction !== 'meeting') return false;
-    }
-
-    // Filter by search term
     return call.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (call.agent_name && call.agent_name.toLowerCase().includes(searchTerm.toLowerCase()));
   });

@@ -1,9 +1,88 @@
 import { Router, Request, Response } from 'express';
-import { dbGet } from '../db/database';
+import { supabase } from '../db/supabase';
 import { processCall, simulateTwilioWebhook } from '../services/callProcessor';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
+
+/**
+ * Determine call direction from Twilio webhook data
+ * - 'inbound': Call received on your Twilio number from external caller
+ * - 'outbound': Call initiated via Twilio API to external number
+ * - 'meeting': Conference call or call between two internal numbers
+ */
+function determineCallDirection(
+  twilioDirection: string,
+  from: string,
+  to: string,
+  isConference?: boolean
+): 'inbound' | 'outbound' | 'meeting' {
+  // Conference calls are meetings
+  if (isConference) {
+    return 'meeting';
+  }
+
+  // Twilio direction values:
+  // - 'inbound': Someone called your Twilio number
+  // - 'outbound-api': You initiated a call via API
+  // - 'outbound-dial': Call leg created by <Dial>
+
+  if (twilioDirection === 'inbound') {
+    return 'inbound';
+  }
+
+  if (twilioDirection === 'outbound-api' || twilioDirection === 'outbound-dial') {
+    return 'outbound';
+  }
+
+  // Fallback: check if it looks like an internal call (both numbers are company numbers)
+  // This would need company phone number configuration
+  return 'inbound';
+}
+
+/**
+ * Find agent by phone number
+ * Matches the phone number (From for outbound, To for inbound) to an agent
+ */
+async function findAgentByPhone(
+  companyId: number,
+  phoneNumber: string,
+  direction: 'inbound' | 'outbound' | 'meeting'
+): Promise<{ id: number } | null> {
+  // Normalize phone number (remove spaces, dashes)
+  const normalizedPhone = phoneNumber?.replace(/[\s\-\(\)]/g, '');
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  // Try to find agent by phone number
+  const { data: agent } = await supabase
+    .from('users')
+    .select('id, phone_number')
+    .eq('company_id', companyId)
+    .eq('role', 'agent')
+    .not('phone_number', 'is', null);
+
+  if (agent && agent.length > 0) {
+    // Find agent whose phone matches
+    const matchedAgent = agent.find(a => {
+      const agentPhone = a.phone_number?.replace(/[\s\-\(\)]/g, '');
+      // Check various formats
+      return agentPhone === normalizedPhone ||
+             agentPhone === normalizedPhone.replace('+351', '') ||
+             normalizedPhone === agentPhone?.replace('+351', '') ||
+             normalizedPhone.endsWith(agentPhone || '') ||
+             agentPhone?.endsWith(normalizedPhone);
+    });
+
+    if (matchedAgent) {
+      return { id: matchedAgent.id };
+    }
+  }
+
+  return null;
+}
 
 /**
  * Twilio webhook endpoint
@@ -13,9 +92,11 @@ const router = Router();
  * - CallSid: Twilio call SID
  * - From: Caller phone number
  * - To: Called phone number
- * - Direction: inbound or outbound-api
+ * - Direction: inbound, outbound-api, or outbound-dial
  * - CallDuration: Duration in seconds
  * - RecordingUrl: URL to the recording file
+ * - StatusCallbackEvent: Type of event (e.g., 'recording-completed')
+ * - ConferenceSid: Present if this is a conference call
  */
 router.post('/twilio', async (req: Request, res: Response) => {
   try {
@@ -28,123 +109,89 @@ router.post('/twilio', async (req: Request, res: Response) => {
       Direction,
       CallDuration,
       RecordingUrl,
-      AccountSid
+      AccountSid,
+      ConferenceSid,
+      // Recording-specific fields
+      RecordingSid,
+      RecordingStatus
     } = req.body;
 
-    // Validate Twilio signature (in production, verify with Twilio SDK)
-    // const twilioSignature = req.headers['x-twilio-signature'];
-    // if (!validateTwilioSignature(twilioSignature, req.originalUrl, req.body)) {
-    //   return res.status(403).json({ error: 'Invalid signature' });
-    // }
+    // Skip if this is just a status update, not a completed recording
+    if (RecordingStatus && RecordingStatus !== 'completed') {
+      console.log(`[Webhook] Skipping recording status: ${RecordingStatus}`);
+      return res.status(200).send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+    }
+
+    // Determine call direction automatically
+    const isConference = !!ConferenceSid;
+    const callDirection = determineCallDirection(Direction, From, To, isConference);
+
+    console.log(`[Webhook] Call direction detected: ${callDirection} (Twilio: ${Direction}, Conference: ${isConference})`);
 
     // Find company by Twilio Account SID or use default company
-    // In production, map AccountSid to company
-    const company = await dbGet<{ id: number }>(
-      'SELECT id FROM companies LIMIT 1'
-    );
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id')
+      .limit(1)
+      .single();
 
     if (!company) {
       console.error('[Webhook] No company found');
       return res.status(500).json({ error: 'No company configured' });
     }
 
-    // Find an agent to assign the call to
-    // In production, map phone number To to specific agent
-    const agent = await dbGet<{ id: number }>(
-      'SELECT id FROM users WHERE company_id = ? AND role = ? LIMIT 1',
-      [company.id, 'agent']
-    );
+    // Determine which phone number belongs to the agent based on direction
+    // For inbound: the 'To' number is the agent's Twilio number, but we need to find agent by their personal phone
+    // For outbound: the 'From' might be the agent's number
+    // Best approach: check both numbers against agent phone numbers
+    let agent = await findAgentByPhone(company.id, To, callDirection);
+    if (!agent) {
+      agent = await findAgentByPhone(company.id, From, callDirection);
+    }
+
+    // Fallback: get first available agent
+    if (!agent) {
+      const { data: fallbackAgent } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', company.id)
+        .eq('role', 'agent')
+        .limit(1)
+        .single();
+
+      if (fallbackAgent) {
+        agent = fallbackAgent;
+        console.log(`[Webhook] Using fallback agent: ${agent.id}`);
+      }
+    }
 
     if (!agent) {
       console.error('[Webhook] No agent found for company:', company.id);
       return res.status(500).json({ error: 'No agent found' });
     }
 
+    // Determine the customer phone number based on direction
+    // Inbound: customer is calling (From), agent receives (To)
+    // Outbound: agent is calling (From), customer receives (To)
+    const customerPhone = callDirection === 'inbound' ? From : To;
+
     // Process the call
     const result = await processCall({
       companyId: company.id,
       agentId: agent.id,
-      phoneNumber: From || '+351000000000',
-      direction: Direction === 'outbound-api' ? 'outbound' : 'inbound',
-      durationSeconds: parseInt(CallDuration) || 120,
+      phoneNumber: customerPhone || '+351000000000',
+      direction: callDirection,
+      durationSeconds: parseInt(CallDuration) || 0,
       audioUrl: RecordingUrl,
       callSid: CallSid
     });
 
-    console.log('[Webhook] Call processed successfully:', result.callId);
+    console.log(`[Webhook] Call processed: ID=${result.callId}, Direction=${callDirection}, Agent=${agent.id}`);
 
     // Twilio expects TwiML response or empty 200
     res.status(200).send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
   } catch (error) {
     console.error('[Webhook] Error processing Twilio webhook:', error);
-    res.status(500).json({ error: 'Failed to process webhook' });
-  }
-});
-
-/**
- * Telnyx webhook endpoint
- * Receives call recording events from Telnyx
- *
- * Expected payload:
- * - data.payload.call_control_id: Telnyx call ID
- * - data.payload.from: Caller phone number
- * - data.payload.to: Called phone number
- * - data.payload.direction: inbound or outgoing
- * - data.payload.call_duration_secs: Duration in seconds
- * - data.payload.recording_urls.mp3: URL to the recording
- */
-router.post('/telnyx', async (req: Request, res: Response) => {
-  try {
-    console.log('[Webhook] Received Telnyx webhook:', JSON.stringify(req.body, null, 2));
-
-    const payload = req.body.data?.payload || req.body;
-
-    const {
-      call_control_id,
-      from,
-      to,
-      direction,
-      call_duration_secs,
-      recording_urls
-    } = payload;
-
-    // Find company (in production, map Telnyx account to company)
-    const company = await dbGet<{ id: number }>(
-      'SELECT id FROM companies LIMIT 1'
-    );
-
-    if (!company) {
-      console.error('[Webhook] No company found');
-      return res.status(500).json({ error: 'No company configured' });
-    }
-
-    // Find an agent
-    const agent = await dbGet<{ id: number }>(
-      'SELECT id FROM users WHERE company_id = ? AND role = ? LIMIT 1',
-      [company.id, 'agent']
-    );
-
-    if (!agent) {
-      console.error('[Webhook] No agent found for company:', company.id);
-      return res.status(500).json({ error: 'No agent found' });
-    }
-
-    // Process the call
-    const result = await processCall({
-      companyId: company.id,
-      agentId: agent.id,
-      phoneNumber: from || '+351000000000',
-      direction: direction === 'outgoing' ? 'outbound' : 'inbound',
-      durationSeconds: parseInt(call_duration_secs) || 120,
-      audioUrl: recording_urls?.mp3,
-      callId: call_control_id
-    });
-
-    console.log('[Webhook] Call processed successfully:', result.callId);
-
-    res.status(200).json({ success: true, callId: result.callId });
-  } catch (error) {
-    console.error('[Webhook] Error processing Telnyx webhook:', error);
     res.status(500).json({ error: 'Failed to process webhook' });
   }
 });
@@ -173,10 +220,14 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
     // Use provided agent or find one
     let targetAgentId = agentId;
     if (!targetAgentId) {
-      const agent = await dbGet<{ id: number }>(
-        'SELECT id FROM users WHERE company_id = ? AND role = ? LIMIT 1',
-        [req.user!.companyId, 'agent']
-      );
+      const { data: agent } = await supabase
+        .from('users')
+        .select('id')
+        .eq('company_id', req.user!.companyId)
+        .eq('role', 'agent')
+        .limit(1)
+        .single();
+
       if (agent) {
         targetAgentId = agent.id;
       } else {
@@ -189,7 +240,12 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
     // For developer users without a company, we need to get a company first
     let targetCompanyId = req.user!.companyId;
     if (!targetCompanyId) {
-      const company = await dbGet<{ id: number }>('SELECT id FROM companies LIMIT 1');
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .limit(1)
+        .single();
+
       if (!company) {
         return res.status(400).json({ error: 'No company available for simulation' });
       }
@@ -235,7 +291,6 @@ router.get('/health', (req: Request, res: Response) => {
     status: 'ok',
     endpoints: {
       twilio: 'POST /api/webhooks/twilio',
-      telnyx: 'POST /api/webhooks/telnyx',
       simulate: 'POST /api/webhooks/simulate (requires auth)'
     },
     timestamp: new Date().toISOString()
