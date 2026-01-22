@@ -1416,7 +1416,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
           const { error: crError } = await supabase.from('call_criteria_results').insert({
             call_id: callId,
             criterion_id: criterionId,
-            criterion_name: criterion?.name || cr.criterionName ?? cr.criterion_name ?? null,
+            criterion_name: criterion?.name || (cr.criterionName ?? cr.criterion_name ?? null),
             passed: cr.passed ?? false,
             justification: cr.justification ?? '',
             timestamp_reference: cr.timestampReference ?? cr.timestamp_reference ?? null
