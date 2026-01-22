@@ -294,6 +294,124 @@ router.post('/register', async (req, res: Response) => {
       .update({ used: true })
       .eq('id', invitation.id);
 
+    // Get company name for welcome email
+    const { data: company } = await supabase
+      .from('companies')
+      .select('name')
+      .eq('id', invitation.company_id)
+      .single();
+
+    const companyName = company?.name || 'Callify';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const loginUrl = `${frontendUrl}/login`;
+
+    // Send welcome email
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Callify <noreply@callify.app>',
+          to: email,
+          subject: `Bem-vindo ao Callify - ${companyName}`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                .header h1 { margin: 0; font-size: 28px; }
+                .header p { margin: 10px 0 0 0; opacity: 0.9; }
+                .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                .welcome-box { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                .feature { display: flex; align-items: flex-start; margin-bottom: 15px; }
+                .feature-icon { background: #dcfce7; color: #16a34a; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 16px; flex-shrink: 0; }
+                .feature-text { flex: 1; }
+                .feature-text strong { color: #15803d; }
+                .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                .button:hover { background: #15803d; }
+                .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🎉 Bem-vindo ao Callify!</h1>
+                  <p>A sua conta foi criada com sucesso</p>
+                </div>
+                <div class="content">
+                  <div class="welcome-box">
+                    <p>Olá <strong>${display_name?.trim() || 'Utilizador'}</strong>,</p>
+                    <p>A sua conta no <strong>Callify</strong> foi criada com sucesso para a empresa <strong>${companyName}</strong>.</p>
+                    <p>Agora pode começar a utilizar o sistema de avaliação de chamadas para melhorar o desempenho da sua equipa.</p>
+                  </div>
+
+                  <h3 style="color: #15803d; margin-bottom: 15px;">O que pode fazer no Callify:</h3>
+
+                  <div class="feature">
+                    <div class="feature-icon">📞</div>
+                    <div class="feature-text">
+                      <strong>Análise de Chamadas</strong><br>
+                      Avaliação automática das suas chamadas com IA
+                    </div>
+                  </div>
+
+                  <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">
+                      <strong>Dashboard Personalizado</strong><br>
+                      Acompanhe o seu desempenho e evolução
+                    </div>
+                  </div>
+
+                  <div class="feature">
+                    <div class="feature-icon">💡</div>
+                    <div class="feature-text">
+                      <strong>Feedback Inteligente</strong><br>
+                      Receba sugestões para melhorar as suas chamadas
+                    </div>
+                  </div>
+
+                  <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-text">
+                      <strong>Critérios Personalizados</strong><br>
+                      Avaliação baseada nos critérios da sua empresa
+                    </div>
+                  </div>
+
+                  <div class="info-box">
+                    <strong>📧 O seu email de acesso:</strong> ${email}
+                  </div>
+
+                  <p style="text-align: center;">
+                    <a href="${loginUrl}" class="button">Aceder ao Callify</a>
+                  </p>
+
+                  <p style="text-align: center; color: #6b7280; font-size: 14px;">
+                    Se tiver alguma dúvida, contacte o administrador da sua empresa.
+                  </p>
+                </div>
+                <div class="footer">
+                  <p>© ${new Date().getFullYear()} Callify - Sistema de Avaliação de Chamadas</p>
+                  <p>Este email foi enviado automaticamente. Por favor não responda.</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `
+        });
+        console.log(`[Auth] Welcome email sent to: ${email}`);
+      } catch (emailError) {
+        // Don't fail registration if email fails
+        console.error('[Auth] Failed to send welcome email:', emailError);
+      }
+    } else {
+      console.log(`[Auth] Welcome email skipped (no Resend API key configured) for: ${email}`);
+    }
+
     return res.json({ message: 'Registration successful. You can now login.' });
   } catch (error) {
     console.error('Registration error:', error);
