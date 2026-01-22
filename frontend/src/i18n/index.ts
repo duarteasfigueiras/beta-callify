@@ -36,6 +36,9 @@ const resources = {
         invalidCredentials: 'Invalid email or password',
         recoveryEmailSent: 'If the email is registered, password reset instructions will be sent.',
         rememberMe: 'Keep me signed in',
+        tooManyAttempts: 'Too many login attempts. Please try again in {{minutes}} minutes.',
+        remainingAttempts: '{{count}} attempts remaining',
+        blocked: 'Account temporarily blocked',
         // New fields for registration
         firstName: 'First Name',
         firstNamePlaceholder: 'First name',
@@ -523,6 +526,9 @@ const resources = {
         invalidCredentials: 'Email ou palavra-passe inválidos',
         recoveryEmailSent: 'Se o email estiver registado, as instruções de recuperação serão enviadas.',
         rememberMe: 'Manter sessão iniciada',
+        tooManyAttempts: 'Demasiadas tentativas de login. Tente novamente em {{minutes}} minutos.',
+        remainingAttempts: '{{count}} tentativas restantes',
+        blocked: 'Conta temporariamente bloqueada',
         // Novos campos para registo
         firstName: 'Primeiro Nome',
         firstNamePlaceholder: 'Primeiro nome',

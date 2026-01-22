@@ -27,25 +27,43 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setRemainingAttempts(null);
     setIsLoading(true);
 
     try {
       await login({ email, password }, rememberMe);
       // Redirect to the intended page or home
       navigate(from, { replace: true });
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError(t('auth.invalidCredentials'));
+      const response = err?.response?.data;
+
+      if (err?.response?.status === 429) {
+        // Rate limited
+        const retryAfter = response?.retryAfterSeconds || 900;
+        setBlockedUntil(Date.now() + retryAfter * 1000);
+        setError(t('auth.tooManyAttempts', 'Too many login attempts. Please try again in {{minutes}} minutes.').replace('{{minutes}}', Math.ceil(retryAfter / 60).toString()));
+      } else {
+        setError(t('auth.invalidCredentials'));
+        if (response?.remainingAttempts !== undefined) {
+          setRemainingAttempts(response.remainingAttempts);
+        }
+      }
       setPassword(''); // Clear password on error
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Check if still blocked
+  const isBlocked = blockedUntil && Date.now() < blockedUntil;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 p-4">
@@ -66,6 +84,11 @@ export default function Login() {
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
                 {error}
+                {remainingAttempts !== null && remainingAttempts > 0 && (
+                  <p className="mt-1 text-xs">
+                    {t('auth.remainingAttempts', '{{count}} attempts remaining').replace('{{count}}', remainingAttempts.toString())}
+                  </p>
+                )}
               </div>
             )}
 
@@ -117,9 +140,9 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700"
-              disabled={isLoading}
+              disabled={isLoading || isBlocked}
             >
-              {isLoading ? t('auth.loggingIn') : t('auth.loginButton')}
+              {isLoading ? t('auth.loggingIn') : isBlocked ? t('auth.blocked', 'Account temporarily blocked') : t('auth.loginButton')}
             </Button>
 
             <div className="text-center">

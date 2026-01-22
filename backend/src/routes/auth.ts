@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Resend } from 'resend';
@@ -21,8 +21,83 @@ const router = Router();
 // Initialize Resend for email sending (optional - works without API key in dev mode)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// ============================================
+// RATE LIMITING: 8 attempts per 15 minutes
+// ============================================
+interface RateLimitEntry {
+  attempts: number;
+  firstAttempt: number;
+  blockedUntil?: number;
+}
+
+const loginAttempts = new Map<string, RateLimitEntry>();
+const RATE_LIMIT_MAX_ATTEMPTS = 8;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes block
+
+// Get client IP from request (handles proxies)
+function getClientIP(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = (typeof forwarded === 'string' ? forwarded : forwarded[0]).split(',');
+    return ips[0].trim();
+  }
+  return req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+// Check and update rate limit
+function checkRateLimit(identifier: string): { allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number } {
+  const now = Date.now();
+  const entry = loginAttempts.get(identifier);
+
+  // Clean up old entries periodically
+  if (loginAttempts.size > 10000) {
+    for (const [key, value] of loginAttempts.entries()) {
+      if (now - value.firstAttempt > RATE_LIMIT_WINDOW_MS * 2) {
+        loginAttempts.delete(key);
+      }
+    }
+  }
+
+  if (!entry) {
+    // First attempt
+    loginAttempts.set(identifier, { attempts: 1, firstAttempt: now });
+    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - 1 };
+  }
+
+  // Check if currently blocked
+  if (entry.blockedUntil && now < entry.blockedUntil) {
+    const retryAfterSeconds = Math.ceil((entry.blockedUntil - now) / 1000);
+    return { allowed: false, remainingAttempts: 0, retryAfterSeconds };
+  }
+
+  // Check if window has expired - reset counter
+  if (now - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    loginAttempts.set(identifier, { attempts: 1, firstAttempt: now });
+    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - 1 };
+  }
+
+  // Increment attempts
+  entry.attempts++;
+
+  if (entry.attempts > RATE_LIMIT_MAX_ATTEMPTS) {
+    // Block the user
+    entry.blockedUntil = now + RATE_LIMIT_BLOCK_DURATION_MS;
+    const retryAfterSeconds = Math.ceil(RATE_LIMIT_BLOCK_DURATION_MS / 1000);
+    console.log(`[Auth] Rate limit exceeded for: ${identifier}`);
+    return { allowed: false, remainingAttempts: 0, retryAfterSeconds };
+  }
+
+  return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - entry.attempts };
+}
+
+// Reset rate limit on successful login
+function resetRateLimit(identifier: string): void {
+  loginAttempts.delete(identifier);
+}
+
 // Login - supports both email and username for backwards compatibility
-router.post('/login', async (req, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, username, password } = req.body;
 
@@ -31,6 +106,19 @@ router.post('/login', async (req, res: Response) => {
 
     if (!loginIdentifier || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // SECURITY: Check rate limit (by IP + email combination for better protection)
+    const clientIP = getClientIP(req);
+    const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
+    const rateLimit = checkRateLimit(rateLimitKey);
+
+    if (!rateLimit.allowed) {
+      res.setHeader('Retry-After', rateLimit.retryAfterSeconds?.toString() || '900');
+      return res.status(429).json({
+        error: 'Too many login attempts. Please try again later.',
+        retryAfterSeconds: rateLimit.retryAfterSeconds
+      });
     }
 
     // Find user by email first, then fallback to username
@@ -59,14 +147,25 @@ router.post('/login', async (req, res: Response) => {
     }
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      // Don't reset rate limit on failed attempt
+      return res.status(401).json({
+        error: 'Invalid email or password',
+        remainingAttempts: rateLimit.remainingAttempts
+      });
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      // Don't reset rate limit on failed attempt
+      return res.status(401).json({
+        error: 'Invalid email or password',
+        remainingAttempts: rateLimit.remainingAttempts
+      });
     }
+
+    // SECURITY: Reset rate limit on successful login
+    resetRateLimit(rateLimitKey);
 
     // Generate JWT token
     const payload: JWTPayload = {
