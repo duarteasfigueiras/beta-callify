@@ -179,4 +179,146 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
   }
 });
 
+// Generate alerts from existing calls based on alert_settings (admin only)
+router.post('/generate', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user!.companyId;
+
+    // Get alert settings for the company (or use defaults)
+    const { data: alertSettings } = await supabase
+      .from('alert_settings')
+      .select('*')
+      .eq('company_id', companyId)
+      .single();
+
+    // Get thresholds from settings
+    const lowScoreThreshold = alertSettings?.low_score_threshold || 5.0;
+    const longDurationMinutes = alertSettings?.long_duration_threshold_minutes || 30;
+    const longDurationThreshold = longDurationMinutes * 60; // Convert to seconds
+
+    // Get enabled flags
+    const lowScoreEnabled = alertSettings?.low_score_enabled ?? true;
+    const riskWordsEnabled = alertSettings?.risk_words_enabled ?? true;
+    const longDurationEnabled = alertSettings?.long_duration_enabled ?? true;
+    const noNextStepEnabled = alertSettings?.no_next_step_enabled ?? true;
+
+    // Get all calls from the company
+    const { data: calls, error: callsError } = await supabase
+      .from('calls')
+      .select('id, agent_id, final_score, duration_seconds, next_step_recommendation, risk_words_detected')
+      .eq('company_id', companyId);
+
+    if (callsError) throw callsError;
+
+    if (!calls || calls.length === 0) {
+      return res.json({ message: 'No calls found to analyze', alertsCreated: 0 });
+    }
+
+    // Delete existing alerts for this company to avoid duplicates
+    await supabase.from('alerts').delete().eq('company_id', companyId);
+
+    const alertsToInsert: any[] = [];
+
+    for (const call of calls) {
+      // Check for low score
+      if (lowScoreEnabled && call.final_score !== null && call.final_score < lowScoreThreshold) {
+        alertsToInsert.push({
+          company_id: companyId,
+          call_id: call.id,
+          agent_id: call.agent_id,
+          type: 'low_score',
+          message: `Chamada com pontuação baixa: ${call.final_score.toFixed(1)}/10. Necessita revisão.`,
+          is_read: false
+        });
+      }
+
+      // Check for risk words
+      if (riskWordsEnabled) {
+        let riskWords: string[] = [];
+        if (call.risk_words_detected) {
+          try {
+            riskWords = typeof call.risk_words_detected === 'string'
+              ? JSON.parse(call.risk_words_detected)
+              : call.risk_words_detected;
+          } catch {
+            riskWords = [];
+          }
+        }
+
+        if (riskWords.length > 0) {
+          alertsToInsert.push({
+            company_id: companyId,
+            call_id: call.id,
+            agent_id: call.agent_id,
+            type: 'risk_words',
+            message: `Palavras de risco detetadas: ${riskWords.slice(0, 5).join(', ')}`,
+            is_read: false
+          });
+        }
+      }
+
+      // Check for long duration
+      if (longDurationEnabled && call.duration_seconds && call.duration_seconds > longDurationThreshold) {
+        const minutes = Math.floor(call.duration_seconds / 60);
+        alertsToInsert.push({
+          company_id: companyId,
+          call_id: call.id,
+          agent_id: call.agent_id,
+          type: 'long_duration',
+          message: `Chamada com duração excessiva: ${minutes} minutos.`,
+          is_read: false
+        });
+      }
+
+      // Check for no next step
+      if (noNextStepEnabled && (!call.next_step_recommendation || call.next_step_recommendation.trim() === '')) {
+        alertsToInsert.push({
+          company_id: companyId,
+          call_id: call.id,
+          agent_id: call.agent_id,
+          type: 'no_next_step',
+          message: 'Próximo passo não definido na chamada.',
+          is_read: false
+        });
+      }
+    }
+
+    if (alertsToInsert.length === 0) {
+      return res.json({
+        message: 'No alerts to create based on current criteria',
+        alertsCreated: 0,
+        callsAnalyzed: calls.length
+      });
+    }
+
+    // Insert alerts
+    const { error: insertError } = await supabase.from('alerts').insert(alertsToInsert);
+    if (insertError) throw insertError;
+
+    // Count by type
+    const summary: Record<string, number> = {};
+    alertsToInsert.forEach(alert => {
+      summary[alert.type] = (summary[alert.type] || 0) + 1;
+    });
+
+    res.json({
+      message: `Generated ${alertsToInsert.length} alerts`,
+      alertsCreated: alertsToInsert.length,
+      callsAnalyzed: calls.length,
+      byType: summary,
+      settings: {
+        lowScoreThreshold,
+        longDurationMinutes,
+        lowScoreEnabled,
+        riskWordsEnabled,
+        longDurationEnabled,
+        noNextStepEnabled
+      }
+    });
+  } catch (error) {
+    console.error('Error generating alerts:', error);
+    res.status(500).json({ error: 'Failed to generate alerts' });
+  }
+});
+
 export default router;
