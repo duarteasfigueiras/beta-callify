@@ -354,7 +354,7 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('dashboard.recentCalls')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[240px]">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[260px]">
               {recentCalls.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('calls.noCallsFound')}
@@ -396,7 +396,7 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('alerts.title')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[240px]">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[260px]">
               {alerts.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('common.noResults')}
