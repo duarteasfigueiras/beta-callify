@@ -354,13 +354,13 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('dashboard.recentCalls')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[260px]">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[270px]">
               {recentCalls.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('calls.noCallsFound')}
                 </div>
               ) : (
-                <div className="space-y-2 pb-2">
+                <div className="space-y-2 pb-4">
                   {recentCalls.map((call: any) => (
                     <div
                       key={call.id}
@@ -396,13 +396,13 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('alerts.title')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[260px]">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[270px]">
               {alerts.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('common.noResults')}
                 </div>
               ) : (
-                <div className="space-y-2 pb-2">
+                <div className="space-y-2 pb-4">
                   {alerts.map((alert: any) => (
                     <div
                       key={alert.id}
