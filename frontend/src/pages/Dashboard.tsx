@@ -75,8 +75,8 @@ export default function Dashboard() {
         // Base promises for all users
         const basePromises = [
           dashboardApi.getOverview(getDateRange()),
-          dashboardApi.getRecentCalls(4),
-          dashboardApi.getAlerts(4),
+          dashboardApi.getRecentCalls(10),
+          dashboardApi.getAlerts(10),
           dashboardApi.getScoreEvolution(getDaysFromRange()),
         ];
 
@@ -354,18 +354,18 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('dashboard.recentCalls')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-2">
+            <CardContent className="flex-1 overflow-y-auto p-2">
               {recentCalls.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('calls.noCallsFound')}
                 </div>
               ) : (
-                <div className="space-y-2 overflow-hidden">
+                <div className="space-y-2">
                   {recentCalls.map((call: any) => (
                     <div
                       key={call.id}
                       onClick={() => navigate(`/calls/${call.id}`)}
-                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ export default function Dashboard() {
                     <div
                       key={alert.id}
                       onClick={() => handleAlertClick(alert)}
-                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
+                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity shrink-0 ${
                         alert.is_read
                           ? 'bg-gray-50 dark:bg-gray-800'
                           : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
