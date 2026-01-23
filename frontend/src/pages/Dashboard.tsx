@@ -354,18 +354,18 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('dashboard.recentCalls')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-2 pb-0">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2">
               {recentCalls.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('calls.noCallsFound')}
                 </div>
               ) : (
-                <div className="space-y-2 pb-2">
+                <div className="space-y-2">
                   {recentCalls.map((call: any) => (
                     <div
                       key={call.id}
                       onClick={() => navigate(`/calls/${call.id}`)}
-                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0 min-h-[52px]"
+                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -396,18 +396,18 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0">
               <CardTitle className="text-base">{t('alerts.title')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-2 pb-0">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-2">
               {alerts.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
                   {t('common.noResults')}
                 </div>
               ) : (
-                <div className="space-y-2 pb-2">
+                <div className="space-y-2">
                   {alerts.map((alert: any) => (
                     <div
                       key={alert.id}
                       onClick={() => handleAlertClick(alert)}
-                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity shrink-0 min-h-[52px] ${
+                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${
                         alert.is_read
                           ? 'bg-gray-50 dark:bg-gray-800'
                           : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
