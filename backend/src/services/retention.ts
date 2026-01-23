@@ -1,4 +1,4 @@
-import { dbRun, dbAll } from '../db/database';
+import { supabase } from '../db/supabase';
 import fs from 'fs';
 import path from 'path';
 
@@ -28,12 +28,16 @@ export async function cleanupExpiredCalls(): Promise<{ deletedCount: number; err
     console.log(`[Retention] Running cleanup for calls older than ${RETENTION_DAYS} days (before ${cutoffDateStr})`);
 
     // Find all calls older than the retention period
-    const expiredCalls = await dbAll<ExpiredCall>(
-      `SELECT id, audio_file_path FROM calls WHERE call_date < ?`,
-      [cutoffDateStr]
-    );
+    const { data: expiredCalls, error: fetchError } = await supabase
+      .from('calls')
+      .select('id, audio_file_path')
+      .lt('call_date', cutoffDateStr);
 
-    if (expiredCalls.length === 0) {
+    if (fetchError) {
+      throw new Error(`Failed to fetch expired calls: ${fetchError.message}`);
+    }
+
+    if (!expiredCalls || expiredCalls.length === 0) {
       console.log('[Retention] No expired calls found');
       return { deletedCount: 0, errors: [] };
     }
@@ -41,7 +45,7 @@ export async function cleanupExpiredCalls(): Promise<{ deletedCount: number; err
     console.log(`[Retention] Found ${expiredCalls.length} expired calls to delete`);
 
     // Delete audio files first
-    for (const call of expiredCalls) {
+    for (const call of expiredCalls as ExpiredCall[]) {
       if (call.audio_file_path) {
         try {
           const audioPath = path.join(__dirname, '..', '..', call.audio_file_path);
@@ -58,12 +62,16 @@ export async function cleanupExpiredCalls(): Promise<{ deletedCount: number; err
     }
 
     // Delete call records (cascades to call_criteria_results, call_feedback, alerts due to ON DELETE CASCADE)
-    const result = await dbRun(
-      `DELETE FROM calls WHERE call_date < ?`,
-      [cutoffDateStr]
-    );
+    const { error: deleteError } = await supabase
+      .from('calls')
+      .delete()
+      .lt('call_date', cutoffDateStr);
 
-    deletedCount = result.changes || 0;
+    if (deleteError) {
+      throw new Error(`Failed to delete expired calls: ${deleteError.message}`);
+    }
+
+    deletedCount = expiredCalls.length;
     console.log(`[Retention] Deleted ${deletedCount} expired call records`);
 
     return { deletedCount, errors };

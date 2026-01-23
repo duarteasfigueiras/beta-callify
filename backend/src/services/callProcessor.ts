@@ -1,4 +1,4 @@
-import { dbRun, dbGet, dbAll } from '../db/database';
+import { supabase } from '../db/supabase';
 import path from 'path';
 import fs from 'fs';
 
@@ -21,7 +21,11 @@ const LONG_CALL_THRESHOLD_SECONDS = parseInt(process.env.LONG_CALL_THRESHOLD_SEC
  * Helper to get agent's category from custom_role_name
  */
 async function getAgentCategory(agentId: number): Promise<string | null> {
-  const agent = await dbGet<{ custom_role_name: string | null }>('SELECT custom_role_name FROM users WHERE id = ?', [agentId]);
+  const { data: agent } = await supabase
+    .from('users')
+    .select('custom_role_name')
+    .eq('id', agentId)
+    .single();
   return agent?.custom_role_name || null;
 }
 
@@ -116,7 +120,7 @@ async function transcribeAudio(audioFilePath: string | null, durationSeconds: nu
  */
 function generateSimulatedTranscription(durationSeconds: number): { text: string; timestamps: any[] } {
   const segments = [
-    { speaker: 'Agent', text: 'Bom dia, obrigado por ligar para a Callify. O meu nome e Maria, em que posso ajudar?', time: '00:00' },
+    { speaker: 'Agent', text: 'Bom dia, obrigado por ligar para a AI CoachCall. O meu nome e Maria, em que posso ajudar?', time: '00:00' },
     { speaker: 'Client', text: 'Bom dia Maria. Estou a ligar porque tenho algumas duvidas sobre o vosso servico.', time: '00:08' },
     { speaker: 'Agent', text: 'Claro, terei todo o gosto em ajudar. Pode dizer-me o seu nome e qual e a sua duvida principal?', time: '00:15' },
     { speaker: 'Client', text: 'O meu nome e Joao Silva. Gostava de saber mais sobre os planos disponiveis e os precos.', time: '00:23' },
@@ -299,43 +303,83 @@ async function generateAlerts(
 
   // Low score alert
   if (score < LOW_SCORE_THRESHOLD) {
-    const result = await dbRun(
-      `INSERT INTO alerts (company_id, call_id, agent_id, type, message)
-       VALUES (?, ?, ?, ?, ?)`,
-      [companyId, callId, agentId, 'low_score', `Chamada com pontuacao baixa: ${score}. Requer atencao.`]
-    );
-    alerts.push({ id: result.lastID, type: 'low_score', message: `Pontuacao baixa: ${score}` });
+    const { data, error } = await supabase
+      .from('alerts')
+      .insert({
+        company_id: companyId,
+        call_id: callId,
+        agent_id: agentId,
+        type: 'low_score',
+        message: `Chamada com pontuação baixa: ${score.toFixed(1)}/10. Necessita revisão.`,
+        is_read: false
+      })
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      alerts.push({ id: data.id, type: 'low_score', message: `Pontuação baixa: ${score}` });
+    }
   }
 
   // Risk words alert
   if (riskWords.length > 0) {
-    const result = await dbRun(
-      `INSERT INTO alerts (company_id, call_id, agent_id, type, message)
-       VALUES (?, ?, ?, ?, ?)`,
-      [companyId, callId, agentId, 'risk_words', `Palavras de risco detetadas: ${riskWords.join(', ')}`]
-    );
-    alerts.push({ id: result.lastID, type: 'risk_words', message: `Palavras: ${riskWords.join(', ')}` });
+    const { data, error } = await supabase
+      .from('alerts')
+      .insert({
+        company_id: companyId,
+        call_id: callId,
+        agent_id: agentId,
+        type: 'risk_words',
+        message: `Palavras de risco detetadas: ${riskWords.slice(0, 5).join(', ')}`,
+        is_read: false
+      })
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      alerts.push({ id: data.id, type: 'risk_words', message: `Palavras: ${riskWords.join(', ')}` });
+    }
   }
 
   // Long duration alert
   if (durationSeconds > LONG_CALL_THRESHOLD_SECONDS) {
     const minutes = Math.round(durationSeconds / 60);
-    const result = await dbRun(
-      `INSERT INTO alerts (company_id, call_id, agent_id, type, message)
-       VALUES (?, ?, ?, ?, ?)`,
-      [companyId, callId, agentId, 'long_duration', `Chamada com duracao excessiva: ${minutes} minutos`]
-    );
-    alerts.push({ id: result.lastID, type: 'long_duration', message: `Duracao: ${minutes} minutos` });
+    const { data, error } = await supabase
+      .from('alerts')
+      .insert({
+        company_id: companyId,
+        call_id: callId,
+        agent_id: agentId,
+        type: 'long_duration',
+        message: `Chamada com duração excessiva: ${minutes} minutos.`,
+        is_read: false
+      })
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      alerts.push({ id: data.id, type: 'long_duration', message: `Duração: ${minutes} minutos` });
+    }
   }
 
   // No next step alert
   if (!nextStep || nextStep.trim().length < 10) {
-    const result = await dbRun(
-      `INSERT INTO alerts (company_id, call_id, agent_id, type, message)
-       VALUES (?, ?, ?, ?, ?)`,
-      [companyId, callId, agentId, 'no_next_step', 'Proximo passo nao definido claramente na chamada']
-    );
-    alerts.push({ id: result.lastID, type: 'no_next_step', message: 'Proximo passo nao definido' });
+    const { data, error } = await supabase
+      .from('alerts')
+      .insert({
+        company_id: companyId,
+        call_id: callId,
+        agent_id: agentId,
+        type: 'no_next_step',
+        message: 'Próximo passo não definido na chamada.',
+        is_read: false
+      })
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      alerts.push({ id: data.id, type: 'no_next_step', message: 'Próximo passo não definido' });
+    }
   }
 
   return alerts;
@@ -356,15 +400,23 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
 
   // Step 1: Create initial call record
   const callDate = new Date().toISOString();
-  const result = await dbRun(
-    `INSERT INTO calls (company_id, agent_id, phone_number, direction, duration_seconds, call_date)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [callData.companyId, callData.agentId, callData.phoneNumber, callData.direction, callData.durationSeconds, callDate]
-  );
-  const callId = result.lastID as number;
-  if (!callId) {
-    throw new Error('Failed to create call record - no ID returned');
+  const { data: newCall, error: insertError } = await supabase
+    .from('calls')
+    .insert({
+      company_id: callData.companyId,
+      agent_id: callData.agentId,
+      phone_number: callData.phoneNumber,
+      direction: callData.direction,
+      duration_seconds: callData.durationSeconds,
+      call_date: callDate
+    })
+    .select('id')
+    .single();
+
+  if (insertError || !newCall) {
+    throw new Error(`Failed to create call record: ${insertError?.message}`);
   }
+  const callId = newCall.id;
   console.log('[CallProcessor] Created call record:', callId);
 
   // Step 2: Download audio if URL provided
@@ -372,7 +424,10 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
   if (callData.audioUrl && !audioFilePath) {
     audioFilePath = await downloadAudio(callData.audioUrl, callId);
     if (audioFilePath) {
-      await dbRun('UPDATE calls SET audio_file_path = ? WHERE id = ?', [audioFilePath, callId]);
+      await supabase
+        .from('calls')
+        .update({ audio_file_path: audioFilePath })
+        .eq('id', callId);
     }
   }
   console.log('[CallProcessor] Audio file path:', audioFilePath);
@@ -389,19 +444,24 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
   const agentCategory = rawAgentCategory ? rawAgentCategory.toLowerCase() : null;
   console.log('[CallProcessor] Agent category:', agentCategory || 'none');
 
-  let criteria;
+  let criteria: any[] = [];
   if (agentCategory) {
     // Get criteria that are either 'all' (global) or match the agent's category
-    criteria = await dbAll(
-      'SELECT * FROM criteria WHERE company_id = ? AND is_active = 1 AND (LOWER(category) = ? OR LOWER(category) = ?)',
-      [callData.companyId, agentCategory, 'all']
-    );
+    const { data } = await supabase
+      .from('criteria')
+      .select('*')
+      .eq('company_id', callData.companyId)
+      .eq('is_active', true)
+      .or(`category.ilike.${agentCategory},category.ilike.all`);
+    criteria = data || [];
   } else {
     // No category - get all company criteria
-    criteria = await dbAll(
-      'SELECT * FROM criteria WHERE company_id = ? AND is_active = 1',
-      [callData.companyId]
-    );
+    const { data } = await supabase
+      .from('criteria')
+      .select('*')
+      .eq('company_id', callData.companyId)
+      .eq('is_active', true);
+    criteria = data || [];
   }
   console.log('[CallProcessor] Retrieved criteria (all + category):', criteria.length);
 
@@ -410,40 +470,33 @@ export async function processCall(callData: CallData): Promise<ProcessedCall> {
   console.log('[CallProcessor] Analysis completed, score:', analysis.score);
 
   // Step 6: Update call record with analysis results
-  await dbRun(
-    `UPDATE calls SET
-      transcription = ?,
-      transcription_timestamps = ?,
-      summary = ?,
-      next_step_recommendation = ?,
-      final_score = ?,
-      score_justification = ?,
-      what_went_well = ?,
-      what_went_wrong = ?,
-      risk_words_detected = ?
-     WHERE id = ?`,
-    [
+  await supabase
+    .from('calls')
+    .update({
       transcription,
-      JSON.stringify(transcriptionTimestamps),
-      analysis.summary,
-      analysis.nextStep,
-      analysis.score,
-      analysis.scoreJustification,
-      JSON.stringify(analysis.whatWentWell),
-      JSON.stringify(analysis.whatWentWrong),
-      JSON.stringify(analysis.riskWords),
-      callId
-    ]
-  );
+      transcription_timestamps: transcriptionTimestamps,
+      summary: analysis.summary,
+      next_step_recommendation: analysis.nextStep,
+      final_score: analysis.score,
+      score_justification: analysis.scoreJustification,
+      what_went_well: analysis.whatWentWell,
+      what_went_wrong: analysis.whatWentWrong,
+      risk_words_detected: analysis.riskWords
+    })
+    .eq('id', callId);
   console.log('[CallProcessor] Call record updated with analysis');
 
   // Step 7: Save criteria evaluation results
   for (const criteriaResult of analysis.criteriaResults) {
-    await dbRun(
-      `INSERT INTO call_criteria_results (call_id, criterion_id, passed, justification, timestamp_reference)
-       VALUES (?, ?, ?, ?, ?)`,
-      [callId, criteriaResult.criterionId, criteriaResult.passed ? 1 : 0, criteriaResult.justification, criteriaResult.timestampReference]
-    );
+    await supabase
+      .from('call_criteria_results')
+      .insert({
+        call_id: callId,
+        criterion_id: criteriaResult.criterionId,
+        passed: criteriaResult.passed,
+        justification: criteriaResult.justification,
+        timestamp_reference: criteriaResult.timestampReference
+      });
   }
   console.log('[CallProcessor] Criteria results saved:', analysis.criteriaResults.length);
 
