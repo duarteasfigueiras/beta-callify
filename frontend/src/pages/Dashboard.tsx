@@ -365,7 +365,7 @@ export default function Dashboard() {
                     <div
                       key={call.id}
                       onClick={() => navigate(`/calls/${call.id}`)}
-                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
+                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0 min-h-[52px]"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ export default function Dashboard() {
                     <div
                       key={alert.id}
                       onClick={() => handleAlertClick(alert)}
-                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity shrink-0 ${
+                      className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity shrink-0 min-h-[52px] ${
                         alert.is_read
                           ? 'bg-gray-50 dark:bg-gray-800'
                           : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
