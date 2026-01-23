@@ -61,6 +61,7 @@ const clearAuth = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('rememberMe');
   localStorage.removeItem('lastActivity');
+  localStorage.removeItem('refreshToken');
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
   sessionStorage.removeItem('lastActivity');
@@ -144,15 +145,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (credentials: LoginCredentials, rememberMe: boolean = false) => {
     // Support both email (new) and username (legacy)
-    const loginIdentifier = credentials.email || credentials.username;
-    const response = await authApi.login(loginIdentifier, credentials.password);
-    const { token, user } = response;
+    const loginIdentifier = credentials.email || credentials.username || '';
+    const response = await authApi.login(loginIdentifier, credentials.password, rememberMe);
+    const { token, refreshToken, user } = response;
 
     // Clear any existing auth data first
     clearAuth();
 
     // Store rememberMe preference in localStorage (always persists to remember the choice)
     localStorage.setItem('rememberMe', rememberMe.toString());
+
+    // Store refresh token in localStorage if provided (only when rememberMe is true)
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
 
     // Use appropriate storage based on rememberMe
     const storage = rememberMe ? localStorage : sessionStorage;

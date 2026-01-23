@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { supabase } from '../db/supabase';
-import { AuthenticatedRequest, authenticateToken, generateToken } from '../middleware/auth';
+import { AuthenticatedRequest, authenticateToken, generateToken, generateRefreshToken, verifyRefreshToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
 
 // SECURITY: Generate cryptographically secure tokens
@@ -99,7 +99,7 @@ function resetRateLimit(identifier: string): void {
 // Login - supports both email and username for backwards compatibility
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, username, password } = req.body;
+    const { email, username, password, rememberMe } = req.body;
 
     // Support both email (new) and username (legacy)
     const loginIdentifier = email || username;
@@ -168,17 +168,68 @@ router.post('/login', async (req: Request, res: Response) => {
     };
     const token = generateToken(payload);
 
+    // Generate refresh token if rememberMe is true
+    const refreshToken = rememberMe ? generateRefreshToken(payload) : undefined;
+
     // SECURITY: Only log minimal info, no sensitive data
-    console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}`);
+    console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}, rememberMe=${!!rememberMe}`);
 
     // Return user data (without password)
     const { password_hash, ...userWithoutPassword } = user;
     return res.json({
       token,
+      refreshToken,
       user: userWithoutPassword,
     });
   } catch (error) {
     console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Refresh token - get new access token using refresh token
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token required' });
+    }
+
+    // Verify the refresh token
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(refreshToken);
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    // Check if user still exists and is active
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, company_id, role')
+      .eq('id', decoded.userId)
+      .single();
+
+    if (userError || !user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Generate new access token with current user data
+    const payload: JWTPayload = {
+      userId: user.id,
+      companyId: user.company_id,
+      role: user.role,
+    };
+    const newToken = generateToken(payload);
+
+    console.log(`[Auth] Token refreshed: userId=${user.id}`);
+
+    return res.json({
+      token: newToken,
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

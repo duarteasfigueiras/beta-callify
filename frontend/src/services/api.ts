@@ -25,25 +25,100 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
+// Flag to prevent multiple refresh attempts
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
+// Clear all auth data and redirect to login
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('rememberMe');
+  localStorage.removeItem('lastActivity');
+  localStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('lastActivity');
+  window.location.href = '/login';
+};
+
+// Handle auth errors with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Don't redirect on auth errors for login endpoint - let the component handle it
-    const isLoginRequest = error.config?.url?.includes('/auth/login');
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Don't handle auth errors for login/refresh endpoints
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                           originalRequest?.url?.includes('/auth/refresh');
     const isAuthError = error.response?.status === 401 || error.response?.status === 403;
 
-    if (isAuthError && !isLoginRequest) {
-      // Clear both storages
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('rememberMe');
-      localStorage.removeItem('lastActivity');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('lastActivity');
-      window.location.href = '/login';
+    if (isAuthError && !isAuthEndpoint && !originalRequest._retry) {
+      // Check if we have a refresh token (rememberMe was enabled)
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (!refreshToken) {
+        // No refresh token, redirect to login
+        clearAuthAndRedirect();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Wait for the refresh to complete
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Try to refresh the token
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+        const { token: newToken } = response.data;
+
+        // Update stored token
+        const rememberMe = localStorage.getItem('rememberMe') === 'true';
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('token', newToken);
+
+        // Update authorization header
+        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        processQueue(null, newToken);
+
+        console.log('[API] Token refreshed successfully');
+
+        // Retry the original request
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        console.log('[API] Token refresh failed, redirecting to login');
+        clearAuthAndRedirect();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -52,8 +127,12 @@ export default api;
 
 // Auth API
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+  login: async (email: string, password: string, rememberMe: boolean = false) => {
+    const response = await api.post('/auth/login', { email, password, rememberMe });
+    return response.data;
+  },
+  refresh: async (refreshToken: string) => {
+    const response = await api.post('/auth/refresh', { refreshToken });
     return response.data;
   },
   logout: async () => {

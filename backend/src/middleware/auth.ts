@@ -56,7 +56,24 @@ export function generateToken(payload: JWTPayload): string {
   });
 }
 
+// Generate refresh token with longer expiration (30 days)
+export function generateRefreshToken(payload: JWTPayload): string {
+  return jwt.sign({ ...payload, type: 'refresh' }, JWT_SECRET, {
+    expiresIn: '30d',
+    algorithm: 'HS256'
+  });
+}
+
 // SECURITY: Verify with explicit algorithm to prevent algorithm confusion attacks
 export function verifyToken(token: string): JWTPayload {
   return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+}
+
+// Verify refresh token and return payload
+export function verifyRefreshToken(token: string): JWTPayload & { type?: string } {
+  const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload & { type?: string };
+  if (decoded.type !== 'refresh') {
+    throw new Error('Invalid refresh token');
+  }
+  return decoded;
 }
