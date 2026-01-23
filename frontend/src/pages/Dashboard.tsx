@@ -360,7 +360,7 @@ export default function Dashboard() {
                   {t('calls.noCallsFound')}
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-1">
                   {recentCalls.map((call: any) => (
                     <div
                       key={call.id}
@@ -402,7 +402,7 @@ export default function Dashboard() {
                   {t('common.noResults')}
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-1">
                   {alerts.map((alert: any) => (
                     <div
                       key={alert.id}
