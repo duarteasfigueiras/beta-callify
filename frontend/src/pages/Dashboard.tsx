@@ -352,7 +352,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3 min-h-0">
           <Card className="flex flex-col min-h-0">
             <CardHeader className="py-2 px-4 shrink-0">
-              <CardTitle className="text-base">{t('dashboard.recentCalls')}</CardTitle>
+              <CardTitle className="text-lg">{t('dashboard.recentCalls')}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 ">
               {recentCalls.length === 0 ? (
@@ -394,7 +394,7 @@ export default function Dashboard() {
 
           <Card className="flex flex-col min-h-0">
             <CardHeader className="py-2 px-4 shrink-0">
-              <CardTitle className="text-base">{t('alerts.title')}</CardTitle>
+              <CardTitle className="text-lg">{t('alerts.title')}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 overflow-y-auto p-2 ">
               {alerts.length === 0 ? (
@@ -436,7 +436,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3 min-h-0">
           <Card className="flex flex-col min-h-0 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/score-evolution')}>
             <CardHeader className="py-2 px-4 shrink-0">
-              <CardTitle className="text-base">{t('dashboard.scoreEvolution')}</CardTitle>
+              <CardTitle className="text-lg">{t('dashboard.scoreEvolution')}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-2 min-h-0">
               {scoreEvolution.length === 0 ? (
@@ -500,7 +500,7 @@ export default function Dashboard() {
 
           <Card className="flex flex-col min-h-0 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/reports')}>
             <CardHeader className="py-2 px-4 shrink-0">
-              <CardTitle className="text-base">{t('dashboard.topReasons')}</CardTitle>
+              <CardTitle className="text-lg">{t('dashboard.topReasons')}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-2 min-h-0">
               {topReasons.length === 0 ? (
