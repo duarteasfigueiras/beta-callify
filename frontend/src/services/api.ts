@@ -29,15 +29,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Don't redirect on 401 for login endpoint - let the component handle it
+    // Don't redirect on auth errors for login endpoint - let the component handle it
     const isLoginRequest = error.config?.url?.includes('/auth/login');
-    if (error.response?.status === 401 && !isLoginRequest) {
+    const isAuthError = error.response?.status === 401 || error.response?.status === 403;
+
+    if (isAuthError && !isLoginRequest) {
       // Clear both storages
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('rememberMe');
+      localStorage.removeItem('lastActivity');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      sessionStorage.removeItem('lastActivity');
       window.location.href = '/login';
     }
     return Promise.reject(error);
