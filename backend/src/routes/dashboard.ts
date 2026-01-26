@@ -5,6 +5,39 @@ import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
 
+// Helper function to categorize contact reasons into broader categories
+function categorizeReason(reason: string): string {
+  const lowerReason = reason.toLowerCase();
+
+  // Define category mappings based on keywords
+  const categories: { keywords: string[]; category: string }[] = [
+    { keywords: ['esclarec', 'informaç', 'dúvida', 'pergunta', 'saber'], category: 'Esclarecimento' },
+    { keywords: ['inscri', 'regist', 'cadastr'], category: 'Inscrição/Registo' },
+    { keywords: ['reclam', 'queixa', 'insatisf'], category: 'Reclamação' },
+    { keywords: ['cancel', 'desist', 'anular'], category: 'Cancelamento' },
+    { keywords: ['pagament', 'fatura', 'preço', 'valor', 'custo', 'financ'], category: 'Pagamento/Financeiro' },
+    { keywords: ['agend', 'marca', 'horário', 'disponib'], category: 'Agendamento' },
+    { keywords: ['suport', 'ajuda', 'assist', 'problem', 'erro', 'técnic'], category: 'Suporte Técnico' },
+    { keywords: ['confirm', 'verific', 'valid'], category: 'Confirmação' },
+    { keywords: ['alter', 'modific', 'atualiz', 'mudan'], category: 'Alteração de Dados' },
+    { keywords: ['acess', 'login', 'senha', 'password', 'entr'], category: 'Acesso à Conta' },
+    { keywords: ['prazo', 'entreg', 'envio', 'expedição'], category: 'Entregas/Prazos' },
+    { keywords: ['propost', 'orçament', 'cotaç'], category: 'Proposta/Orçamento' },
+    { keywords: ['contrat', 'acordo', 'condições'], category: 'Contrato/Condições' },
+    { keywords: ['devol', 'troca', 'reembols'], category: 'Devolução/Troca' },
+  ];
+
+  // Find matching category
+  for (const { keywords, category } of categories) {
+    if (keywords.some(kw => lowerReason.includes(kw))) {
+      return category;
+    }
+  }
+
+  // If no match, return "Outros" (Others)
+  return 'Outros';
+}
+
 // All routes require authentication
 router.use(authenticateToken);
 
@@ -421,7 +454,9 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
             }
 
             if (reason) {
-              reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+              // Categorize the reason into a broader category
+              const category = categorizeReason(reason);
+              reasonCounts[category] = (reasonCounts[category] || 0) + 1;
             }
           });
         }
@@ -434,7 +469,7 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
     const results = Object.entries(reasonCounts)
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 15); // Top 15 reasons
+      .slice(0, 10); // Top 10 categories
 
     res.json(results);
   } catch (error) {
