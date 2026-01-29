@@ -34,11 +34,11 @@ export default function Contacts() {
             </p>
             <div className="space-y-2">
               <a
-                href="mailto:support@callify.pt"
+                href="mailto:support@aicoachcall.com"
                 className="flex items-center gap-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
               >
                 <Mail className="w-4 h-4" />
-                support@callify.pt
+                support@aicoachcall.com
               </a>
             </div>
           </CardContent>
@@ -58,11 +58,11 @@ export default function Contacts() {
             </p>
             <div className="space-y-2">
               <a
-                href="mailto:info@callify.pt"
+                href="mailto:info@aicoachcall.com"
                 className="flex items-center gap-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
               >
                 <Mail className="w-4 h-4" />
-                info@callify.pt
+                info@aicoachcall.com
               </a>
             </div>
           </CardContent>

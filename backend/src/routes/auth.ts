@@ -353,7 +353,7 @@ router.post('/register', async (req, res: Response) => {
     if (resend) {
       try {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@callify.app>',
+          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@aicoachcall.com>',
           to: email,
           subject: `Bem-vindo ao AI CoachCall - ${companyName}`,
           html: `
@@ -539,7 +539,7 @@ router.post('/recover-password', async (req, res: Response) => {
     if (resend) {
       try {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@callify.app>',
+          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@aicoachcall.com>',
           to: email,
           subject: 'Recuperação de Password - AI CoachCall',
           html: `
