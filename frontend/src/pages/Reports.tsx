@@ -21,12 +21,13 @@ import {
   FileSpreadsheet,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, usersApi, callsApi, alertSettingsApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { ScoreByAgent, ScoreEvolution, CallsByPeriod, TopReason, TopObjection, User, Call } from '../types';
+import { ScoreByAgent, ScoreEvolution, CallsByPeriod, TopObjection, User, Call, GroupedReason } from '../types';
 import {
   LineChart,
   Line,
@@ -58,7 +59,8 @@ export default function Reports() {
   const [scoreByAgent, setScoreByAgent] = useState<ScoreByAgent[]>([]);
   const [scoreEvolution, setScoreEvolution] = useState<ScoreEvolution[]>([]);
   const [callsByPeriod, setCallsByPeriod] = useState<CallsByPeriod[]>([]);
-  const [topReasons, setTopReasons] = useState<TopReason[]>([]);
+  const [topReasons, setTopReasons] = useState<GroupedReason[]>([]);
+  const [expandedReasonCategories, setExpandedReasonCategories] = useState<Set<string>>(new Set());
   const [topObjections, setTopObjections] = useState<TopObjection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d' | 'all'>('30d');
@@ -274,11 +276,13 @@ export default function Reports() {
     });
     csvContent += '\n';
 
-    // Top Reasons
+    // Top Reasons (grouped by category)
     csvContent += `${t('reports.topReasons', 'Top Contact Reasons')}\n`;
-    csvContent += `${t('common.reason', 'Reason')},${t('common.count', 'Count')}\n`;
-    topReasons.forEach(reason => {
-      csvContent += `"${reason.reason}",${reason.count}\n`;
+    csvContent += `${t('common.category', 'Category')},${t('common.reason', 'Reason')},${t('common.count', 'Count')}\n`;
+    topReasons.forEach(group => {
+      group.reasons.forEach(reason => {
+        csvContent += `"${group.category}","${reason.reason}",${reason.count}\n`;
+      });
     });
     csvContent += '\n';
 
@@ -413,17 +417,21 @@ export default function Reports() {
         <table>
           <thead>
             <tr>
+              <th>${t('common.category', 'Category')}</th>
               <th>${t('common.reason', 'Reason')}</th>
               <th>${t('common.count', 'Count')}</th>
             </tr>
           </thead>
           <tbody>
-            ${topReasons.map(reason => `
-              <tr>
-                <td>${reason.reason}</td>
-                <td>${reason.count}</td>
-              </tr>
-            `).join('')}
+            ${topReasons.flatMap(group =>
+              group.reasons.map(reason => `
+                <tr>
+                  <td>${group.category}</td>
+                  <td>${reason.reason}</td>
+                  <td>${reason.count}</td>
+                </tr>
+              `)
+            ).join('')}
           </tbody>
         </table>
 
@@ -1002,12 +1010,17 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        {/* Top Reasons */}
+        {/* Top Reasons - Grouped by Category */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
               {t('reports.topReasons', 'Top Contact Reasons')}
+              {topReasons.length > 0 && (
+                <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
+                  {topReasons.length} {t('reports.categories', 'categorias')}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1016,25 +1029,70 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-2 h-64 overflow-y-auto pr-2">
-                {topReasons.map((reason, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="w-32 text-xs font-medium text-gray-900 dark:text-gray-100 break-words leading-tight">
-                      {reason.reason}
+              <div className="space-y-1 h-64 overflow-y-auto pr-2">
+                {topReasons.map((group) => {
+                  const isExpanded = expandedReasonCategories.has(group.category);
+                  return (
+                    <div key={group.category} className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-1">
+                      <button
+                        onClick={() => {
+                          setExpandedReasonCategories(prev => {
+                            const next = new Set(prev);
+                            if (next.has(group.category)) {
+                              next.delete(group.category);
+                            } else {
+                              next.add(group.category);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="w-full flex items-center gap-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
+                        )}
+                        <div className="w-32 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                          {group.category}
+                        </div>
+                        <div className="flex-1 min-w-[40px]">
+                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-purple-500 transition-all duration-500"
+                              style={{ width: `${(group.count / maxReasonCount) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="w-8 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
+                          {group.count}
+                        </div>
+                      </button>
+                      {isExpanded && group.reasons.length > 0 && (
+                        <div className="ml-6 mt-1 space-y-1 pb-2">
+                          {group.reasons.map((reason, idx) => (
+                            <div key={idx} className="flex items-center gap-2 py-0.5">
+                              <div className="w-28 text-xs text-gray-600 dark:text-gray-400 truncate pl-2">
+                                {reason.reason}
+                              </div>
+                              <div className="flex-1 min-w-[30px]">
+                                <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-purple-300 dark:bg-purple-600 transition-all duration-500"
+                                    style={{ width: `${(reason.count / group.count) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="w-6 text-right text-xs text-gray-500 dark:text-gray-400">
+                                {reason.count}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-[40px]">
-                      <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-purple-500 transition-all duration-500"
-                          style={{ width: `${(reason.count / maxReasonCount) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
-                      {reason.count}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

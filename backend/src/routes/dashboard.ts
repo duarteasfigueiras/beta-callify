@@ -367,6 +367,7 @@ router.get('/calls-by-period', async (req: AuthenticatedRequest, res: Response) 
 });
 
 // Get top contact reasons for reports (admin or developer)
+// Returns grouped reasons by category with expandable details
 router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!isAdminOrDeveloper(req.user!.role)) {
@@ -399,7 +400,10 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
 
     if (error) throw error;
 
-    const reasonCounts: Record<string, number> = {};
+    // Structure: { category: { reason: count } }
+    const groupedCounts: Record<string, Record<string, number>> = {};
+    // Fallback for old format (no category)
+    const DEFAULT_CATEGORY = 'Outros';
 
     (calls || []).forEach((call: any) => {
       if (!call.contact_reasons) return;
@@ -412,16 +416,23 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
 
         if (Array.isArray(reasons)) {
           reasons.forEach((item: any) => {
-            // Handle both string format and object format with text field
+            let category = DEFAULT_CATEGORY;
             let reason = '';
+
             if (typeof item === 'string') {
+              // Old format: just a string
               reason = item.trim();
-            } else if (item && item.text) {
-              reason = item.text.trim();
+            } else if (item && typeof item === 'object') {
+              // New format: { categoria, motivo } or { category, reason } or { text }
+              category = (item.categoria || item.category || DEFAULT_CATEGORY).trim();
+              reason = (item.motivo || item.reason || item.text || '').trim();
             }
 
             if (reason) {
-              reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+              if (!groupedCounts[category]) {
+                groupedCounts[category] = {};
+              }
+              groupedCounts[category][reason] = (groupedCounts[category][reason] || 0) + 1;
             }
           });
         }
@@ -430,11 +441,23 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
       }
     });
 
-    // Convert to array and sort by count
-    const results = Object.entries(reasonCounts)
-      .map(([reason, count]) => ({ reason, count }))
+    // Convert to grouped array format
+    const results = Object.entries(groupedCounts)
+      .map(([category, reasons]) => {
+        const reasonsList = Object.entries(reasons)
+          .map(([reason, count]) => ({ reason, count }))
+          .sort((a, b) => b.count - a.count);
+
+        const totalCount = reasonsList.reduce((sum, r) => sum + r.count, 0);
+
+        return {
+          category,
+          count: totalCount,
+          reasons: reasonsList
+        };
+      })
       .sort((a, b) => b.count - a.count)
-      .slice(0, 15); // Top 15 reasons
+      .slice(0, 10); // Top 10 categories
 
     res.json(results);
   } catch (error) {

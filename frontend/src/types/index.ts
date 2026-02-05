@@ -216,6 +216,13 @@ export interface TopReason {
   count: number;
 }
 
+// Grouped contact reasons by category
+export interface GroupedReason {
+  category: string;
+  count: number;
+  reasons: TopReason[];
+}
+
 export interface TopObjection {
   objection: string;
   count: number;

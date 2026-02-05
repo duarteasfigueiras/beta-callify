@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar, BarChart3 } from 'lucide-react';
+import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, alertsApi, categoriesApi, Category } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { DashboardOverview, Call, Alert, isAdminOrDeveloper } from '../types';
+import { DashboardOverview, Call, Alert, isAdminOrDeveloper, GroupedReason } from '../types';
 import {
   LineChart,
   Line,
@@ -31,7 +31,8 @@ export default function Dashboard() {
   const [recentCalls, setRecentCalls] = useState<Call[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [scoreEvolution, setScoreEvolution] = useState<{ date: string; average_score: number; total_calls: number }[]>([]);
-  const [topReasons, setTopReasons] = useState<{ reason: string; count: number }[]>([]);
+  const [topReasons, setTopReasons] = useState<GroupedReason[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d' | 'all'>('30d');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -68,42 +69,56 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        // Base promises for all users
-        const basePromises = [
-          dashboardApi.getOverview(getDateRange()),
-          dashboardApi.getRecentCalls(10),
-          dashboardApi.getAlerts(10),
-          dashboardApi.getScoreEvolution(getDaysFromRange()),
-        ];
+  // Fetch all dashboard data
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    try {
+      const dateParams = getDateRange();
+      const days = getDaysFromRange();
 
-        // Add admin-only promises
-        if (isAdmin) {
-          basePromises.push(dashboardApi.getTopReasons(getDateRange()));
-        }
+      // Base promises for all users
+      const basePromises: Promise<any>[] = [
+        dashboardApi.getOverview(dateParams),
+        dashboardApi.getRecentCalls(10),
+        dashboardApi.getAlerts(10),
+        dashboardApi.getScoreEvolution(days),
+      ];
 
-        const results = await Promise.all(basePromises);
-
-        setStats(results[0]);
-        setRecentCalls(results[1]);
-        setAlerts(results[2]);
-        setScoreEvolution(results[3]);
-
-        if (isAdmin && results[4]) {
-          setTopReasons(results[4]);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setIsLoading(false);
+      // Add admin-only promises
+      if (isAdmin) {
+        basePromises.push(dashboardApi.getTopReasons(dateParams));
       }
-    };
 
-    fetchDashboardData();
+      const results = await Promise.all(basePromises);
+
+      setStats(results[0]);
+      setRecentCalls(results[1]);
+      setAlerts(results[2]);
+      setScoreEvolution(results[3]);
+
+      if (isAdmin && results[4]) {
+        setTopReasons(results[4]);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
   }, [dateRange, isAdmin]);
+
+  // Initial load and when date range changes
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Auto-refresh every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDashboardData(false); // Don't show loading spinner on auto-refresh
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -498,9 +513,15 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col min-h-0 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/reports')}>
-            <CardHeader className="py-2 px-4 shrink-0">
+          <Card className="flex flex-col min-h-0">
+            <CardHeader className="py-2 px-4 shrink-0 flex flex-row items-center justify-between">
               <CardTitle className="text-lg">{t('dashboard.topReasons')}</CardTitle>
+              <button
+                onClick={() => navigate('/reports')}
+                className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+              >
+                {t('common.viewAll', 'Ver todos')}
+              </button>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-2 min-h-0">
               {topReasons.length === 0 ? (
@@ -508,25 +529,68 @@ export default function Dashboard() {
                   {t('common.noResults')}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {topReasons.map((reason, index) => {
+                <div className="space-y-1">
+                  {topReasons.map((group) => {
                     const maxCount = Math.max(...topReasons.map(r => r.count), 1);
+                    const isExpanded = expandedCategories.has(group.category);
                     return (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="w-28 text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {reason.reason}
-                        </div>
-                        <div className="flex-1">
-                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-purple-500 transition-all duration-500"
-                              style={{ width: `${(reason.count / maxCount) * 100}%` }}
-                            />
+                      <div key={group.category} className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-1">
+                        <button
+                          onClick={() => {
+                            setExpandedCategories(prev => {
+                              const next = new Set(prev);
+                              if (next.has(group.category)) {
+                                next.delete(group.category);
+                              } else {
+                                next.add(group.category);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="w-3 h-3 text-gray-500 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3 text-gray-500 shrink-0" />
+                          )}
+                          <div className="w-24 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                            {group.category}
                           </div>
-                        </div>
-                        <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
-                          {reason.count}
-                        </div>
+                          <div className="flex-1">
+                            <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-purple-500 transition-all duration-500"
+                                style={{ width: `${(group.count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
+                            {group.count}
+                          </div>
+                        </button>
+                        {isExpanded && group.reasons.length > 0 && (
+                          <div className="ml-5 mt-1 space-y-1 pb-1">
+                            {group.reasons.slice(0, 5).map((reason, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <div className="w-20 text-xs text-gray-600 dark:text-gray-400 truncate pl-1">
+                                  {reason.reason}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-purple-300 dark:bg-purple-600 transition-all duration-500"
+                                      style={{ width: `${(reason.count / group.count) * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="w-5 text-right text-xs text-gray-500 dark:text-gray-400">
+                                  {reason.count}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

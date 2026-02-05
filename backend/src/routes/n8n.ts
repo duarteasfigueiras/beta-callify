@@ -791,6 +791,20 @@ Lista TODAS as que encontrares no campo "palavras_risco_detectadas".
 
 ---
 
+## INSTRUÇÕES PARA MOTIVOS DE CONTACTO
+
+Para o campo "motivos_contacto", deves:
+1. Identificar TODOS os motivos específicos pelos quais o cliente contactou
+2. Analisar os motivos e encontrar TEMAS COMUNS entre eles
+3. CRIAR categorias apropriadas que agrupem motivos semelhantes
+4. Usar nomes de categoria CURTOS e DESCRITIVOS (2-3 palavras máximo)
+5. Exemplos de categorias: "Dúvidas Comerciais", "Problemas Técnicos", "Gestão de Conta", "Reclamações", "Agendamento", "Faturação"
+6. Se um motivo não se encaixa em nenhuma categoria com outros, usa "Outros"
+
+Exemplo: Se o cliente perguntou sobre preços E sobre prazos de entrega, agrupa ambos em "Dúvidas Comerciais".
+
+---
+
 ## FORMATO DE RESPOSTA (JSON OBRIGATÓRIO)
 
 Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code blocks.
@@ -818,7 +832,10 @@ Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code b
   "proximo_passo": "O que ficou PENDENTE/ACORDADO na chamada. Ex: 'Enviar email com proposta até sexta-feira', 'Cliente vai testar e liga na próxima semana', 'Agendar reunião para dia 25'",
 
   "motivos_contacto": [
-    "Razão principal pela qual o cliente contactou"
+    {
+      "categoria": "Categoria criada por ti (ex: Dúvidas Comerciais, Suporte Técnico, Gestão de Conta)",
+      "motivo": "Motivo específico extraído da chamada"
+    }
   ],
 
   "objecoes": [
