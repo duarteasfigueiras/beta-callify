@@ -528,7 +528,7 @@ export default function Dashboard() {
                   {t('common.noResults')}
                 </div>
               ) : (
-                <div className="space-y-4 px-4">
+                <div className="space-y-4 h-64 overflow-y-auto px-4">
                   {topReasons.map((group) => {
                     const maxCount = Math.max(...topReasons.map(r => r.count), 1);
                     return (
