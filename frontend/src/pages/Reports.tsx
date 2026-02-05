@@ -1030,13 +1030,13 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-4 h-64 overflow-y-auto px-2">
+              <div className="space-y-4 h-64 overflow-y-auto px-4">
                 {topReasons.map((group) => {
                   return (
                     <div
                       key={group.category}
                       onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors"
                     >
                       <div className="w-32 truncate text-sm font-medium text-purple-600 dark:text-purple-400">
                         {group.category}
@@ -1085,13 +1085,13 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-4 h-64 overflow-y-auto px-2">
+              <div className="space-y-4 h-64 overflow-y-auto px-4">
                 {topObjections.map((group) => {
                   return (
                     <div
                       key={group.category}
                       onClick={() => navigate(`/objection-reasons?category=${encodeURIComponent(group.category)}`)}
-                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors"
                     >
                       <div className="w-32 truncate text-sm font-medium text-amber-600 dark:text-amber-400">
                         {group.category || 'Outros'}
@@ -1138,11 +1138,11 @@ export default function Reports() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 h-64 overflow-y-auto px-2">
+              <div className="space-y-4 h-64 overflow-y-auto px-4">
                 {riskWordsCount.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                    className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors"
                     onClick={() => navigate(`/risk-words-calls?word=${encodeURIComponent(item.word)}`)}
                   >
                     <div className="w-32 truncate text-sm font-medium text-red-600 dark:text-red-400 capitalize">
