@@ -1094,7 +1094,7 @@ export default function Reports() {
                       className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                     >
                       <div className="w-28 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
-                        {group.category}
+                        {group.category || 'Outros'}
                       </div>
                       <div className="flex-1 min-w-[40px]">
                         <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">

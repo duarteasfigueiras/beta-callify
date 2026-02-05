@@ -525,7 +525,8 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
             if (typeof item === 'string') {
               objection = item.trim();
             } else if (item && typeof item === 'object') {
-              category = (item.categoria || item.category || DEFAULT_CATEGORY).trim();
+              const rawCategory = (item.categoria || item.category || '').trim();
+              category = rawCategory || DEFAULT_CATEGORY;
               objection = (item.objecao || item.objection || item.text || '').trim();
             }
 

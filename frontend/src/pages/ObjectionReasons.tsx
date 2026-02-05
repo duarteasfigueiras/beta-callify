@@ -142,7 +142,7 @@ export default function ObjectionReasons() {
                   <CardTitle className="flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <XCircle className="w-4 h-4 text-amber-500" />
-                      {group.category}
+                      {group.category || 'Outros'}
                     </span>
                     <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                       {group.count}
