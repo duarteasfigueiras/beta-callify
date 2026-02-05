@@ -28,8 +28,25 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError(t('auth.passwordTooShort') || 'Password must be at least 6 characters');
+    // Validate password strength
+    const passwordErrors: string[] = [];
+    if (newPassword.length < 8) {
+      passwordErrors.push(t('auth.passwordMinLength', 'At least 8 characters'));
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      passwordErrors.push(t('auth.passwordUppercase', 'At least one uppercase letter'));
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      passwordErrors.push(t('auth.passwordLowercase', 'At least one lowercase letter'));
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      passwordErrors.push(t('auth.passwordNumber', 'At least one number'));
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      passwordErrors.push(t('auth.passwordSpecial', 'At least one special character'));
+    }
+    if (passwordErrors.length > 0) {
+      setError(t('auth.passwordRequirements', 'Password requirements not met: ') + passwordErrors.join(', '));
       return;
     }
 
@@ -132,6 +149,13 @@ export default function ResetPassword() {
                   autoComplete="new-password"
                   className="w-full"
                 />
+                <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                  <p className={newPassword.length >= 8 ? 'text-green-600' : ''}>{newPassword.length >= 8 ? '✓' : '○'} {t('auth.req8chars', 'Minimum 8 characters')}</p>
+                  <p className={/[A-Z]/.test(newPassword) ? 'text-green-600' : ''}>{/[A-Z]/.test(newPassword) ? '✓' : '○'} {t('auth.reqUppercase', 'One uppercase letter')}</p>
+                  <p className={/[a-z]/.test(newPassword) ? 'text-green-600' : ''}>{/[a-z]/.test(newPassword) ? '✓' : '○'} {t('auth.reqLowercase', 'One lowercase letter')}</p>
+                  <p className={/[0-9]/.test(newPassword) ? 'text-green-600' : ''}>{/[0-9]/.test(newPassword) ? '✓' : '○'} {t('auth.reqNumber', 'One number')}</p>
+                  <p className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? 'text-green-600' : ''}>{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? '✓' : '○'} {t('auth.reqSpecial', 'One special character')}</p>
+                </div>
               </div>
 
               <div className="space-y-2">

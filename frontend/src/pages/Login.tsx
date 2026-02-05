@@ -98,12 +98,12 @@ export default function Login() {
               </label>
               <Input
                 id="email"
-                type="text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
                 required
-                autoComplete="username"
+                autoComplete="email"
                 className="w-full"
               />
             </div>

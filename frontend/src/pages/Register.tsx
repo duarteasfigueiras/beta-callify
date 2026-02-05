@@ -75,8 +75,25 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('register.passwordTooShort', 'Password must be at least 6 characters'));
+    // Validate password strength
+    const passwordErrors: string[] = [];
+    if (password.length < 8) {
+      passwordErrors.push(t('register.passwordMinLength', 'At least 8 characters'));
+    }
+    if (!/[A-Z]/.test(password)) {
+      passwordErrors.push(t('register.passwordUppercase', 'At least one uppercase letter'));
+    }
+    if (!/[a-z]/.test(password)) {
+      passwordErrors.push(t('register.passwordLowercase', 'At least one lowercase letter'));
+    }
+    if (!/[0-9]/.test(password)) {
+      passwordErrors.push(t('register.passwordNumber', 'At least one number'));
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      passwordErrors.push(t('register.passwordSpecial', 'At least one special character (!@#$%^&*...)'));
+    }
+    if (passwordErrors.length > 0) {
+      setError(t('register.passwordRequirements', 'Password requirements not met: ') + passwordErrors.join(', '));
       return;
     }
 
@@ -253,6 +270,13 @@ export default function Register() {
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                <p className={password.length >= 8 ? 'text-green-600' : ''}>{password.length >= 8 ? '✓' : '○'} {t('register.req8chars', 'Minimum 8 characters')}</p>
+                <p className={/[A-Z]/.test(password) ? 'text-green-600' : ''}>{/[A-Z]/.test(password) ? '✓' : '○'} {t('register.reqUppercase', 'One uppercase letter')}</p>
+                <p className={/[a-z]/.test(password) ? 'text-green-600' : ''}>{/[a-z]/.test(password) ? '✓' : '○'} {t('register.reqLowercase', 'One lowercase letter')}</p>
+                <p className={/[0-9]/.test(password) ? 'text-green-600' : ''}>{/[0-9]/.test(password) ? '✓' : '○'} {t('register.reqNumber', 'One number')}</p>
+                <p className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) ? 'text-green-600' : ''}>{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) ? '✓' : '○'} {t('register.reqSpecial', 'One special character')}</p>
               </div>
             </div>
 

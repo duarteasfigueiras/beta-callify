@@ -951,9 +951,8 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* Charts Grid - Row 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calls by User */}
+      {/* Calls by User - Full Width */}
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -1007,7 +1006,10 @@ export default function Reports() {
             )}
           </CardContent>
         </Card>
+      </div>
 
+      {/* Motivos, Objeções e Palavras de Risco - 3 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Reasons - Grouped by Category */}
         <Card>
           <CardHeader>
@@ -1059,10 +1061,7 @@ export default function Reports() {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Charts Grid - Row 4 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Objections - Grouped by Category */}
         <Card>
           <CardHeader>

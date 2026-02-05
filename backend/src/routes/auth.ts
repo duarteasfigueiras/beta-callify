@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { supabase } from '../db/supabase';
+import { getRedisClient, isRedisAvailable } from '../db/redis';
 import { AuthenticatedRequest, authenticateToken, generateToken, generateRefreshToken, verifyRefreshToken } from '../middleware/auth';
 import { User, LoginRequest, JWTPayload } from '../types';
 
@@ -23,6 +24,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 // ============================================
 // RATE LIMITING: 8 attempts per 15 minutes
+// Uses Redis if available, falls back to in-memory
 // ============================================
 interface RateLimitEntry {
   attempts: number;
@@ -30,10 +32,45 @@ interface RateLimitEntry {
   blockedUntil?: number;
 }
 
+// In-memory fallback (used when Redis is not available)
 const loginAttempts = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes block
+const REDIS_RATE_LIMIT_PREFIX = 'ratelimit:';
+
+// ============================================
+// PASSWORD VALIDATION: Strong password requirements
+// ============================================
+interface PasswordValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push('Password must contain at least one special character (!@#$%^&*...)');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
 
 // Get client IP from request (handles proxies)
 function getClientIP(req: Request): string {
@@ -45,8 +82,50 @@ function getClientIP(req: Request): string {
   return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
-// Check and update rate limit
-function checkRateLimit(identifier: string): { allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number } {
+// Check and update rate limit - uses Redis if available, falls back to in-memory
+async function checkRateLimitRedis(identifier: string): Promise<{ allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number }> {
+  const redis = getRedisClient();
+
+  if (!redis || !isRedisAvailable()) {
+    // Fallback to in-memory
+    return checkRateLimitMemory(identifier);
+  }
+
+  try {
+    const key = `${REDIS_RATE_LIMIT_PREFIX}${identifier}`;
+    const blockKey = `${REDIS_RATE_LIMIT_PREFIX}block:${identifier}`;
+
+    // Check if blocked
+    const blockedTTL = await redis.ttl(blockKey);
+    if (blockedTTL > 0) {
+      return { allowed: false, remainingAttempts: 0, retryAfterSeconds: blockedTTL };
+    }
+
+    // Increment attempts
+    const attempts = await redis.incr(key);
+
+    // Set expiry on first attempt
+    if (attempts === 1) {
+      await redis.expire(key, Math.ceil(RATE_LIMIT_WINDOW_MS / 1000));
+    }
+
+    if (attempts > RATE_LIMIT_MAX_ATTEMPTS) {
+      // Block the user
+      const blockSeconds = Math.ceil(RATE_LIMIT_BLOCK_DURATION_MS / 1000);
+      await redis.setex(blockKey, blockSeconds, '1');
+      console.log(`[Auth] Rate limit exceeded for: ${identifier} (Redis)`);
+      return { allowed: false, remainingAttempts: 0, retryAfterSeconds: blockSeconds };
+    }
+
+    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - attempts };
+  } catch (error) {
+    console.warn('[Auth] Redis rate limit error, falling back to memory:', error);
+    return checkRateLimitMemory(identifier);
+  }
+}
+
+// In-memory rate limit check (fallback)
+function checkRateLimitMemory(identifier: string): { allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number } {
   const now = Date.now();
   const entry = loginAttempts.get(identifier);
 
@@ -84,7 +163,7 @@ function checkRateLimit(identifier: string): { allowed: boolean; remainingAttemp
     // Block the user
     entry.blockedUntil = now + RATE_LIMIT_BLOCK_DURATION_MS;
     const retryAfterSeconds = Math.ceil(RATE_LIMIT_BLOCK_DURATION_MS / 1000);
-    console.log(`[Auth] Rate limit exceeded for: ${identifier}`);
+    console.log(`[Auth] Rate limit exceeded for: ${identifier} (Memory)`);
     return { allowed: false, remainingAttempts: 0, retryAfterSeconds };
   }
 
@@ -92,8 +171,28 @@ function checkRateLimit(identifier: string): { allowed: boolean; remainingAttemp
 }
 
 // Reset rate limit on successful login
+async function resetRateLimitRedis(identifier: string): Promise<void> {
+  const redis = getRedisClient();
+
+  if (redis && isRedisAvailable()) {
+    try {
+      const key = `${REDIS_RATE_LIMIT_PREFIX}${identifier}`;
+      const blockKey = `${REDIS_RATE_LIMIT_PREFIX}block:${identifier}`;
+      await redis.del(key, blockKey);
+    } catch (error) {
+      console.warn('[Auth] Redis reset error:', error);
+    }
+  }
+
+  // Always also clear memory
+  loginAttempts.delete(identifier);
+}
+
+// Sync version for backwards compatibility
 function resetRateLimit(identifier: string): void {
   loginAttempts.delete(identifier);
+  // Also try to clear Redis asynchronously
+  resetRateLimitRedis(identifier).catch(() => {});
 }
 
 // Login - supports both email and username for backwards compatibility
@@ -108,18 +207,18 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // SECURITY: Rate limiting temporarily disabled
-    // const clientIP = getClientIP(req);
-    // const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
-    // const rateLimit = checkRateLimit(rateLimitKey);
+    // SECURITY: Rate limiting - 8 attempts per 15 minutes (uses Redis if available)
+    const clientIP = getClientIP(req);
+    const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
+    const rateLimit = await checkRateLimitRedis(rateLimitKey);
 
-    // if (!rateLimit.allowed) {
-    //   res.setHeader('Retry-After', rateLimit.retryAfterSeconds?.toString() || '900');
-    //   return res.status(429).json({
-    //     error: 'Too many login attempts. Please try again later.',
-    //     retryAfterSeconds: rateLimit.retryAfterSeconds
-    //   });
-    // }
+    if (!rateLimit.allowed) {
+      res.setHeader('Retry-After', rateLimit.retryAfterSeconds?.toString() || '900');
+      return res.status(429).json({
+        error: 'Too many login attempts. Please try again later.',
+        retryAfterSeconds: rateLimit.retryAfterSeconds
+      });
+    }
 
     // Find user by email first, then fallback to username
     let user = null;
@@ -148,7 +247,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (error || !user) {
       return res.status(401).json({
-        error: 'Invalid email or password'
+        error: 'Invalid email or password',
+        remainingAttempts: rateLimit.remainingAttempts
       });
     }
 
@@ -156,9 +256,13 @@ router.post('/login', async (req: Request, res: Response) => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({
-        error: 'Invalid email or password'
+        error: 'Invalid email or password',
+        remainingAttempts: rateLimit.remainingAttempts
       });
     }
+
+    // Reset rate limit on successful login
+    resetRateLimit(rateLimitKey);
 
     // Generate JWT token
     const payload: JWTPayload = {
@@ -257,8 +361,13 @@ router.post('/register', async (req, res: Response) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    // SECURITY: Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'Password does not meet requirements',
+        details: passwordValidation.errors
+      });
     }
 
     // Find valid invitation
@@ -548,18 +657,24 @@ router.post('/recover-password', async (req, res: Response) => {
             <head>
               <meta charset="utf-8">
               <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                .header h1 { margin: 0; font-size: 28px; }
+                .header p { margin: 10px 0 0 0; opacity: 0.9; }
                 .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+                .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                .button:hover { background: #15803d; }
+                .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+                .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>Recuperação de Password</h1>
+                  <h1>🔐 Recuperação de Password</h1>
+                  <p>Pedido de redefinição de password</p>
                 </div>
                 <div class="content">
                   <p>Olá <strong>${user.display_name || user.username}</strong>,</p>
@@ -568,13 +683,18 @@ router.post('/recover-password', async (req, res: Response) => {
                   <p style="text-align: center;">
                     <a href="${resetUrl}" class="button">Redefinir Password</a>
                   </p>
-                  <p>Ou copie e cole este link no seu navegador:</p>
-                  <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">${resetUrl}</p>
-                  <p><strong>Este link é válido por 1 hora.</strong></p>
-                  <p>Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
+                  <div class="info-box">
+                    <p style="margin: 0; font-size: 14px;">Ou copie e cole este link no seu navegador:</p>
+                    <p style="word-break: break-all; margin: 10px 0 0 0; font-size: 13px; color: #15803d;">${resetUrl}</p>
+                  </div>
+                  <div class="warning-box">
+                    <p style="margin: 0; color: #92400e;"><strong>⏱️ Este link é válido apenas por 1 hora.</strong></p>
+                  </div>
+                  <p style="color: #6b7280; font-size: 14px;">Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
                 </div>
                 <div class="footer">
                   <p>© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas</p>
+                  <p>Este email foi enviado automaticamente. Por favor não responda.</p>
                 </div>
               </div>
             </body>
@@ -668,8 +788,13 @@ router.post('/reset-password', async (req, res: Response) => {
       return res.status(400).json({ error: 'Token and new password are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    // SECURITY: Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: 'Password does not meet requirements',
+        details: passwordValidation.errors
+      });
     }
 
     // SECURITY: Hash the provided token and look it up
