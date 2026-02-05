@@ -243,3 +243,10 @@ export interface TopObjection {
   objection: string;
   count: number;
 }
+
+// Grouped objections by category
+export interface GroupedObjection {
+  category: string;
+  count: number;
+  objections: TopObjection[];
+}

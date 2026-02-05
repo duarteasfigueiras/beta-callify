@@ -41,6 +41,7 @@ export default function Calls() {
     (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc'
   );
   const [contactReason, setContactReason] = useState(() => searchParams.get('contact_reason') || '');
+  const [objection, setObjection] = useState(() => searchParams.get('objection') || '');
 
   // Update URL when filters change
   const updateURLParams = useCallback(() => {
@@ -55,9 +56,10 @@ export default function Calls() {
     if (sortBy !== 'call_date') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
     if (contactReason) params.set('contact_reason', contactReason);
+    if (objection) params.set('objection', objection);
 
     setSearchParams(params, { replace: true });
-  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, contactReason, setSearchParams]);
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, contactReason, objection, setSearchParams]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function Calls() {
 
   // Show filters panel if there are active filters in URL
   useEffect(() => {
-    if (dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason) {
+    if (dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason || objection) {
       setShowFilters(true);
     }
   }, []);
@@ -104,6 +106,7 @@ export default function Calls() {
           sort_order?: string;
           direction?: string;
           contact_reason?: string;
+          objection?: string;
         } = {
           page,
           limit: 10,
@@ -134,6 +137,9 @@ export default function Calls() {
         if (contactReason) {
           params.contact_reason = contactReason;
         }
+        if (objection) {
+          params.objection = objection;
+        }
 
         const response: PaginatedResponse<Call> = await callsApi.getAll(params);
 
@@ -148,7 +154,7 @@ export default function Calls() {
     };
 
     fetchCalls();
-  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, activeTab, contactReason]);
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, activeTab, contactReason, objection]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -187,11 +193,12 @@ export default function Calls() {
     setScoreMin('');
     setScoreMax('');
     setContactReason('');
+    setObjection('');
     setPage(1);
     // URL will be updated automatically via the useEffect
   };
 
-  const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason;
+  const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason || objection;
 
   // Quick date filter helpers
   const setTodayFilter = () => {
@@ -499,6 +506,32 @@ export default function Calls() {
               setPage(1);
             }}
             className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+          >
+            <X className="w-4 h-4 mr-1" />
+            {t('calls.clearFilter', 'Limpar filtro')}
+          </Button>
+        </div>
+      )}
+
+      {/* Active Objection Filter Banner */}
+      {objection && (
+        <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-amber-700 dark:text-amber-300">
+              {t('calls.filteringByObjection', 'A filtrar por objeção:')}
+            </span>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-200">
+              {objection}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setObjection('');
+              setPage(1);
+            }}
+            className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
           >
             <X className="w-4 h-4 mr-1" />
             {t('calls.clearFilter', 'Limpar filtro')}

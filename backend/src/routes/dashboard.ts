@@ -469,6 +469,7 @@ router.get('/top-reasons', async (req: AuthenticatedRequest, res: Response) => {
 // Get top objections for reports (admin or developer)
 // Objections are concerns/objections raised BY THE CUSTOMER during the call
 // (e.g., "Preço muito alto", "Prazo de entrega longo")
+// Returns grouped by category similar to contact reasons
 router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!isAdminOrDeveloper(req.user!.role)) {
@@ -476,6 +477,7 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
     }
 
     const { date_from, date_to, company_id } = req.query;
+    const DEFAULT_CATEGORY = 'Outros';
 
     // Get calls with objections data (customer objections, not evaluation critiques)
     let query = supabase
@@ -502,8 +504,8 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
 
     if (error) throw error;
 
-    // Count objections from the objections field
-    const objectionCounts: Record<string, number> = {};
+    // Group objections by category
+    const categoryMap: Record<string, Record<string, number>> = {};
 
     (calls || []).forEach((call: any) => {
       if (!call.objections) return;
@@ -516,16 +518,22 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
 
         if (Array.isArray(items)) {
           items.forEach((item: any) => {
-            // Each item may have a 'text' property or be a string directly
-            let text = '';
+            let category = DEFAULT_CATEGORY;
+            let objection = '';
+
+            // Handle both old format (string or {text}) and new format ({categoria, objecao})
             if (typeof item === 'string') {
-              text = item.trim();
-            } else if (item && item.text) {
-              text = item.text.trim();
+              objection = item.trim();
+            } else if (item && typeof item === 'object') {
+              category = (item.categoria || item.category || DEFAULT_CATEGORY).trim();
+              objection = (item.objecao || item.objection || item.text || '').trim();
             }
 
-            if (text) {
-              objectionCounts[text] = (objectionCounts[text] || 0) + 1;
+            if (objection) {
+              if (!categoryMap[category]) {
+                categoryMap[category] = {};
+              }
+              categoryMap[category][objection] = (categoryMap[category][objection] || 0) + 1;
             }
           });
         }
@@ -534,11 +542,22 @@ router.get('/top-objections', async (req: AuthenticatedRequest, res: Response) =
       }
     });
 
-    // Convert to array and sort
-    const results = Object.entries(objectionCounts)
-      .map(([objection, count]) => ({ objection, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
+    // Convert to grouped format
+    const results = Object.entries(categoryMap)
+      .map(([category, objections]) => {
+        const objectionsList = Object.entries(objections)
+          .map(([objection, count]) => ({ objection, count }))
+          .sort((a, b) => b.count - a.count);
+
+        const totalCount = objectionsList.reduce((sum, o) => sum + o.count, 0);
+
+        return {
+          category,
+          count: totalCount,
+          objections: objectionsList
+        };
+      })
+      .sort((a, b) => b.count - a.count);
 
     res.json(results);
   } catch (error) {

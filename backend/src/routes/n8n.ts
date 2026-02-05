@@ -805,6 +805,20 @@ Exemplo: Se o cliente perguntou sobre preços E sobre prazos de entrega, agrupa 
 
 ---
 
+## INSTRUÇÕES PARA OBJEÇÕES
+
+Para o campo "objecoes", deves:
+1. Identificar TODAS as objeções ou preocupações expressas pelo cliente
+2. Analisar as objeções e encontrar TEMAS COMUNS entre elas
+3. CRIAR categorias apropriadas que agrupem objeções semelhantes
+4. Usar nomes de categoria CURTOS e DESCRITIVOS (2-3 palavras máximo)
+5. Exemplos de categorias: "Preço/Custo", "Tempo de Espera", "Funcionalidades", "Concorrência", "Confiança", "Processo"
+6. Se uma objeção não se encaixa em nenhuma categoria com outras, usa "Outros"
+
+Exemplo: Se o cliente disse "é muito caro" E "o preço é alto demais", agrupa ambos em "Preço/Custo".
+
+---
+
 ## FORMATO DE RESPOSTA (JSON OBRIGATÓRIO)
 
 Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code blocks.
@@ -839,7 +853,10 @@ Responde APENAS com JSON válido. Sem texto antes ou depois. Sem markdown code b
   ],
 
   "objecoes": [
-    "Objeções ou preocupações expressas pelo cliente durante a chamada"
+    {
+      "categoria": "Categoria criada por ti (ex: Preço/Custo, Tempo de Espera, Funcionalidades)",
+      "objecao": "Objeção específica expressa pelo cliente"
+    }
   ],
 
   "palavras_risco_detectadas": [

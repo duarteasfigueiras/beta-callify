@@ -26,7 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, usersApi, callsApi, alertSettingsApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { ScoreByAgent, ScoreEvolution, CallsByPeriod, TopObjection, User, Call, GroupedReason } from '../types';
+import { ScoreByAgent, ScoreEvolution, CallsByPeriod, GroupedObjection, User, Call, GroupedReason } from '../types';
 import {
   LineChart,
   Line,
@@ -59,7 +59,7 @@ export default function Reports() {
   const [scoreEvolution, setScoreEvolution] = useState<ScoreEvolution[]>([]);
   const [callsByPeriod, setCallsByPeriod] = useState<CallsByPeriod[]>([]);
   const [topReasons, setTopReasons] = useState<GroupedReason[]>([]);
-  const [topObjections, setTopObjections] = useState<TopObjection[]>([]);
+  const [topObjections, setTopObjections] = useState<GroupedObjection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d' | 'all'>('30d');
   const [agents, setAgents] = useState<User[]>([]);
@@ -1063,44 +1063,53 @@ export default function Reports() {
 
       {/* Charts Grid - Row 4 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Objections */}
+        {/* Top Objections - Grouped by Category */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <XCircle className="w-5 h-5" />
               {t('reports.topObjections', 'Top Objections')}
               {topObjections.length > 0 && (
-                <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {topObjections.length} {t('reports.objections', 'objections')}
-                </span>
+                <button
+                  onClick={() => navigate('/objection-reasons')}
+                  className="ml-auto text-sm font-normal text-amber-600 dark:text-amber-400 hover:underline"
+                >
+                  {t('common.viewAll', 'Ver todos')}
+                </button>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {topObjections.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                {topObjections.map((objection, index) => (
-                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="text-sm font-medium text-amber-600 dark:text-amber-400 capitalize break-words">
-                        {objection.objection}
+              <div className="space-y-1 h-64 overflow-y-auto px-1">
+                {topObjections.map((group) => {
+                  return (
+                    <button
+                      key={group.category}
+                      onClick={() => navigate(`/objection-reasons?category=${encodeURIComponent(group.category)}`)}
+                      className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                    >
+                      <div className="w-28 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                        {group.category}
                       </div>
-                      <div className="text-sm font-bold text-gray-700 dark:text-gray-300 shrink-0 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">
-                        {objection.count}
+                      <div className="flex-1 min-w-[40px]">
+                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-500 transition-all duration-500"
+                            style={{ width: `${(group.count / maxObjectionCount) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-500"
-                        style={{ width: `${(objection.count / maxObjectionCount) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                      <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
+                        {group.count}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </CardContent>

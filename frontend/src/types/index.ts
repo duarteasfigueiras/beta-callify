@@ -228,6 +228,13 @@ export interface TopObjection {
   count: number;
 }
 
+// Grouped objections by category
+export interface GroupedObjection {
+  category: string;
+  count: number;
+  objections: TopObjection[];
+}
+
 // Form types
 export interface CriterionFormData {
   name: string;

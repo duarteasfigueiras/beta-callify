@@ -191,8 +191,8 @@ export const dashboardApi = {
     const response = await api.get('/dashboard/top-reasons', { params });
     return response.data;
   },
-  getTopObjections: async () => {
-    const response = await api.get('/dashboard/top-objections');
+  getTopObjections: async (params?: { date_from?: string; date_to?: string }) => {
+    const response = await api.get('/dashboard/top-objections', { params });
     return response.data;
   },
   getScoreEvolutionByCategory: async (days?: number) => {
