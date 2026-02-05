@@ -23,6 +23,7 @@ import UserScores from './pages/UserScores';
 import ScoreEvolution from './pages/ScoreEvolution';
 import CallsByPeriod from './pages/CallsByPeriod';
 import RiskWordsCalls from './pages/RiskWordsCalls';
+import ContactReasons from './pages/ContactReasons';
 import { isAdminOrDeveloper, isDeveloper } from './types';
 import './i18n';
 
@@ -218,6 +219,14 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <RiskWordsCalls />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/contact-reasons"
+        element={
+          <AdminRoute>
+            <ContactReasons />
           </AdminRoute>
         }
       />

@@ -20,7 +20,6 @@ import {
   FileText,
   FileSpreadsheet,
   ChevronUp,
-  ChevronDown,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,7 +59,6 @@ export default function Reports() {
   const [scoreEvolution, setScoreEvolution] = useState<ScoreEvolution[]>([]);
   const [callsByPeriod, setCallsByPeriod] = useState<CallsByPeriod[]>([]);
   const [topReasons, setTopReasons] = useState<GroupedReason[]>([]);
-  const [expandedReasonCategories, setExpandedReasonCategories] = useState<Set<string>>(new Set());
   const [topObjections, setTopObjections] = useState<TopObjection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d' | 'all'>('30d');
@@ -1017,9 +1015,12 @@ export default function Reports() {
               <MessageSquare className="w-5 h-5" />
               {t('reports.topReasons', 'Top Contact Reasons')}
               {topReasons.length > 0 && (
-                <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {topReasons.length} {t('reports.categories', 'categorias')}
-                </span>
+                <button
+                  onClick={() => navigate('/contact-reasons')}
+                  className="ml-auto text-sm font-normal text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  {t('common.viewAll', 'Ver todos')}
+                </button>
               )}
             </CardTitle>
           </CardHeader>
@@ -1031,66 +1032,28 @@ export default function Reports() {
             ) : (
               <div className="space-y-1 h-64 overflow-y-auto pr-2">
                 {topReasons.map((group) => {
-                  const isExpanded = expandedReasonCategories.has(group.category);
                   return (
-                    <div key={group.category} className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-1">
-                      <button
-                        onClick={() => {
-                          setExpandedReasonCategories(prev => {
-                            const next = new Set(prev);
-                            if (next.has(group.category)) {
-                              next.delete(group.category);
-                            } else {
-                              next.add(group.category);
-                            }
-                            return next;
-                          });
-                        }}
-                        className="w-full flex items-center gap-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
-                        )}
-                        <div className="w-32 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
-                          {group.category}
+                    <button
+                      key={group.category}
+                      onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
+                      className="w-full flex items-center gap-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                    >
+                      <ChevronRight className="w-4 h-4 text-purple-500 shrink-0" />
+                      <div className="w-32 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                        {group.category}
+                      </div>
+                      <div className="flex-1 min-w-[40px]">
+                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-purple-500 transition-all duration-500"
+                            style={{ width: `${(group.count / maxReasonCount) * 100}%` }}
+                          />
                         </div>
-                        <div className="flex-1 min-w-[40px]">
-                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-purple-500 transition-all duration-500"
-                              style={{ width: `${(group.count / maxReasonCount) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-8 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
-                          {group.count}
-                        </div>
-                      </button>
-                      {isExpanded && group.reasons.length > 0 && (
-                        <div className="ml-6 mt-1 space-y-1 pb-2">
-                          {group.reasons.map((reason, idx) => (
-                            <div key={idx} className="flex items-center gap-2 py-0.5">
-                              <div className="w-28 text-xs text-gray-600 dark:text-gray-400 truncate pl-2">
-                                {reason.reason}
-                              </div>
-                              <div className="flex-1 min-w-[30px]">
-                                <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-purple-300 dark:bg-purple-600 transition-all duration-500"
-                                    style={{ width: `${(reason.count / group.count) * 100}%` }}
-                                  />
-                                </div>
-                              </div>
-                              <div className="w-6 text-right text-xs text-gray-500 dark:text-gray-400">
-                                {reason.count}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                      <div className="w-8 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
+                        {group.count}
+                      </div>
+                    </button>
                   );
                 })}
               </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
+import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, alertsApi, categoriesApi, Category } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -32,7 +32,6 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [scoreEvolution, setScoreEvolution] = useState<{ date: string; average_score: number; total_calls: number }[]>([]);
   const [topReasons, setTopReasons] = useState<GroupedReason[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | '90d' | 'all'>('30d');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -517,7 +516,7 @@ export default function Dashboard() {
             <CardHeader className="py-2 px-4 shrink-0 flex flex-row items-center justify-between">
               <CardTitle className="text-lg">{t('dashboard.topReasons')}</CardTitle>
               <button
-                onClick={() => navigate('/reports')}
+                onClick={() => navigate('/contact-reasons')}
                 className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
               >
                 {t('common.viewAll', 'Ver todos')}
@@ -532,66 +531,28 @@ export default function Dashboard() {
                 <div className="space-y-1">
                   {topReasons.map((group) => {
                     const maxCount = Math.max(...topReasons.map(r => r.count), 1);
-                    const isExpanded = expandedCategories.has(group.category);
                     return (
-                      <div key={group.category} className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-1">
-                        <button
-                          onClick={() => {
-                            setExpandedCategories(prev => {
-                              const next = new Set(prev);
-                              if (next.has(group.category)) {
-                                next.delete(group.category);
-                              } else {
-                                next.add(group.category);
-                              }
-                              return next;
-                            });
-                          }}
-                          className="w-full flex items-center gap-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="w-3 h-3 text-gray-500 shrink-0" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3 text-gray-500 shrink-0" />
-                          )}
-                          <div className="w-24 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
-                            {group.category}
+                      <button
+                        key={group.category}
+                        onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
+                        className="w-full flex items-center gap-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      >
+                        <ChevronRight className="w-3 h-3 text-purple-500 shrink-0" />
+                        <div className="w-24 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                          {group.category}
+                        </div>
+                        <div className="flex-1">
+                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-purple-500 transition-all duration-500"
+                              style={{ width: `${(group.count / maxCount) * 100}%` }}
+                            />
                           </div>
-                          <div className="flex-1">
-                            <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-purple-500 transition-all duration-500"
-                                style={{ width: `${(group.count / maxCount) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
-                            {group.count}
-                          </div>
-                        </button>
-                        {isExpanded && group.reasons.length > 0 && (
-                          <div className="ml-5 mt-1 space-y-1 pb-1">
-                            {group.reasons.slice(0, 5).map((reason, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <div className="w-20 text-xs text-gray-600 dark:text-gray-400 truncate pl-1">
-                                  {reason.reason}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-purple-300 dark:bg-purple-600 transition-all duration-500"
-                                      style={{ width: `${(reason.count / group.count) * 100}%` }}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="w-5 text-right text-xs text-gray-500 dark:text-gray-400">
-                                  {reason.count}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                        <div className="w-6 text-right text-xs font-bold text-gray-700 dark:text-gray-300">
+                          {group.count}
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
