@@ -1030,19 +1030,19 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-1 h-64 overflow-y-auto px-1">
+              <div className="space-y-4 h-64 overflow-y-auto pr-2">
                 {topReasons.map((group) => {
                   return (
-                    <button
+                    <div
                       key={group.category}
                       onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
-                      className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -mx-2 rounded-lg transition-colors"
                     >
-                      <div className="w-28 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                      <div className="w-32 truncate text-sm font-medium text-purple-600 dark:text-purple-400">
                         {group.category}
                       </div>
-                      <div className="flex-1 min-w-[40px]">
-                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="flex-1">
+                        <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-purple-500 transition-all duration-500"
                             style={{ width: `${(group.count / maxReasonCount) * 100}%` }}
@@ -1052,7 +1052,7 @@ export default function Reports() {
                       <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
                         {group.count}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1085,19 +1085,19 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-1 h-64 overflow-y-auto px-1">
+              <div className="space-y-4 h-64 overflow-y-auto pr-2">
                 {topObjections.map((group) => {
                   return (
-                    <button
+                    <div
                       key={group.category}
                       onClick={() => navigate(`/objection-reasons?category=${encodeURIComponent(group.category)}`)}
-                      className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -mx-2 rounded-lg transition-colors"
                     >
-                      <div className="w-28 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                      <div className="w-32 truncate text-sm font-medium text-amber-600 dark:text-amber-400">
                         {group.category || 'Outros'}
                       </div>
-                      <div className="flex-1 min-w-[40px]">
-                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="flex-1">
+                        <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-amber-500 transition-all duration-500"
                             style={{ width: `${(group.count / maxObjectionCount) * 100}%` }}
@@ -1107,7 +1107,7 @@ export default function Reports() {
                       <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
                         {group.count}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
