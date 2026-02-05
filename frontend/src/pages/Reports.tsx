@@ -20,6 +20,7 @@ import {
   FileText,
   FileSpreadsheet,
   ChevronUp,
+  ChevronDown,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
