@@ -1030,15 +1030,15 @@ export default function Reports() {
                 {t('common.noResults', 'No results')}
               </div>
             ) : (
-              <div className="space-y-1 h-64 overflow-y-auto pr-2">
+              <div className="space-y-1 h-64 overflow-y-auto px-1">
                 {topReasons.map((group) => {
                   return (
                     <button
                       key={group.category}
                       onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
-                      className="w-full flex items-center gap-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                     >
-                      <div className="w-32 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
+                      <div className="w-28 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
                         {group.category}
                       </div>
                       <div className="flex-1 min-w-[40px]">
@@ -1049,7 +1049,7 @@ export default function Reports() {
                           />
                         </div>
                       </div>
-                      <div className="w-8 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
+                      <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">
                         {group.count}
                       </div>
                     </button>
