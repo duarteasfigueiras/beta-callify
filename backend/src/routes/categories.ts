@@ -131,7 +131,7 @@ router.get('/colors', async (_req: AuthenticatedRequest, res: Response) => {
   res.json(PREDEFINED_COLORS);
 });
 
-// Create a new category (saves to category_metadata and creates criteria for it)
+// Create a new category (saves to category_metadata)
 router.post('/', requireRole('admin_manager', 'developer'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, color_id } = req.body;
@@ -180,81 +180,14 @@ router.post('/', requireRole('admin_manager', 'developer'), async (req: Authenti
       throw metadataError;
     }
 
-    // Create default criteria for this category
-    const defaultCriteria = [
-      {
-        company_id: companyId,
-        name: `Saudação/Abertura - ${cleanName}`,
-        description: `Cumprimento e abertura adequados para ${cleanName}`,
-        weight: 1,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Identificação da necessidade - ${cleanName}`,
-        description: `Identificação das necessidades específicas de ${cleanName}`,
-        weight: 2,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Clareza na comunicação - ${cleanName}`,
-        description: `Comunicação clara e compreensível para ${cleanName}`,
-        weight: 1,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Tom profissional - ${cleanName}`,
-        description: `Manutenção de tom profissional em ${cleanName}`,
-        weight: 1,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Resolução do problema - ${cleanName}`,
-        description: `Capacidade de resolver problemas específicos de ${cleanName}`,
-        weight: 3,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Próximo passo definido - ${cleanName}`,
-        description: `Definição clara do próximo passo para ${cleanName}`,
-        weight: 2,
-        is_active: true,
-        category: key
-      },
-      {
-        company_id: companyId,
-        name: `Fecho da chamada - ${cleanName}`,
-        description: `Encerramento profissional da chamada de ${cleanName}`,
-        weight: 1,
-        is_active: true,
-        category: key
-      }
-    ];
-
-    const { error: criteriaError } = await supabase.from('criteria').insert(defaultCriteria);
-    if (criteriaError) {
-      console.error('Error creating criteria for category:', criteriaError);
-      throw criteriaError;
-    }
-
-    console.log(`Created category "${key}" with color "${colorData.id}" and ${defaultCriteria.length} default criteria in company ${companyId}`);
+    console.log(`Created category "${key}" with color "${colorData.id}" in company ${companyId}`);
 
     res.status(201).json({
       key: key,
       name: cleanName,
       color_id: colorData.id,
       color_classes: getColorClasses(colorData.id),
-      is_builtin: false,
-      criteria_count: defaultCriteria.length
+      is_builtin: false
     });
   } catch (error) {
     console.error('Error creating category:', error);
