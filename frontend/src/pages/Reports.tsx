@@ -21,7 +21,6 @@ import {
   FileSpreadsheet,
   ChevronUp,
   ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, usersApi, callsApi, alertSettingsApi } from '../services/api';
@@ -1039,7 +1038,6 @@ export default function Reports() {
                       onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
                       className="w-full flex items-center gap-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                     >
-                      <ChevronRight className="w-4 h-4 text-purple-500 shrink-0" />
                       <div className="w-32 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
                         {group.category}
                       </div>

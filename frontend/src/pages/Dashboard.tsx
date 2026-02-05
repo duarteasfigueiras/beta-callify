@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar, ChevronRight } from 'lucide-react';
+import { Phone, TrendingUp, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardApi, alertsApi, categoriesApi, Category } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -537,7 +537,6 @@ export default function Dashboard() {
                         onClick={() => navigate(`/contact-reasons?category=${encodeURIComponent(group.category)}`)}
                         className="w-full flex items-center gap-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                       >
-                        <ChevronRight className="w-3 h-3 text-purple-500 shrink-0" />
                         <div className="w-24 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate text-left">
                           {group.category}
                         </div>

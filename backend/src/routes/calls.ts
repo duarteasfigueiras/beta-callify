@@ -75,7 +75,7 @@ router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequ
 // Get all calls (developer sees all, admin sees company, agent sees only own)
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, agent_id, date_from, date_to, score_min, score_max, sort_by = 'call_date', sort_order = 'desc', company_id, direction } = req.query;
+    const { page = 1, limit = 20, agent_id, date_from, date_to, score_min, score_max, sort_by = 'call_date', sort_order = 'desc', company_id, direction, contact_reason } = req.query;
 
     // Validate and sanitize page and limit parameters
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
@@ -119,6 +119,11 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
     if (direction && ['inbound', 'outbound', 'meeting'].includes(String(direction))) {
       query = query.eq('direction', String(direction));
+    }
+
+    // Filter by contact reason (searches within JSON field)
+    if (contact_reason) {
+      query = query.ilike('contact_reasons', `%${String(contact_reason)}%`);
     }
 
     // Sort

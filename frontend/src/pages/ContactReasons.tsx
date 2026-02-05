@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Phone } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Phone, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { dashboardApi } from '../services/api';
@@ -93,13 +93,17 @@ export default function ContactReasons() {
                 {displayData[0]?.reasons.map((reason, idx) => {
                   const maxCount = Math.max(...(displayData[0]?.reasons.map(r => r.count) || [1]), 1);
                   return (
-                    <div
+                    <button
                       key={idx}
-                      className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => navigate(`/calls?contact_reason=${encodeURIComponent(reason.reason)}`)}
+                      className="w-full flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-800 border border-transparent transition-all cursor-pointer text-left"
                     >
                       <div className="flex-1">
                         <p className="font-medium text-gray-900 dark:text-gray-100">
                           {reason.reason}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {t('reports.clickToViewCalls', 'Clica para ver chamadas')}
                         </p>
                       </div>
                       <div className="w-32">
@@ -110,12 +114,13 @@ export default function ContactReasons() {
                           />
                         </div>
                       </div>
-                      <div className="w-12 text-right">
+                      <div className="flex items-center gap-2">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                           {reason.count}
                         </span>
+                        <ExternalLink className="w-4 h-4 text-gray-400" />
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

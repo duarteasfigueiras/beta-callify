@@ -40,6 +40,7 @@ export default function Calls() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() =>
     (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc'
   );
+  const [contactReason, setContactReason] = useState(() => searchParams.get('contact_reason') || '');
 
   // Update URL when filters change
   const updateURLParams = useCallback(() => {
@@ -53,9 +54,10 @@ export default function Calls() {
     if (scoreMax) params.set('score_max', scoreMax);
     if (sortBy !== 'call_date') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+    if (contactReason) params.set('contact_reason', contactReason);
 
     setSearchParams(params, { replace: true });
-  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, setSearchParams]);
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, contactReason, setSearchParams]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Calls() {
 
   // Show filters panel if there are active filters in URL
   useEffect(() => {
-    if (dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax) {
+    if (dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason) {
       setShowFilters(true);
     }
   }, []);
@@ -101,6 +103,7 @@ export default function Calls() {
           sort_by?: string;
           sort_order?: string;
           direction?: string;
+          contact_reason?: string;
         } = {
           page,
           limit: 10,
@@ -128,6 +131,9 @@ export default function Calls() {
         if (scoreMax) {
           params.score_max = Number(scoreMax);
         }
+        if (contactReason) {
+          params.contact_reason = contactReason;
+        }
 
         const response: PaginatedResponse<Call> = await callsApi.getAll(params);
 
@@ -142,7 +148,7 @@ export default function Calls() {
     };
 
     fetchCalls();
-  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, activeTab]);
+  }, [page, dateFrom, dateTo, selectedAgentId, scoreMin, scoreMax, sortBy, sortOrder, activeTab, contactReason]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -180,11 +186,12 @@ export default function Calls() {
     setSelectedAgentId('');
     setScoreMin('');
     setScoreMax('');
+    setContactReason('');
     setPage(1);
     // URL will be updated automatically via the useEffect
   };
 
-  const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax;
+  const hasActiveFilters = dateFrom || dateTo || selectedAgentId || scoreMin || scoreMax || contactReason;
 
   // Quick date filter helpers
   const setTodayFilter = () => {
@@ -471,6 +478,32 @@ export default function Calls() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Active Contact Reason Filter Banner */}
+      {contactReason && (
+        <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-purple-700 dark:text-purple-300">
+              {t('calls.filteringByReason', 'A filtrar por motivo de contacto:')}
+            </span>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+              {contactReason}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setContactReason('');
+              setPage(1);
+            }}
+            className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+          >
+            <X className="w-4 h-4 mr-1" />
+            {t('calls.clearFilter', 'Limpar filtro')}
+          </Button>
+        </div>
       )}
 
       {/* Calls Table */}
