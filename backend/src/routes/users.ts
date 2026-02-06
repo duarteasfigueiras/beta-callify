@@ -85,7 +85,86 @@ router.post('/companies', requireRole('developer'), async (req: AuthenticatedReq
 
     if (error) throw error;
 
-    res.status(201).json({ ...company, users_count: 0 });
+    // Create default criteria for new company (category: 'all' = applies to everyone)
+    const defaultCriteria = [
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Abertura/Identificação',
+        description: 'Identificação clara (nome + empresa), tom profissional e cordial',
+        weight: 1,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Identificação de Necessidades',
+        description: 'Perguntas para entender o cliente, escuta ativa',
+        weight: 2,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Apresentação de Solução/Proposta',
+        description: 'Explicação clara do produto/serviço, adaptação às necessidades identificadas',
+        weight: 3,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Tratamento de Objeções',
+        description: 'Resposta adequada a dúvidas/resistências, argumentação sem ser agressivo',
+        weight: 2,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Clareza na Comunicação',
+        description: 'Linguagem simples e compreensível, evitar jargão técnico',
+        weight: 1,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Tom Profissional',
+        description: 'Cortesia constante, controlo emocional',
+        weight: 1,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Próximo Passo Definido',
+        description: 'Agendamento de follow-up, call-to-action claro',
+        weight: 3,
+        is_active: true
+      },
+      {
+        company_id: company.id,
+        category: 'all',
+        name: 'Fecho da Chamada',
+        description: 'Resumo do acordado, despedida profissional',
+        weight: 1,
+        is_active: true
+      }
+    ];
+
+    const { error: criteriaError } = await supabase
+      .from('criteria')
+      .insert(defaultCriteria);
+
+    if (criteriaError) {
+      console.error('Error creating default criteria:', criteriaError);
+      // Don't fail company creation, just log the error
+    } else {
+      console.log(`Created ${defaultCriteria.length} default criteria for company ${company.id}`);
+    }
+
+    res.status(201).json({ ...company, users_count: 0, criteria_created: !criteriaError });
   } catch (error: any) {
     console.error('Error creating company:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
