@@ -19,6 +19,10 @@ interface Criterion {
 // Tab type
 type TabType = 'criteria' | 'alerts';
 
+// Hardcoded limits
+const MAX_CRITERIA_PER_CATEGORY = 8;
+const MAX_DESCRIPTION_CHARS = 150;
+
 export default function Criteria() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -187,6 +191,13 @@ export default function Criteria() {
     }
     if (!formData.category) {
       toast.error(t('criteria.categoryRequired', 'Category is required'));
+      return;
+    }
+
+    // Check if category already has max criteria
+    const criteriaInCategory = criteria.filter(c => c.category === formData.category).length;
+    if (criteriaInCategory >= MAX_CRITERIA_PER_CATEGORY) {
+      toast.error(t('criteria.maxCriteriaReached', `Máximo de ${MAX_CRITERIA_PER_CATEGORY} critérios por categoria atingido`));
       return;
     }
 
@@ -713,11 +724,15 @@ export default function Criteria() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, MAX_DESCRIPTION_CHARS) })}
+                  maxLength={MAX_DESCRIPTION_CHARS}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   rows={3}
                   placeholder={t('criteria.descriptionPlaceholder', 'Describe what this criterion evaluates...')}
                 />
+                <p className={`mt-1 text-xs ${formData.description.length >= MAX_DESCRIPTION_CHARS ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {formData.description.length}/{MAX_DESCRIPTION_CHARS} {t('criteria.characters', 'caracteres')}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -778,6 +793,11 @@ export default function Criteria() {
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   {t('criteria.categoryHelpAll', 'Selecione "Todos" para aplicar a todas as categorias, ou escolha uma categoria específica')}
                 </p>
+                {formData.category && (
+                  <p className={`mt-1 text-xs ${criteria.filter(c => c.category === formData.category).length >= MAX_CRITERIA_PER_CATEGORY ? 'text-red-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {criteria.filter(c => c.category === formData.category).length}/{MAX_CRITERIA_PER_CATEGORY} {t('criteria.criteriaInCategory', 'critérios nesta categoria')}
+                  </p>
+                )}
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
@@ -796,7 +816,7 @@ export default function Criteria() {
               </button>
               <button
                 onClick={handleCreateCriterion}
-                disabled={isSubmitting || !formData.category}
+                disabled={isSubmitting || !formData.category || criteria.filter(c => c.category === formData.category).length >= MAX_CRITERIA_PER_CATEGORY}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? t('common.saving', 'Saving...') : t('common.create', 'Create')}
@@ -833,10 +853,14 @@ export default function Criteria() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, MAX_DESCRIPTION_CHARS) })}
+                  maxLength={MAX_DESCRIPTION_CHARS}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   rows={3}
                 />
+                <p className={`mt-1 text-xs ${formData.description.length >= MAX_DESCRIPTION_CHARS ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {formData.description.length}/{MAX_DESCRIPTION_CHARS} {t('criteria.characters', 'caracteres')}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

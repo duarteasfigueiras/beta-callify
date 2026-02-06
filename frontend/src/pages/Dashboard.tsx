@@ -262,7 +262,7 @@ export default function Dashboard() {
     <div className="h-[calc(100vh-7rem)] flex flex-col gap-3 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
           {t('dashboard.title')}
         </h1>
         <div className="flex items-center gap-2">
