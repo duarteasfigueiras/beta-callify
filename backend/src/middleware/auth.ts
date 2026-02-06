@@ -13,8 +13,12 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  // SECURITY: Check for token in httpOnly cookie first (most secure), then Authorization header (backwards compatibility)
+  const cookieToken = req.cookies?.access_token;
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const headerToken = authHeader && authHeader.split(' ')[1];
+
+  const token = cookieToken || headerToken;
 
   if (!token) {
     res.status(401).json({ error: 'Access token required' });

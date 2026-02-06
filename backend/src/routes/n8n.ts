@@ -6,17 +6,27 @@ const router = Router();
 // SECURITY: API Key authentication for n8n endpoints
 const N8N_API_KEY = process.env.N8N_API_KEY;
 
+// CRITICAL: Fail startup if N8N_API_KEY is not configured in production
+if (!N8N_API_KEY && process.env.NODE_ENV === 'production') {
+  console.error('[n8n] CRITICAL: N8N_API_KEY environment variable is required in production!');
+  process.exit(1);
+}
+
 function validateApiKey(req: Request, res: Response, next: Function) {
-  // Skip validation if no API key is configured (development mode)
+  // In development without API key, warn but allow (for local testing only)
   if (!N8N_API_KEY) {
-    console.warn('[n8n] WARNING: N8N_API_KEY not set - endpoints are unprotected!');
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(500).json({ error: 'Server misconfiguration: API key not set' });
+    }
+    console.warn('[n8n] WARNING: N8N_API_KEY not set - development mode only!');
     return next();
   }
 
-  const providedKey = req.headers['x-api-key'] || req.query.api_key;
+  // SECURITY: Only accept API key from header, never from query string (prevents logging exposure)
+  const providedKey = req.headers['x-api-key'];
 
   if (!providedKey || providedKey !== N8N_API_KEY) {
-    console.warn('[n8n] Unauthorized access attempt');
+    console.warn('[n8n] Unauthorized access attempt from IP:', req.ip);
     return res.status(401).json({ error: 'Invalid or missing API key' });
   }
 

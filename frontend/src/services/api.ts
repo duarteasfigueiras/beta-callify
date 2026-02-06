@@ -14,6 +14,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,  // SECURITY: Send httpOnly cookies with requests
 });
 
 // Add token to requests (check both localStorage and sessionStorage)

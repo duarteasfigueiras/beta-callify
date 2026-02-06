@@ -22,6 +22,43 @@ const router = Router();
 // Initialize Resend for email sending (optional - works without API key in dev mode)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// ===========================================
+// SECURITY: Cookie configuration for tokens
+// ===========================================
+const isProduction = process.env.NODE_ENV === 'production';
+const COOKIE_OPTIONS = {
+  httpOnly: true,  // Prevents XSS attacks - JS cannot access these cookies
+  secure: isProduction,  // Only send over HTTPS in production
+  sameSite: 'lax' as const,  // Prevents CSRF attacks
+  path: '/',
+};
+
+const ACCESS_TOKEN_COOKIE = 'access_token';
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
+const ACCESS_TOKEN_MAX_AGE = 24 * 60 * 60 * 1000;  // 24 hours
+const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;  // 30 days
+
+// Helper to set auth cookies
+function setAuthCookies(res: Response, token: string, refreshToken?: string) {
+  res.cookie(ACCESS_TOKEN_COOKIE, token, {
+    ...COOKIE_OPTIONS,
+    maxAge: ACCESS_TOKEN_MAX_AGE,
+  });
+
+  if (refreshToken) {
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: REFRESH_TOKEN_MAX_AGE,
+    });
+  }
+}
+
+// Helper to clear auth cookies
+function clearAuthCookies(res: Response) {
+  res.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+  res.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
+}
+
 // ============================================
 // RATE LIMITING: 8 attempts per 15 minutes
 // Uses Redis if available, falls back to in-memory
@@ -278,7 +315,11 @@ router.post('/login', async (req: Request, res: Response) => {
     // SECURITY: Only log minimal info, no sensitive data
     console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}, rememberMe=${!!rememberMe}`);
 
+    // SECURITY: Set httpOnly cookies for tokens (prevents XSS attacks)
+    setAuthCookies(res, token, refreshToken);
+
     // Return user data (without password)
+    // Also return tokens in body for backwards compatibility during migration
     const { password_hash, ...userWithoutPassword } = user;
     return res.json({
       token,
@@ -294,7 +335,8 @@ router.post('/login', async (req: Request, res: Response) => {
 // Refresh token - get new access token using refresh token
 router.post('/refresh', async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    // SECURITY: Try to get refresh token from cookie first, then body for backwards compatibility
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] || req.body.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });
@@ -328,6 +370,9 @@ router.post('/refresh', async (req: Request, res: Response) => {
     const newToken = generateToken(payload);
 
     console.log(`[Auth] Token refreshed: userId=${user.id}`);
+
+    // SECURITY: Set new access token in httpOnly cookie
+    setAuthCookies(res, newToken);
 
     return res.json({
       token: newToken,
@@ -574,6 +619,8 @@ router.post('/register', async (req, res: Response) => {
 
 // Logout (just invalidates the token on client side - no server action needed)
 router.post('/logout', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  // SECURITY: Clear auth cookies on logout
+  clearAuthCookies(res);
   return res.json({ message: 'Logged out successfully' });
 });
 
