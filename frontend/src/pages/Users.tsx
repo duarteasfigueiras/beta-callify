@@ -1094,10 +1094,10 @@ export default function Users() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Agent count indicator (admins don't count towards the limit) */}
+          {/* User count indicator (all users count towards the limit) */}
           {(() => {
-            const agentCount = users.filter(u => u.role === 'agent').length;
-            const isAtLimit = agentCount >= maxUsers;
+            const totalUserCount = users.length;
+            const isAtLimit = totalUserCount >= maxUsers;
             return (
               <>
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
@@ -1106,7 +1106,7 @@ export default function Users() {
                     : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                 }`}>
                   <UsersIcon className="w-4 h-4" />
-                  {agentCount}/{maxUsers} {t('users.usersLabel', 'users')}
+                  {totalUserCount}/{maxUsers} {t('users.usersLabel', 'utilizadores')}
                 </div>
                 <button
                   onClick={() => handleInviteClick()}
@@ -1128,7 +1128,7 @@ export default function Users() {
       </div>
 
       {/* Limit Warning Banner */}
-      {users.filter(u => u.role === 'agent').length >= maxUsers && (
+      {users.length >= maxUsers && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div>
