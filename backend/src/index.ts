@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -108,7 +107,6 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));  // Limit body size
-app.use(cookieParser());  // Parse cookies for httpOnly token storage
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));

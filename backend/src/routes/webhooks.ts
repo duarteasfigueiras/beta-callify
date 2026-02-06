@@ -1,56 +1,9 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response } from 'express';
 import { supabase } from '../db/supabase';
 import { processCall, simulateTwilioWebhook } from '../services/callProcessor';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
-import twilio from 'twilio';
 
 const router = Router();
-
-// SECURITY: Twilio Auth Token for signature verification
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-
-/**
- * Middleware to validate Twilio webhook signatures
- * Prevents attackers from spoofing Twilio webhooks
- */
-function validateTwilioSignature(req: Request, res: Response, next: NextFunction) {
-  // Skip validation in development if no auth token configured
-  if (!TWILIO_AUTH_TOKEN) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[Webhook] CRITICAL: TWILIO_AUTH_TOKEN not configured in production!');
-      return res.status(500).json({ error: 'Server misconfiguration' });
-    }
-    console.warn('[Webhook] WARNING: TWILIO_AUTH_TOKEN not set - skipping signature validation (dev only)');
-    return next();
-  }
-
-  const twilioSignature = req.headers['x-twilio-signature'] as string;
-
-  if (!twilioSignature) {
-    console.warn('[Webhook] Missing Twilio signature from IP:', req.ip);
-    return res.status(401).json({ error: 'Missing Twilio signature' });
-  }
-
-  // Construct the full URL that Twilio used to sign the request
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-  const host = req.headers['host'];
-  const url = `${protocol}://${host}${req.originalUrl}`;
-
-  // Validate the signature using Twilio's helper
-  const isValid = twilio.validateRequest(
-    TWILIO_AUTH_TOKEN,
-    twilioSignature,
-    url,
-    req.body
-  );
-
-  if (!isValid) {
-    console.warn('[Webhook] Invalid Twilio signature from IP:', req.ip);
-    return res.status(401).json({ error: 'Invalid Twilio signature' });
-  }
-
-  next();
-}
 
 /**
  * Determine call direction from Twilio webhook data
@@ -145,7 +98,7 @@ async function findAgentByPhone(
  * - StatusCallbackEvent: Type of event (e.g., 'recording-completed')
  * - ConferenceSid: Present if this is a conference call
  */
-router.post('/twilio', validateTwilioSignature, async (req: Request, res: Response) => {
+router.post('/twilio', async (req: Request, res: Response) => {
   try {
     console.log('[Webhook] Received Twilio webhook:', JSON.stringify(req.body, null, 2));
 
