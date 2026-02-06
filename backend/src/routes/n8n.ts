@@ -721,12 +721,25 @@ router.get('/criteria', async (req: Request, res: Response) => {
     }
 
     // Generate a prompt that can be used directly by the AI agent
-    const criteriaList = criteria.map((c, i) =>
-      `${i + 1}. **${c.name}** (ID: ${c.id}, Peso: ${c.weight})\n   ${c.description || 'Sem descrição'}`
-    ).join('\n');
+    // Hardcoded limits for token control
+    const MAX_CRITERIA_FOR_AI = 8;
+    const MAX_DESCRIPTION_CHARS = 150;
 
-    // Calculate total weight for scoring guidance
-    const totalWeight = criteria.reduce((sum, c) => sum + (c.weight || 1), 0);
+    // Sort by weight (descending) and limit to max criteria
+    const limitedCriteria = [...criteria]
+      .sort((a, b) => (b.weight || 1) - (a.weight || 1))
+      .slice(0, MAX_CRITERIA_FOR_AI);
+
+    const criteriaList = limitedCriteria.map((c, i) => {
+      const desc = c.description || 'Sem descrição';
+      const truncatedDesc = desc.length > MAX_DESCRIPTION_CHARS
+        ? desc.substring(0, MAX_DESCRIPTION_CHARS) + '...'
+        : desc;
+      return `${i + 1}. **${c.name}** (ID: ${c.id}, Peso: ${c.weight})\n   ${truncatedDesc}`;
+    }).join('\n');
+
+    // Calculate total weight for scoring guidance (based on limited criteria)
+    const totalWeight = limitedCriteria.reduce((sum, c) => sum + (c.weight || 1), 0);
 
     // Format risk words for the prompt
     const riskWordsList = riskWords.map(w => `"${w}"`).join(', ');
