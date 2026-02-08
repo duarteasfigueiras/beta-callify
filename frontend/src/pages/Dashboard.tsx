@@ -384,7 +384,7 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {call.phone_number}
+                            {call.phone_number?.replace(/^\+\d{1,3}/, '') || call.phone_number}
                           </p>
                           {call.agent_name && (
                             <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${getAgentCategoryColor(call.agent_custom_role_name)}`}>
