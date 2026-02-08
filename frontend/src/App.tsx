@@ -25,6 +25,8 @@ import CallsByPeriod from './pages/CallsByPeriod';
 import RiskWordsCalls from './pages/RiskWordsCalls';
 import ContactReasons from './pages/ContactReasons';
 import ObjectionReasons from './pages/ObjectionReasons';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import { isAdminOrDeveloper, isDeveloper } from './types';
 import './i18n';
 
@@ -147,6 +149,9 @@ function AppRoutes() {
       />
       {/* Register is always accessible - user can register even if logged in */}
       <Route path="/register" element={<Register />} />
+      {/* Legal pages - always accessible */}
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
 
       {/* Protected routes */}
       <Route

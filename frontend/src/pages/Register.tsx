@@ -24,6 +24,7 @@ export default function Register() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -99,6 +100,11 @@ export default function Register() {
 
     if (password !== confirmPassword) {
       setError(t('register.passwordMismatch', 'Passwords do not match'));
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setError(t('register.mustAcceptTerms', 'You must accept the Terms of Service and Privacy Policy'));
       return;
     }
 
@@ -305,6 +311,28 @@ export default function Register() {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-start space-x-2">
+              <input
+                id="acceptTerms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                disabled={isLoading || !token}
+                className="h-4 w-4 mt-1 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="acceptTerms" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                {t('register.acceptTerms', 'I accept the')}{' '}
+                <Link to="/terms" target="_blank" className="text-green-600 hover:text-green-700 hover:underline">
+                  {t('legal.termsOfService', 'Terms of Service')}
+                </Link>{' '}
+                {t('common.and', 'and')}{' '}
+                <Link to="/privacy" target="_blank" className="text-green-600 hover:text-green-700 hover:underline">
+                  {t('legal.privacyPolicy', 'Privacy Policy')}
+                </Link>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
             </div>
 
             <Button

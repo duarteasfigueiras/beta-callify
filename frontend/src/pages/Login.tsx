@@ -164,6 +164,19 @@ export default function Login() {
                 {t('auth.forgotPassword')}
               </Link>
             </div>
+
+            <div className="pt-4 border-t text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('legal.byLoggingIn', 'By logging in, you agree to our')}{' '}
+                <Link to="/terms" className="text-green-600 hover:text-green-700 hover:underline">
+                  {t('legal.termsOfService', 'Terms of Service')}
+                </Link>{' '}
+                {t('common.and', 'and')}{' '}
+                <Link to="/privacy" className="text-green-600 hover:text-green-700 hover:underline">
+                  {t('legal.privacyPolicy', 'Privacy Policy')}
+                </Link>
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>
