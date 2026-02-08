@@ -395,7 +395,7 @@ export const categoriesApi = {
 
 // Stripe API
 export const stripeApi = {
-  createCheckoutSession: async (plan: string): Promise<{ url: string }> => {
+  createCheckoutSession: async (plan: string): Promise<{ clientSecret: string }> => {
     const response = await api.post('/stripe/create-checkout-session', { plan });
     return response.data;
   },

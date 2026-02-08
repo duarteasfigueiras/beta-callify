@@ -108,28 +108,28 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
     const productId = PLAN_PRODUCTS[plan];
     const priceId = await getPriceForProduct(productId);
 
-    // Determine frontend URL for redirects
+    // Determine frontend URL for return
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-    // Create Checkout Session
+    // Create Embedded Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
+      ui_mode: 'embedded',
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `${frontendUrl}/settings?tab=payment&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/settings?tab=payment&canceled=true`,
+      return_url: `${frontendUrl}/settings?tab=payment&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         company_id: String(companyId),
         plan,
       },
     });
 
-    res.json({ url: session.url });
+    res.json({ clientSecret: session.client_secret });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
     res.status(500).json({ error: error.message || 'Failed to create checkout session' });

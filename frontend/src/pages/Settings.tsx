@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Check, MessageSquare, Mail, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Check, MessageSquare, Mail, Loader2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi, stripeApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string);
 
 // Tab type
 type SettingsTab = 'profile' | 'payment' | 'legal' | 'contacts';
@@ -108,6 +112,7 @@ export default function Settings() {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [subscribingPlan, setSubscribingPlan] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
 
   // Fetch subscription status
   useEffect(() => {
@@ -125,13 +130,13 @@ export default function Settings() {
     }
   }, [user?.role]);
 
-  // Handle subscribe button click
+  // Handle subscribe button click - opens embedded checkout
   const handleSubscribe = async (plan: string) => {
     setSubscribingPlan(plan);
     try {
-      const { url } = await stripeApi.createCheckoutSession(plan);
-      if (url) {
-        window.location.href = url;
+      const { clientSecret } = await stripeApi.createCheckoutSession(plan);
+      if (clientSecret) {
+        setCheckoutClientSecret(clientSecret);
       }
     } catch (error: any) {
       console.error('Error creating checkout:', error);
@@ -140,6 +145,16 @@ export default function Settings() {
       setSubscribingPlan(null);
     }
   };
+
+  // Handle closing checkout modal
+  const handleCloseCheckout = useCallback(() => {
+    setCheckoutClientSecret(null);
+    // Refresh subscription status after closing
+    stripeApi.getSubscriptionStatus().then((data) => {
+      setSubscriptionStatus(data.status);
+      setCurrentPlan(data.plan);
+    }).catch(() => {});
+  }, []);
 
   // Handle manage subscription (customer portal)
   const handleManageSubscription = async () => {
@@ -830,6 +845,27 @@ export default function Settings() {
               </a>
             </CardContent>
           </Card>
+        </div>
+      )}
+      {/* Embedded Checkout Modal */}
+      {checkoutClientSecret && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-xl shadow-2xl">
+            <button
+              onClick={handleCloseCheckout}
+              className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <div className="p-1">
+              <EmbeddedCheckoutProvider
+                stripe={stripePromise}
+                options={{ clientSecret: checkoutClientSecret }}
+              >
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          </div>
         </div>
       )}
     </div>
