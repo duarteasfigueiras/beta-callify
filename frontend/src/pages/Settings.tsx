@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink } from 'lucide-react';
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const isNewUser = searchParams.get('newUser') === 'true';
 
@@ -77,50 +77,6 @@ export default function Settings() {
       toast.error(t('settings.saveError', 'Failed to save settings'));
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleSavePhone = async () => {
-    setIsSavingPhone(true);
-    try {
-      await usersApi.updatePreferences({
-        phone_number: phoneNumber || null,
-      });
-
-      // Refresh user data
-      if (refreshUser) {
-        await refreshUser();
-      }
-
-      toast.success(t('settings.phoneSaved', 'Phone number saved successfully'));
-    } catch (error: any) {
-      console.error('Error saving phone number:', error);
-      const errorMessage = error.response?.data?.error || t('settings.phoneError', 'Failed to save phone number');
-      toast.error(errorMessage);
-    } finally {
-      setIsSavingPhone(false);
-    }
-  };
-
-  const handleSaveDisplayName = async () => {
-    setIsSavingDisplayName(true);
-    try {
-      await usersApi.updatePreferences({
-        display_name: displayName || null,
-      });
-
-      // Refresh user data
-      if (refreshUser) {
-        await refreshUser();
-      }
-
-      toast.success(t('settings.displayNameSaved', 'Name saved successfully'));
-    } catch (error: any) {
-      console.error('Error saving display name:', error);
-      const errorMessage = error.response?.data?.error || t('settings.displayNameError', 'Failed to save name');
-      toast.error(errorMessage);
-    } finally {
-      setIsSavingDisplayName(false);
     }
   };
 
@@ -390,81 +346,77 @@ export default function Settings() {
             {t('settings.preferences', 'Preferences')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Language Preference */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              <Globe className="w-4 h-4" />
-              {t('settings.language', 'Language')}
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setLanguagePreference('pt')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                  languagePreference === 'pt'
-                    ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <span className="text-2xl mb-1">🇵🇹</span>
-                <p className="font-medium text-gray-900 dark:text-gray-100">Português</p>
-              </button>
-              <button
-                onClick={() => setLanguagePreference('en')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                  languagePreference === 'en'
-                    ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <span className="text-2xl mb-1">🇬🇧</span>
-                <p className="font-medium text-gray-900 dark:text-gray-100">English</p>
-              </button>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Language */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Globe className="w-4 h-4" />
+                {t('settings.language', 'Language')}
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLanguagePreference('pt')}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    languagePreference === 'pt'
+                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  🇵🇹 Português
+                </button>
+                <button
+                  onClick={() => setLanguagePreference('en')}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    languagePreference === 'en'
+                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  🇬🇧 English
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Theme Preference */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              {themePreference === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              {t('settings.theme', 'Theme')}
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setThemePreference('light')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                  themePreference === 'light'
-                    ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <Sun className="w-6 h-6 mx-auto mb-1 text-amber-500" />
-                <p className="font-medium text-gray-900 dark:text-gray-100">
+            {/* Theme */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {themePreference === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                {t('settings.theme', 'Theme')}
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setThemePreference('light')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    themePreference === 'light'
+                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Sun className="w-4 h-4 text-amber-500" />
                   {t('settings.lightMode', 'Light')}
-                </p>
-              </button>
-              <button
-                onClick={() => setThemePreference('dark')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                  themePreference === 'dark'
-                    ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <Moon className="w-6 h-6 mx-auto mb-1 text-indigo-500" />
-                <p className="font-medium text-gray-900 dark:text-gray-100">
+                </button>
+                <button
+                  onClick={() => setThemePreference('dark')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    themePreference === 'dark'
+                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Moon className="w-4 h-4 text-indigo-500" />
                   {t('settings.darkMode', 'Dark')}
-                </p>
-              </button>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Save Button */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
               {isSaving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')}
