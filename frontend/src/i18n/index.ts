@@ -476,10 +476,10 @@ const resources = {
         changePassword: 'Change Password',
         currentPassword: 'Current Password',
         newPassword: 'New Password',
-        confirmNewPassword: 'Confirm New Password',
+        confirmNewPassword: 'Confirm Password',
         enterCurrentPassword: 'Enter current password',
-        enterNewPassword: 'Enter new password (min. 6 characters)',
-        confirmNewPasswordPlaceholder: 'Confirm new password',
+        enterNewPassword: 'Min. 6 characters',
+        confirmNewPasswordPlaceholder: 'Confirm password',
         changePasswordButton: 'Change Password',
         changingPassword: 'Changing...',
         passwordChanged: 'Password changed successfully',
@@ -487,6 +487,13 @@ const resources = {
         passwordFieldsRequired: 'All password fields are required',
         passwordTooShort: 'New password must be at least 6 characters',
         passwordsDoNotMatch: 'New passwords do not match',
+        // Profile
+        profile: 'Profile',
+        completeProfile: 'Complete your profile',
+        email: 'Email',
+        saveProfile: 'Save Profile',
+        profileSaved: 'Profile saved successfully',
+        profileError: 'Failed to save profile',
         // Phone number
         phoneNumber: 'Phone Number',
         phoneDescription: 'Add your phone number to automatically associate calls with your account.',
@@ -499,7 +506,7 @@ const resources = {
         // Display name
         displayName: 'Display Name',
         displayNameDescription: 'Set your real name to be associated with your calls and appear in transcriptions.',
-        displayNameLabel: 'Your Name',
+        displayNameLabel: 'Name',
         displayNamePlaceholder: 'John Doe',
         displayNameHint: 'This name will be used to identify you in call transcriptions',
         saveDisplayName: 'Save Name',
@@ -510,6 +517,9 @@ const resources = {
         welcomeMessage: 'Your account has been created successfully. Please complete your profile by adding your name and phone number below. This information will help us associate your calls automatically.',
         welcomeHint: 'Fill in the "Display Name" and "Phone Number" sections below',
         recommended: 'Recommended',
+        // Legal
+        legal: 'Legal',
+        legalDescription: 'View our terms of service and privacy policy.',
       },
       // Alerts
       alerts: {
@@ -1204,10 +1214,10 @@ const resources = {
         changePassword: 'Alterar Palavra-passe',
         currentPassword: 'Palavra-passe Atual',
         newPassword: 'Nova Palavra-passe',
-        confirmNewPassword: 'Confirmar Nova Palavra-passe',
+        confirmNewPassword: 'Confirmar Palavra-passe',
         enterCurrentPassword: 'Introduza a palavra-passe atual',
-        enterNewPassword: 'Introduza nova palavra-passe (mín. 6 caracteres)',
-        confirmNewPasswordPlaceholder: 'Confirme a nova palavra-passe',
+        enterNewPassword: 'Mín. 6 caracteres',
+        confirmNewPasswordPlaceholder: 'Confirme a palavra-passe',
         changePasswordButton: 'Alterar Palavra-passe',
         changingPassword: 'A alterar...',
         passwordChanged: 'Palavra-passe alterada com sucesso',
@@ -1215,6 +1225,13 @@ const resources = {
         passwordFieldsRequired: 'Todos os campos de palavra-passe são obrigatórios',
         passwordTooShort: 'Nova palavra-passe deve ter pelo menos 6 caracteres',
         passwordsDoNotMatch: 'As novas palavras-passe não coincidem',
+        // Perfil
+        profile: 'Perfil',
+        completeProfile: 'Complete o seu perfil',
+        email: 'Email',
+        saveProfile: 'Guardar Perfil',
+        profileSaved: 'Perfil guardado com sucesso',
+        profileError: 'Falha ao guardar perfil',
         // Informação do utilizador
         userInfo: 'Informação do Utilizador',
         username: 'Nome de Utilizador',
@@ -1232,7 +1249,7 @@ const resources = {
         // Nome de exibição
         displayName: 'Nome de Exibição',
         displayNameDescription: 'Defina o seu nome real para ser associado às suas chamadas e aparecer nas transcrições.',
-        displayNameLabel: 'O Seu Nome',
+        displayNameLabel: 'Nome',
         displayNamePlaceholder: 'João Silva',
         displayNameHint: 'Este nome será usado para o identificar nas transcrições de chamadas',
         saveDisplayName: 'Guardar Nome',
@@ -1243,6 +1260,9 @@ const resources = {
         welcomeMessage: 'A sua conta foi criada com sucesso. Por favor complete o seu perfil adicionando o seu nome e número de telefone abaixo. Esta informação ajudará a associar as suas chamadas automaticamente.',
         welcomeHint: 'Preencha as secções "Nome de Exibição" e "Número de Telefone" abaixo',
         recommended: 'Recomendado',
+        // Legal
+        legal: 'Legal',
+        legalDescription: 'Veja os nossos termos de serviço e política de privacidade.',
       },
       // Alerts
       alerts: {

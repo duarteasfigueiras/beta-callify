@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, Phone, UserCircle, PartyPopper, FileText, Shield, ExternalLink } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -193,69 +193,52 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* Display Name - First for new users */}
+      {/* Profile */}
       <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserCircle className="w-5 h-5" />
-            {t('settings.displayName', 'Display Name')}
+            <User className="w-5 h-5" />
+            {t('settings.profile', 'Profile')}
             {isNewUser && (
               <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
-                {t('settings.recommended', 'Recommended')}
+                {t('settings.completeProfile', 'Complete your profile')}
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {t('settings.displayNameDescription', 'Set your real name to be associated with your calls and appear in transcriptions.')}
-          </p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('settings.displayNameLabel', 'Your Name')}
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder={t('settings.displayNamePlaceholder', 'John Doe')}
-              autoFocus={isNewUser}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {t('settings.displayNameHint', 'This name will be used to identify you in call transcriptions')}
-            </p>
-          </div>
-          <div className="pt-2">
-            <button
-              onClick={handleSaveDisplayName}
-              disabled={isSavingDisplayName}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {isSavingDisplayName ? t('settings.saving', 'Saving...') : t('settings.saveDisplayName', 'Save Name')}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+        <CardContent className="space-y-6">
+          {/* Name and Email Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Display Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t('settings.displayNameLabel', 'Name')}
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder={t('settings.displayNamePlaceholder', 'John Doe')}
+                autoFocus={isNewUser}
+              />
+            </div>
 
-      {/* Phone Number - Second for new users */}
-      <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="w-5 h-5" />
-            {t('settings.phoneNumber', 'Phone Number')}
-            {isNewUser && (
-              <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
-                {t('settings.recommended', 'Recommended')}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {t('settings.phoneDescription', 'Add your phone number to automatically associate calls with your account.')}
-          </p>
+            {/* Email (read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t('settings.email', 'Email')}
+              </label>
+              <input
+                type="email"
+                value={user?.username || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+              />
+            </div>
+          </div>
+
+          {/* Phone Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('settings.phoneLabel', 'Phone Number')}
@@ -271,137 +254,130 @@ export default function Settings() {
               {t('settings.phoneHint', 'Enter your phone number with country code (e.g., +351912345678)')}
             </p>
           </div>
-          <div className="pt-2">
+
+          {/* Save Profile Button */}
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={handleSavePhone}
-              disabled={isSavingPhone}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={async () => {
+                setIsSavingDisplayName(true);
+                setIsSavingPhone(true);
+                try {
+                  await usersApi.updatePreferences({
+                    display_name: displayName || null,
+                    phone_number: phoneNumber || null,
+                  });
+                  if (refreshUser) {
+                    await refreshUser();
+                  }
+                  toast.success(t('settings.profileSaved', 'Profile saved successfully'));
+                } catch (error: any) {
+                  console.error('Error saving profile:', error);
+                  const errorMessage = error.response?.data?.error || t('settings.profileError', 'Failed to save profile');
+                  toast.error(errorMessage);
+                } finally {
+                  setIsSavingDisplayName(false);
+                  setIsSavingPhone(false);
+                }
+              }}
+              disabled={isSavingDisplayName || isSavingPhone}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
               <Save className="w-4 h-4" />
-              {isSavingPhone ? t('settings.saving', 'Saving...') : t('settings.savePhone', 'Save Phone')}
+              {(isSavingDisplayName || isSavingPhone) ? t('settings.saving', 'Saving...') : t('settings.saveProfile', 'Save Profile')}
             </button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* User Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            {t('settings.userInfo', 'User Information')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t('settings.username', 'Username')}
-              </label>
-              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {user?.username}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t('settings.role', 'Role')}
-              </label>
-              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {user?.role === 'developer' ? t('common.developer', 'Developer') : user?.role === 'admin_manager' ? t('common.admin', 'Admin') : t('users.user', 'User')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Change Password */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="w-5 h-5" />
-            {t('settings.changePassword', 'Change Password')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('settings.currentPassword', 'Current Password')}
-            </label>
-            <div className="relative">
-              <input
-                type={showCurrentPassword ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder={t('settings.enterCurrentPassword', 'Enter current password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* New Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('settings.newPassword', 'New Password')}
-            </label>
-            <div className="relative">
-              <input
-                type={showNewPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder={t('settings.enterNewPassword', 'Enter new password (min. 6 characters)')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('settings.confirmNewPassword', 'Confirm New Password')}
-            </label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder={t('settings.confirmNewPasswordPlaceholder', 'Confirm new password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Change Password Button */}
-          <div className="pt-2">
-            <button
-              onClick={handleChangePassword}
-              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+          {/* Change Password Section */}
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-gray-100 mb-4">
               <Lock className="w-4 h-4" />
-              {isChangingPassword ? t('settings.changingPassword', 'Changing...') : t('settings.changePasswordButton', 'Change Password')}
-            </button>
+              {t('settings.changePassword', 'Change Password')}
+            </h3>
+
+            <div className="space-y-4">
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('settings.currentPassword', 'Current Password')}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder={t('settings.enterCurrentPassword', 'Enter current password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('settings.newPassword', 'New Password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder={t('settings.enterNewPassword', 'Min. 6 characters')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('settings.confirmNewPassword', 'Confirm Password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder={t('settings.confirmNewPasswordPlaceholder', 'Confirm password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Change Password Button */}
+              <div className="pt-2">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Lock className="w-4 h-4" />
+                  {isChangingPassword ? t('settings.changingPassword', 'Changing...') : t('settings.changePasswordButton', 'Change Password')}
+                </button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
