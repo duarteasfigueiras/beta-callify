@@ -18,6 +18,7 @@ import alertsRoutes from './routes/alerts';
 import webhooksRoutes from './routes/webhooks';
 import n8nRoutes from './routes/n8n';
 import categoriesRoutes from './routes/categories';
+import stripeRoutes from './routes/stripe';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -106,6 +107,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// Stripe webhook needs raw body for signature verification - MUST be before express.json()
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '10mb' }));  // Limit body size
 
 // Serve uploaded files
@@ -124,6 +128,7 @@ app.use('/api/alerts', alertsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

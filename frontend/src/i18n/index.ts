@@ -565,6 +565,15 @@ const resources = {
         masterMin: 'Unlimited minutes',
         masterSupport: 'Priority support',
         masterAll: 'All features included',
+        // Stripe
+        activePlan: 'Active Plan',
+        subscriptionActive: 'Your subscription is active',
+        manageBilling: 'Manage Billing',
+        currentPlanBadge: 'Current',
+        redirecting: 'Redirecting...',
+        manageViaPortal: 'Manage your payment method and invoices via the billing portal',
+        subscribeError: 'Failed to start checkout',
+        portalError: 'Failed to open billing portal',
       },
       // Alerts
       alerts: {
@@ -1353,6 +1362,15 @@ const resources = {
         masterMin: 'Minutos ilimitados',
         masterSupport: 'Suporte prioritário',
         masterAll: 'Todas as funcionalidades incluídas',
+        // Stripe
+        activePlan: 'Plano Ativo',
+        subscriptionActive: 'A sua subscrição está ativa',
+        manageBilling: 'Gerir Faturação',
+        currentPlanBadge: 'Atual',
+        redirecting: 'A redirecionar...',
+        manageViaPortal: 'Gerir método de pagamento e faturas no portal de faturação',
+        subscribeError: 'Falha ao iniciar checkout',
+        portalError: 'Falha ao abrir portal de faturação',
       },
       // Alerts
       alerts: {

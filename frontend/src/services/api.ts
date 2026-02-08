@@ -393,3 +393,19 @@ export const categoriesApi = {
   },
 };
 
+// Stripe API
+export const stripeApi = {
+  createCheckoutSession: async (plan: string): Promise<{ url: string }> => {
+    const response = await api.post('/stripe/create-checkout-session', { plan });
+    return response.data;
+  },
+  getSubscriptionStatus: async (): Promise<{ status: string; plan: string | null; hasCustomer: boolean }> => {
+    const response = await api.get('/stripe/subscription-status');
+    return response.data;
+  },
+  createCustomerPortal: async (): Promise<{ url: string }> => {
+    const response = await api.post('/stripe/customer-portal');
+    return response.data;
+  },
+};
+

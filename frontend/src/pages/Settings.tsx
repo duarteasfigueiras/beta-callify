@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Check, MessageSquare, Mail } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Check, MessageSquare, Mail, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { usersApi, authApi } from '../services/api';
+import { usersApi, authApi, stripeApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 
@@ -102,6 +102,60 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Stripe subscription state
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('none');
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [subscribingPlan, setSubscribingPlan] = useState<string | null>(null);
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  // Fetch subscription status
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const data = await stripeApi.getSubscriptionStatus();
+        setSubscriptionStatus(data.status);
+        setCurrentPlan(data.plan);
+      } catch {
+        // No subscription yet
+      }
+    };
+    if (user?.role !== 'agent') {
+      fetchSubscription();
+    }
+  }, [user?.role]);
+
+  // Handle subscribe button click
+  const handleSubscribe = async (plan: string) => {
+    setSubscribingPlan(plan);
+    try {
+      const { url } = await stripeApi.createCheckoutSession(plan);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error: any) {
+      console.error('Error creating checkout:', error);
+      toast.error(error.response?.data?.error || t('settings.subscribeError', 'Failed to start checkout'));
+    } finally {
+      setSubscribingPlan(null);
+    }
+  };
+
+  // Handle manage subscription (customer portal)
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { url } = await stripeApi.createCustomerPortal();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error: any) {
+      console.error('Error opening portal:', error);
+      toast.error(error.response?.data?.error || t('settings.portalError', 'Failed to open billing portal'));
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -546,121 +600,144 @@ export default function Settings() {
       {/* PAYMENT TAB */}
       {activeTab === 'payment' && (
         <div className="space-y-6">
+          {/* Active subscription banner */}
+          {subscriptionStatus === 'active' && currentPlan && (
+            <Card className="border-2 border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                      <Check className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                        {t('settings.activePlan', 'Active Plan')}: <span className="capitalize">{currentPlan}</span>
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {t('settings.subscriptionActive', 'Your subscription is active')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={loadingPortal}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                    {t('settings.manageBilling', 'Manage Billing')}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Plans */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Starter */}
-            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">Starter</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  25€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.starterMin', '200 minutes included')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.feature1', 'AI call analysis & scoring')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.feature2', 'Real-time transcription')}</li>
-                </ul>
-                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                  {t('settings.subscribe', 'Subscribe')}
-                </button>
-              </CardContent>
-            </Card>
+            {[
+              { name: 'starter', price: '25', color: 'green', icon: 'green-600', minutes: t('settings.starterMin', '200 minutes included'), features: [t('settings.feature1', 'AI call analysis & scoring'), t('settings.feature2', 'Real-time transcription')] },
+              { name: 'medium', price: '50', color: 'blue', icon: 'blue-600', minutes: t('settings.mediumMin', '500 minutes included'), features: [t('settings.feature3', 'Performance reports & analytics'), t('settings.feature4', 'Coaching recommendations')] },
+              { name: 'pro', price: '75', color: 'purple', icon: 'purple-600', minutes: t('settings.proMin', '1000 minutes included'), features: [t('settings.feature5', 'Custom evaluation criteria'), t('settings.feature6', 'Team management')], popular: true },
+              { name: 'master', price: '99', color: 'amber', icon: 'amber-500', minutes: t('settings.masterMin', 'Unlimited minutes'), features: [t('settings.masterSupport', 'Priority support'), t('settings.masterAll', 'All features included')] },
+            ].map((plan) => {
+              const isCurrentPlan = currentPlan === plan.name && subscriptionStatus === 'active';
+              const isSubscribing = subscribingPlan === plan.name;
+              const colorClasses: Record<string, string> = {
+                'green-600': 'text-green-600',
+                'blue-600': 'text-blue-600',
+                'purple-600': 'text-purple-600',
+                'amber-500': 'text-amber-500',
+              };
+              const checkColor = colorClasses[plan.icon] || 'text-green-600';
 
-            {/* Medium */}
-            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">Medium</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  50€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.mediumMin', '500 minutes included')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.feature3', 'Performance reports & analytics')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.feature4', 'Coaching recommendations')}</li>
-                </ul>
-                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                  {t('settings.subscribe', 'Subscribe')}
-                </button>
-              </CardContent>
-            </Card>
-
-            {/* Pro */}
-            <Card className="relative border-2 border-green-500 dark:border-green-600 transition-colors">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-600 text-white">
-                  {t('settings.popular', 'Popular')}
-                </span>
-              </div>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5 text-purple-600" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">Pro</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  75€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.proMin', '1000 minutes included')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.feature5', 'Custom evaluation criteria')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.feature6', 'Team management')}</li>
-                </ul>
-                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                  {t('settings.subscribe', 'Subscribe')}
-                </button>
-              </CardContent>
-            </Card>
-
-            {/* Master */}
-            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5 text-amber-500" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">Master</span>
-                </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  99€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterMin', 'Unlimited minutes')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterSupport', 'Priority support')}</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterAll', 'All features included')}</li>
-                </ul>
-                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                  {t('settings.subscribe', 'Subscribe')}
-                </button>
-              </CardContent>
-            </Card>
+              return (
+                <Card
+                  key={plan.name}
+                  className={`relative border-2 transition-colors ${
+                    isCurrentPlan
+                      ? 'border-green-500 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+                      : plan.popular
+                      ? 'border-green-500 dark:border-green-600'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600'
+                  }`}
+                >
+                  {plan.popular && !isCurrentPlan && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-600 text-white">
+                        {t('settings.popular', 'Popular')}
+                      </span>
+                    </div>
+                  )}
+                  {isCurrentPlan && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-600 text-white">
+                        {t('settings.currentPlan', 'Current')}
+                      </span>
+                    </div>
+                  )}
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className={`w-5 h-5 ${checkColor}`} />
+                      <span className="font-semibold text-gray-900 dark:text-gray-100 capitalize">{plan.name}</span>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                      {plan.price}€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
+                      <li className="flex items-center gap-2"><Check className={`w-4 h-4 ${checkColor} flex-shrink-0`} />{plan.minutes}</li>
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-2"><Check className={`w-4 h-4 ${checkColor} flex-shrink-0`} />{feature}</li>
+                      ))}
+                    </ul>
+                    {isCurrentPlan ? (
+                      <button
+                        onClick={handleManageSubscription}
+                        disabled={loadingPortal}
+                        className="w-full py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t('settings.manageBilling', 'Manage Billing')}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSubscribe(plan.name)}
+                        disabled={!!subscribingPlan}
+                        className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isSubscribing && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {isSubscribing ? t('settings.redirecting', 'Redirecting...') : t('settings.subscribe', 'Subscribe')}
+                      </button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
-          {/* Payment Method */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.paymentMethod', 'Payment Method')}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t('settings.noPaymentMethod', 'No payment method added')}
-                  </p>
+          {/* Manage Subscription */}
+          {subscriptionStatus === 'active' && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t('settings.paymentMethod', 'Payment Method')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {t('settings.manageViaPortal', 'Manage your payment method and invoices via the billing portal')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={loadingPortal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+                    {t('settings.manageBilling', 'Manage Billing')}
+                  </button>
                 </div>
-                <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  {t('settings.addPayment', 'Add')}
-                </button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
