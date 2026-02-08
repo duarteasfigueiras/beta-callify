@@ -719,7 +719,7 @@ export default function Settings() {
                         className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {isSubscribing && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {isSubscribing ? t('settings.redirecting', 'Redirecting...') : t('settings.subscribe', 'Subscribe')}
+                        {isSubscribing ? t('settings.redirecting', 'Processing...') : t('settings.subscribe', 'Subscribe')}
                       </button>
                     )}
                   </CardContent>
