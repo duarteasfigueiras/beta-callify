@@ -116,6 +116,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
       customer: customerId,
       mode: 'subscription',
       ui_mode: 'embedded',
+      payment_method_collection: 'always',
       line_items: [
         {
           price: priceId,
