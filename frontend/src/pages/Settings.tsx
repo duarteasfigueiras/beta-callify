@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Crown, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -480,6 +480,116 @@ export default function Settings() {
               <Save className="w-4 h-4" />
               {isSaving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')}
             </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Subscription */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5" />
+            {t('settings.subscription', 'Subscription')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Current Plan */}
+          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('settings.currentPlan', 'Current Plan')}
+              </p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Free</p>
+            </div>
+            <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+              {t('settings.active', 'Active')}
+            </span>
+          </div>
+
+          {/* Plans */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              {t('settings.availablePlans', 'Available Plans')}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Free Plan */}
+              <div className="relative p-4 rounded-lg border-2 border-green-600 bg-green-50/50 dark:bg-green-900/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-green-600" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Free</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">0€<span className="text-sm font-normal text-gray-500">/mês</span></p>
+                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature1Free', '50 calls/month')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature2Free', 'Basic analytics')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature3Free', '1 user')}</li>
+                </ul>
+                <div className="mt-3">
+                  <span className="block w-full text-center py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    {t('settings.currentPlanLabel', 'Current Plan')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pro Plan */}
+              <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Pro</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                    {t('settings.popular', 'Popular')}
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">--€<span className="text-sm font-normal text-gray-500">/mês</span></p>
+                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature1Pro', 'Unlimited calls')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature2Pro', 'Advanced analytics')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature3Pro', 'Up to 10 users')}</li>
+                </ul>
+                <div className="mt-3">
+                  <button className="w-full py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                    {t('settings.upgrade', 'Upgrade')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Enterprise Plan */}
+              <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Enterprise</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('settings.custom', 'Custom')}</p>
+                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature1Ent', 'Everything in Pro')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature2Ent', 'Dedicated support')}</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature3Ent', 'Unlimited users')}</li>
+                </ul>
+                <div className="mt-3">
+                  <button className="w-full py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                    {t('settings.contactSales', 'Contact Sales')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('settings.paymentMethod', 'Payment Method')}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {t('settings.noPaymentMethod', 'No payment method added')}
+                </p>
+              </div>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
+                <CreditCard className="w-3.5 h-3.5" />
+                {t('settings.addPayment', 'Add')}
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
