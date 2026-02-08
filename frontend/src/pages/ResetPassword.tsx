@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Phone, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Phone, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -15,6 +15,8 @@ export default function ResetPassword() {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -139,16 +141,26 @@ export default function ResetPassword() {
                 <label htmlFor="newPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t('auth.newPassword')}
                 </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t('auth.newPassword')}
-                  required
-                  autoComplete="new-password"
-                  className="w-full"
-                />
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={t('auth.newPassword')}
+                    required
+                    autoComplete="new-password"
+                    className="w-full pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                   <p className={newPassword.length >= 8 ? 'text-green-600' : ''}>{newPassword.length >= 8 ? '✓' : '○'} {t('auth.req8chars', 'Minimum 8 characters')}</p>
                   <p className={/[A-Z]/.test(newPassword) ? 'text-green-600' : ''}>{/[A-Z]/.test(newPassword) ? '✓' : '○'} {t('auth.reqUppercase', 'One uppercase letter')}</p>
@@ -162,16 +174,26 @@ export default function ResetPassword() {
                 <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t('auth.confirmPassword')}
                 </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('auth.confirmPassword')}
-                  required
-                  autoComplete="new-password"
-                  className="w-full"
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder={t('auth.confirmPassword')}
+                    required
+                    autoComplete="new-password"
+                    className="w-full pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
 
               <Button
