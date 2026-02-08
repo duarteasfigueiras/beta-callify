@@ -546,110 +546,101 @@ export default function Settings() {
       {/* PAYMENT TAB */}
       {activeTab === 'payment' && (
         <div className="space-y-6">
-          {/* Pricing Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Price per User */}
-            <Card>
+          {/* Plans */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Starter */}
+            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
               <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <User className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('settings.pricePerUser', 'Price per User')}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      --€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">Starter</span>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  25€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
+                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.starterMin', '200 minutes included')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.feature1', 'AI call analysis & scoring')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-600 flex-shrink-0" />{t('settings.feature2', 'Real-time transcription')}</li>
+                </ul>
+                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                  {t('settings.subscribe', 'Subscribe')}
+                </button>
               </CardContent>
             </Card>
 
-            {/* Included Minutes */}
-            <Card>
+            {/* Medium */}
+            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
               <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('settings.includedMinutes', 'Included Minutes')}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      --<span className="text-sm font-normal text-gray-500"> {t('settings.minutes', 'min')}</span>
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">Medium</span>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  50€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
+                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.mediumMin', '500 minutes included')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.feature3', 'Performance reports & analytics')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" />{t('settings.feature4', 'Coaching recommendations')}</li>
+                </ul>
+                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                  {t('settings.subscribe', 'Subscribe')}
+                </button>
               </CardContent>
             </Card>
 
-            {/* Extra Minute Cost */}
-            <Card>
+            {/* Pro */}
+            <Card className="relative border-2 border-green-500 dark:border-green-600 transition-colors">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-600 text-white">
+                  {t('settings.popular', 'Popular')}
+                </span>
+              </div>
               <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('settings.extraMinuteCost', 'Extra Minute Cost')}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      --€<span className="text-sm font-normal text-gray-500">{t('settings.perMinute', '/min')}</span>
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">Pro</span>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  75€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
+                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.proMin', '1000 minutes included')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.feature5', 'Custom evaluation criteria')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" />{t('settings.feature6', 'Team management')}</li>
+                </ul>
+                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                  {t('settings.subscribe', 'Subscribe')}
+                </button>
+              </CardContent>
+            </Card>
+
+            {/* Master */}
+            <Card className="relative border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">Master</span>
+                </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  99€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('settings.perUser', 'per user')}</p>
+                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-5">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterMin', 'Unlimited minutes')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterSupport', 'Priority support')}</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{t('settings.masterAll', 'All features included')}</li>
+                </ul>
+                <button className="w-full py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                  {t('settings.subscribe', 'Subscribe')}
+                </button>
               </CardContent>
             </Card>
           </div>
-
-          {/* Features Included */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-600" />
-                {t('settings.featuresIncluded', "What's Included")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  t('settings.feature1', 'AI call analysis & scoring'),
-                  t('settings.feature2', 'Real-time transcription'),
-                  t('settings.feature3', 'Performance reports & analytics'),
-                  t('settings.feature4', 'Coaching recommendations'),
-                  t('settings.feature5', 'Custom evaluation criteria'),
-                  t('settings.feature6', 'Team management'),
-                ].map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Contact for Pricing */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {t('settings.contactForPricingDesc', 'Get in touch with our team to discuss pricing tailored to your needs.')}
-                </p>
-                <a
-                  href="mailto:info@aicoachcall.com"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  {t('settings.contactForPricing', 'Contact for Pricing')}
-                </a>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Payment Method */}
           <Card>
