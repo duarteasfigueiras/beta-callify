@@ -433,6 +433,9 @@ const resources = {
         deleteConfirm: 'Are you sure you want to delete user "{{username}}"? This action cannot be undone.',
         selectCategories: 'Select Categories (multiple allowed)',
         multipleCategoriesHint: 'Select multiple categories if this agent works in different areas. The AI will detect which category applies to each call.',
+        // Usage
+        minutesUsed: 'Minutes Used',
+        numberOfCalls: 'Calls',
         // Phone number
         phone: 'Phone',
         noPhone: 'No phone',
@@ -546,6 +549,23 @@ const resources = {
         planFeature1Ent: 'Everything in Pro',
         planFeature2Ent: 'Dedicated support',
         planFeature3Ent: 'Unlimited users',
+        // Per-user pricing model
+        perUserPricing: 'Per-User Pricing',
+        pricePerUser: 'Price per User',
+        includedMinutes: 'Included Minutes',
+        extraMinuteCost: 'Extra Minute Cost',
+        perMonth: '/month',
+        perMinute: '/min',
+        minutes: 'min',
+        contactForPricing: 'Contact for Pricing',
+        contactForPricingDesc: 'Get in touch with our team to discuss pricing tailored to your needs.',
+        featuresIncluded: 'What\'s Included',
+        feature1: 'AI call analysis & scoring',
+        feature2: 'Real-time transcription',
+        feature3: 'Performance reports & analytics',
+        feature4: 'Coaching recommendations',
+        feature5: 'Custom evaluation criteria',
+        feature6: 'Team management',
       },
       // Alerts
       alerts: {
@@ -1201,6 +1221,9 @@ const resources = {
         deleteConfirm: 'Tem a certeza que deseja eliminar o utilizador "{{username}}"? Esta ação não pode ser desfeita.',
         selectCategories: 'Selecionar Categorias (múltiplas permitidas)',
         multipleCategoriesHint: 'Selecione múltiplas categorias se este agente trabalha em diferentes áreas. A IA detetará qual categoria se aplica a cada chamada.',
+        // Uso
+        minutesUsed: 'Minutos Usados',
+        numberOfCalls: 'Chamadas',
         // Número de telefone
         phone: 'Telefone',
         noPhone: 'Sem telefone',
@@ -1315,6 +1338,23 @@ const resources = {
         planFeature1Ent: 'Tudo do Pro',
         planFeature2Ent: 'Suporte dedicado',
         planFeature3Ent: 'Utilizadores ilimitados',
+        // Modelo de preço por utilizador
+        perUserPricing: 'Preço por Utilizador',
+        pricePerUser: 'Preço por Utilizador',
+        includedMinutes: 'Minutos Incluídos',
+        extraMinuteCost: 'Custo Minuto Extra',
+        perMonth: '/mês',
+        perMinute: '/min',
+        minutes: 'min',
+        contactForPricing: 'Contactar para Preços',
+        contactForPricingDesc: 'Entre em contacto com a nossa equipa para discutir preços adaptados às suas necessidades.',
+        featuresIncluded: 'O que está Incluído',
+        feature1: 'Análise de chamadas com IA e pontuação',
+        feature2: 'Transcrição em tempo real',
+        feature3: 'Relatórios de desempenho e análises',
+        feature4: 'Recomendações de coaching',
+        feature5: 'Critérios de avaliação personalizados',
+        feature6: 'Gestão de equipas',
       },
       // Alerts
       alerts: {

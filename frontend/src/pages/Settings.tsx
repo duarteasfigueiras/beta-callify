@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Crown, Check, MessageSquare, Mail } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Check, MessageSquare, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -545,97 +545,115 @@ export default function Settings() {
 
       {/* PAYMENT TAB */}
       {activeTab === 'payment' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              {t('settings.subscription', 'Subscription')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Current Plan */}
-            <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('settings.currentPlan', 'Current Plan')}
+        <div className="space-y-6">
+          {/* Pricing Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Price per User */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <User className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.pricePerUser', 'Price per User')}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      --€<span className="text-sm font-normal text-gray-500">{t('settings.perMonth', '/month')}</span>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Included Minutes */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.includedMinutes', 'Included Minutes')}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      --<span className="text-sm font-normal text-gray-500"> {t('settings.minutes', 'min')}</span>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Extra Minute Cost */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.extraMinuteCost', 'Extra Minute Cost')}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      --€<span className="text-sm font-normal text-gray-500">{t('settings.perMinute', '/min')}</span>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Features Included */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-600" />
+                {t('settings.featuresIncluded', "What's Included")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  t('settings.feature1', 'AI call analysis & scoring'),
+                  t('settings.feature2', 'Real-time transcription'),
+                  t('settings.feature3', 'Performance reports & analytics'),
+                  t('settings.feature4', 'Coaching recommendations'),
+                  t('settings.feature5', 'Custom evaluation criteria'),
+                  t('settings.feature6', 'Team management'),
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact for Pricing */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {t('settings.contactForPricingDesc', 'Get in touch with our team to discuss pricing tailored to your needs.')}
                 </p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Free</p>
+                <a
+                  href="mailto:info@aicoachcall.com"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  {t('settings.contactForPricing', 'Contact for Pricing')}
+                </a>
               </div>
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                {t('settings.active', 'Active')}
-              </span>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Plans */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                {t('settings.availablePlans', 'Available Plans')}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Free Plan */}
-                <div className="relative p-4 rounded-lg border-2 border-green-600 bg-green-50/50 dark:bg-green-900/10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-green-600" />
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Free</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">0€<span className="text-sm font-normal text-gray-500">/mês</span></p>
-                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature1Free', '50 calls/month')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature2Free', 'Basic analytics')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature3Free', '1 user')}</li>
-                  </ul>
-                  <div className="mt-3">
-                    <span className="block w-full text-center py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                      {t('settings.currentPlanLabel', 'Current Plan')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Pro Plan */}
-                <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-blue-600" />
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Pro</span>
-                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                      {t('settings.popular', 'Popular')}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">--€<span className="text-sm font-normal text-gray-500">/mês</span></p>
-                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature1Pro', 'Unlimited calls')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature2Pro', 'Advanced analytics')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature3Pro', 'Up to 10 users')}</li>
-                  </ul>
-                  <div className="mt-3">
-                    <button className="w-full py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                      {t('settings.upgrade', 'Upgrade')}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Enterprise Plan */}
-                <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Crown className="w-4 h-4 text-amber-500" />
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Enterprise</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('settings.custom', 'Custom')}</p>
-                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature1Ent', 'Everything in Pro')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature2Ent', 'Dedicated support')}</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature3Ent', 'Unlimited users')}</li>
-                  </ul>
-                  <div className="mt-3">
-                    <button className="w-full py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                      {t('settings.contactSales', 'Contact Sales')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+          {/* Payment Method */}
+          <Card>
+            <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -650,9 +668,9 @@ export default function Settings() {
                   {t('settings.addPayment', 'Add')}
                 </button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* LEGAL TAB */}
