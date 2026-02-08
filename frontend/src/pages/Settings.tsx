@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Crown, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, PartyPopper, FileText, Shield, ExternalLink, CreditCard, Zap, Crown, Check, MessageSquare, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import toast from 'react-hot-toast';
 
 // Tab type
-type SettingsTab = 'profile' | 'payment' | 'legal';
+type SettingsTab = 'profile' | 'payment' | 'legal' | 'contacts';
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
@@ -236,6 +236,17 @@ export default function Settings() {
           >
             <FileText className="w-4 h-4" />
             {t('settings.tabLegal', 'Termos e Condições')}
+          </button>
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              activeTab === 'contacts'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            {t('settings.tabContacts', 'Contactos')}
           </button>
         </nav>
       </div>
@@ -685,6 +696,55 @@ export default function Settings() {
             </Link>
           </CardContent>
         </Card>
+      )}
+
+      {/* CONTACTS TAB */}
+      {activeTab === 'contacts' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Support */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-green-600" />
+                {t('contacts.support', 'Support')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('contacts.supportDescription', 'Need help with the platform? Our support team is here to assist you.')}
+              </p>
+              <a
+                href="mailto:support@aicoachcall.com"
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+              >
+                <Mail className="w-4 h-4" />
+                support@aicoachcall.com
+              </a>
+            </CardContent>
+          </Card>
+
+          {/* General Inquiries */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-purple-600" />
+                {t('contacts.general', 'General Inquiries')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('contacts.generalDescription', 'For general questions or feedback about Callify.')}
+              </p>
+              <a
+                href="mailto:info@aicoachcall.com"
+                className="flex items-center gap-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+              >
+                <Mail className="w-4 h-4" />
+                info@aicoachcall.com
+              </a>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

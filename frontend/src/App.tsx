@@ -18,7 +18,6 @@ import Register from './pages/Register';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
-import Contacts from './pages/Contacts';
 import UserScores from './pages/UserScores';
 import ScoreEvolution from './pages/ScoreEvolution';
 import CallsByPeriod from './pages/CallsByPeriod';
@@ -268,15 +267,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/contacts"
-        element={
-          <ProtectedRoute>
-            <Contacts />
-          </ProtectedRoute>
-        }
-      />
-
       {/* Developer only routes */}
       <Route
         path="/companies"

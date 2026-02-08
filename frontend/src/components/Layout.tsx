@@ -15,7 +15,6 @@ import {
   Sun,
   Globe,
   Building2,
-  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -41,7 +40,6 @@ const navItems: NavItem[] = [
   { key: 'users', labelKey: 'nav.users', icon: Users, href: '/users', adminOnly: true },
   { key: 'companies', labelKey: 'nav.companies', icon: Building2, href: '/companies', developerOnly: true },
   { key: 'settings', labelKey: 'nav.settings', icon: Settings, href: '/settings' },
-  { key: 'contacts', labelKey: 'nav.contacts', icon: MessageSquare, href: '/contacts' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
