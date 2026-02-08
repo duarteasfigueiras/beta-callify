@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, Phone, UserCircle, PartyPopper } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Settings as SettingsIcon, Globe, Moon, Sun, Save, User, Lock, Eye, EyeOff, Phone, UserCircle, PartyPopper, FileText, Shield, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usersApi, authApi } from '../services/api';
@@ -494,6 +494,47 @@ export default function Settings() {
               {isSaving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')}
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Legal */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            {t('settings.legal', 'Legal')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('settings.legalDescription', 'View our terms of service and privacy policy.')}
+          </p>
+          <Link
+            to="/terms"
+            target="_blank"
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-green-600" />
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {t('legal.termsOfService', 'Terms of Service')}
+              </span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+          </Link>
+          <Link
+            to="/privacy"
+            target="_blank"
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-green-600" />
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {t('legal.privacyPolicy', 'Privacy Policy')}
+              </span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+          </Link>
         </CardContent>
       </Card>
     </div>
