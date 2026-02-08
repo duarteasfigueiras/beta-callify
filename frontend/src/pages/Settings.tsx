@@ -34,9 +34,57 @@ export default function Settings() {
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  // Phone number state
-  const [phoneNumber, setPhoneNumber] = useState<string>(user?.phone_number || '+351');
+  // Phone number state - split country code and number
+  const parsePhone = (phone: string) => {
+    const countryCodes = ['+351', '+55', '+1', '+44', '+34', '+33', '+49', '+39', '+31', '+32', '+41', '+43', '+48', '+46', '+47', '+45', '+358', '+353', '+352', '+356', '+357', '+30', '+90', '+7', '+86', '+81', '+82', '+91', '+61', '+64', '+52', '+54', '+56', '+57', '+58', '+507', '+506', '+505', '+504', '+503', '+502', '+244', '+258', '+238'];
+    for (const code of countryCodes.sort((a, b) => b.length - a.length)) {
+      if (phone.startsWith(code)) {
+        return { code, number: phone.slice(code.length).trim() };
+      }
+    }
+    return { code: '+351', number: phone.replace(/^\+\d+\s*/, '') };
+  };
+  const parsed = parsePhone(user?.phone_number || '');
+  const [countryCode, setCountryCode] = useState<string>(parsed.code);
+  const [phoneNumber, setPhoneNumber] = useState<string>(parsed.number);
   const [isSavingPhone, setIsSavingPhone] = useState(false);
+
+  const countryCodes = [
+    { code: '+351', country: 'PT', flag: '\u{1F1F5}\u{1F1F9}' },
+    { code: '+55', country: 'BR', flag: '\u{1F1E7}\u{1F1F7}' },
+    { code: '+244', country: 'AO', flag: '\u{1F1E6}\u{1F1F4}' },
+    { code: '+258', country: 'MZ', flag: '\u{1F1F2}\u{1F1FF}' },
+    { code: '+238', country: 'CV', flag: '\u{1F1E8}\u{1F1FB}' },
+    { code: '+1', country: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
+    { code: '+44', country: 'GB', flag: '\u{1F1EC}\u{1F1E7}' },
+    { code: '+34', country: 'ES', flag: '\u{1F1EA}\u{1F1F8}' },
+    { code: '+33', country: 'FR', flag: '\u{1F1EB}\u{1F1F7}' },
+    { code: '+49', country: 'DE', flag: '\u{1F1E9}\u{1F1EA}' },
+    { code: '+39', country: 'IT', flag: '\u{1F1EE}\u{1F1F9}' },
+    { code: '+31', country: 'NL', flag: '\u{1F1F3}\u{1F1F1}' },
+    { code: '+32', country: 'BE', flag: '\u{1F1E7}\u{1F1EA}' },
+    { code: '+41', country: 'CH', flag: '\u{1F1E8}\u{1F1ED}' },
+    { code: '+43', country: 'AT', flag: '\u{1F1E6}\u{1F1F9}' },
+    { code: '+48', country: 'PL', flag: '\u{1F1F5}\u{1F1F1}' },
+    { code: '+46', country: 'SE', flag: '\u{1F1F8}\u{1F1EA}' },
+    { code: '+47', country: 'NO', flag: '\u{1F1F3}\u{1F1F4}' },
+    { code: '+45', country: 'DK', flag: '\u{1F1E9}\u{1F1F0}' },
+    { code: '+358', country: 'FI', flag: '\u{1F1EB}\u{1F1EE}' },
+    { code: '+353', country: 'IE', flag: '\u{1F1EE}\u{1F1EA}' },
+    { code: '+30', country: 'GR', flag: '\u{1F1EC}\u{1F1F7}' },
+    { code: '+90', country: 'TR', flag: '\u{1F1F9}\u{1F1F7}' },
+    { code: '+7', country: 'RU', flag: '\u{1F1F7}\u{1F1FA}' },
+    { code: '+86', country: 'CN', flag: '\u{1F1E8}\u{1F1F3}' },
+    { code: '+81', country: 'JP', flag: '\u{1F1EF}\u{1F1F5}' },
+    { code: '+82', country: 'KR', flag: '\u{1F1F0}\u{1F1F7}' },
+    { code: '+91', country: 'IN', flag: '\u{1F1EE}\u{1F1F3}' },
+    { code: '+61', country: 'AU', flag: '\u{1F1E6}\u{1F1FA}' },
+    { code: '+64', country: 'NZ', flag: '\u{1F1F3}\u{1F1FF}' },
+    { code: '+52', country: 'MX', flag: '\u{1F1F2}\u{1F1FD}' },
+    { code: '+54', country: 'AR', flag: '\u{1F1E6}\u{1F1F7}' },
+    { code: '+56', country: 'CL', flag: '\u{1F1E8}\u{1F1F1}' },
+    { code: '+57', country: 'CO', flag: '\u{1F1E8}\u{1F1F4}' },
+  ];
 
   // Display name state
   const [displayName, setDisplayName] = useState<string>(user?.display_name || '');
@@ -199,16 +247,26 @@ export default function Settings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('settings.phoneLabel', 'Phone Number')}
             </label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder={t('settings.phonePlaceholder', '+351 912 345 678')}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {t('settings.phoneHint', 'Enter your phone number with country code (e.g., +351912345678)')}
-            </p>
+            <div className="flex gap-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="w-28 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+              >
+                {countryCodes.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.code}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder={t('settings.phonePlaceholder', '912 345 678')}
+              />
+            </div>
           </div>
 
           {/* Save Profile Button */}
@@ -218,9 +276,10 @@ export default function Settings() {
                 setIsSavingDisplayName(true);
                 setIsSavingPhone(true);
                 try {
+                  const fullPhone = phoneNumber ? `${countryCode}${phoneNumber}` : null;
                   await usersApi.updatePreferences({
                     display_name: displayName || null,
-                    phone_number: phoneNumber || null,
+                    phone_number: fullPhone,
                   });
                   if (refreshUser) {
                     await refreshUser();
