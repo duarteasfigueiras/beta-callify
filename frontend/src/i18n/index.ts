@@ -456,6 +456,9 @@ const resources = {
       settings: {
         title: 'Settings',
         subtitle: 'Manage your preferences',
+        tabProfile: 'Profile',
+        tabPayment: 'Payment',
+        tabLegal: 'Terms & Conditions',
         language: 'Language',
         theme: 'Theme',
         lightTheme: 'Light',
@@ -1220,6 +1223,9 @@ const resources = {
       settings: {
         title: 'Definições',
         subtitle: 'Gerir as suas preferências',
+        tabProfile: 'Perfil',
+        tabPayment: 'Pagamento',
+        tabLegal: 'Termos e Condições',
         language: 'Idioma',
         theme: 'Tema',
         lightTheme: 'Claro',

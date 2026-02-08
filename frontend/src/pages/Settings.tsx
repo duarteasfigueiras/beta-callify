@@ -8,12 +8,16 @@ import { usersApi, authApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 
+// Tab type
+type SettingsTab = 'profile' | 'payment' | 'legal';
+
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { setTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const isNewUser = searchParams.get('newUser') === 'true';
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   // Remove newUser param from URL after showing the welcome message
   useEffect(() => {
@@ -197,443 +201,491 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* Profile */}
-      <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            {t('settings.profile', 'Profile')}
-            {isNewUser && (
-              <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
-                {t('settings.completeProfile', 'Complete your profile')}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Name and Email Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Display Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('settings.displayNameLabel', 'Name')}
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder={t('settings.displayNamePlaceholder', 'John Doe')}
-                autoFocus={isNewUser}
-              />
-            </div>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex gap-4">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              activeTab === 'profile'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            {t('settings.tabProfile', 'Perfil')}
+          </button>
+          <button
+            onClick={() => setActiveTab('payment')}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              activeTab === 'payment'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            {t('settings.tabPayment', 'Pagamento')}
+          </button>
+          <button
+            onClick={() => setActiveTab('legal')}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              activeTab === 'legal'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            {t('settings.tabLegal', 'Termos e Condições')}
+          </button>
+        </nav>
+      </div>
 
-            {/* Email (read-only) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('settings.email', 'Email')}
-              </label>
-              <input
-                type="email"
-                value={user?.username || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
+      {/* PROFILE TAB */}
+      {activeTab === 'profile' && (
+        <div className="space-y-6">
+          {/* Profile */}
+          <Card className={isNewUser ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                {t('settings.profile', 'Profile')}
+                {isNewUser && (
+                  <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+                    {t('settings.completeProfile', 'Complete your profile')}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Name and Email Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Display Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('settings.displayNameLabel', 'Name')}
+                  </label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder={t('settings.displayNamePlaceholder', 'John Doe')}
+                    autoFocus={isNewUser}
+                  />
+                </div>
 
-          {/* Phone Number */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('settings.phoneLabel', 'Phone Number')}
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="w-28 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-              >
-                {countryCodes.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.code}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder={t('settings.phonePlaceholder', '912 345 678')}
-              />
-            </div>
-          </div>
+                {/* Email (read-only) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('settings.email', 'Email')}
+                  </label>
+                  <input
+                    type="email"
+                    value={user?.username || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                  />
+                </div>
+              </div>
 
-          {/* Save Profile Button */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={async () => {
-                setIsSavingDisplayName(true);
-                setIsSavingPhone(true);
-                try {
-                  const fullPhone = phoneNumber ? `${countryCode}${phoneNumber}` : null;
-                  await usersApi.updatePreferences({
-                    display_name: displayName || null,
-                    phone_number: fullPhone,
-                  });
-                  if (refreshUser) {
-                    await refreshUser();
-                  }
-                  toast.success(t('settings.profileSaved', 'Profile saved successfully'));
-                } catch (error: any) {
-                  console.error('Error saving profile:', error);
-                  const errorMessage = error.response?.data?.error || t('settings.profileError', 'Failed to save profile');
-                  toast.error(errorMessage);
-                } finally {
-                  setIsSavingDisplayName(false);
-                  setIsSavingPhone(false);
-                }
-              }}
-              disabled={isSavingDisplayName || isSavingPhone}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            >
-              <Save className="w-4 h-4" />
-              {(isSavingDisplayName || isSavingPhone) ? t('settings.saving', 'Saving...') : t('settings.saveProfile', 'Save Profile')}
-            </button>
-          </div>
-
-          {/* Change Password Section */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-gray-100 mb-4">
-              <Lock className="w-4 h-4" />
-              {t('settings.changePassword', 'Change Password')}
-            </h3>
-
-            <div className="space-y-4">
-              {/* Current Password */}
+              {/* Phone Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('settings.currentPassword', 'Current Password')}
+                  {t('settings.phoneLabel', 'Phone Number')}
                 </label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder={t('settings.enterCurrentPassword', 'Enter current password')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-28 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                   >
-                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                    {countryCodes.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder={t('settings.phonePlaceholder', '912 345 678')}
+                  />
                 </div>
               </div>
 
-              {/* New Password */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('settings.newPassword', 'New Password')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder={t('settings.enterNewPassword', 'Min. 6 characters')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('settings.confirmNewPassword', 'Confirm Password')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder={t('settings.confirmNewPasswordPlaceholder', 'Confirm password')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Change Password Button */}
-              <div className="pt-2">
+              {/* Save Profile Button */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <button
-                  onClick={handleChangePassword}
-                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={async () => {
+                    setIsSavingDisplayName(true);
+                    setIsSavingPhone(true);
+                    try {
+                      const fullPhone = phoneNumber ? `${countryCode}${phoneNumber}` : null;
+                      await usersApi.updatePreferences({
+                        display_name: displayName || null,
+                        phone_number: fullPhone,
+                      });
+                      if (refreshUser) {
+                        await refreshUser();
+                      }
+                      toast.success(t('settings.profileSaved', 'Profile saved successfully'));
+                    } catch (error: any) {
+                      console.error('Error saving profile:', error);
+                      const errorMessage = error.response?.data?.error || t('settings.profileError', 'Failed to save profile');
+                      toast.error(errorMessage);
+                    } finally {
+                      setIsSavingDisplayName(false);
+                      setIsSavingPhone(false);
+                    }
+                  }}
+                  disabled={isSavingDisplayName || isSavingPhone}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                 >
+                  <Save className="w-4 h-4" />
+                  {(isSavingDisplayName || isSavingPhone) ? t('settings.saving', 'Saving...') : t('settings.saveProfile', 'Save Profile')}
+                </button>
+              </div>
+
+              {/* Change Password Section */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-gray-100 mb-4">
                   <Lock className="w-4 h-4" />
-                  {isChangingPassword ? t('settings.changingPassword', 'Changing...') : t('settings.changePasswordButton', 'Change Password')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <SettingsIcon className="w-5 h-5" />
-            {t('settings.preferences', 'Preferences')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Language */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Globe className="w-4 h-4" />
-                {t('settings.language', 'Language')}
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLanguagePreference('pt')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    languagePreference === 'pt'
-                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  🇵🇹 Português
-                </button>
-                <button
-                  onClick={() => setLanguagePreference('en')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    languagePreference === 'en'
-                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  🇬🇧 English
-                </button>
-              </div>
-            </div>
-
-            {/* Theme */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {themePreference === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                {t('settings.theme', 'Theme')}
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setThemePreference('light')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    themePreference === 'light'
-                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  {t('settings.lightMode', 'Light')}
-                </button>
-                <button
-                  onClick={() => setThemePreference('dark')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    themePreference === 'dark'
-                      ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <Moon className="w-4 h-4 text-indigo-500" />
-                  {t('settings.darkMode', 'Dark')}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Subscription */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            {t('settings.subscription', 'Subscription')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Current Plan */}
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {t('settings.currentPlan', 'Current Plan')}
-              </p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Free</p>
-            </div>
-            <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-              {t('settings.active', 'Active')}
-            </span>
-          </div>
-
-          {/* Plans */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              {t('settings.availablePlans', 'Available Plans')}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Free Plan */}
-              <div className="relative p-4 rounded-lg border-2 border-green-600 bg-green-50/50 dark:bg-green-900/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4 text-green-600" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Free</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">0€<span className="text-sm font-normal text-gray-500">/mês</span></p>
-                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature1Free', '50 calls/month')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature2Free', 'Basic analytics')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature3Free', '1 user')}</li>
-                </ul>
-                <div className="mt-3">
-                  <span className="block w-full text-center py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    {t('settings.currentPlanLabel', 'Current Plan')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Pro Plan */}
-              <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Pro</span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                    {t('settings.popular', 'Popular')}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">--€<span className="text-sm font-normal text-gray-500">/mês</span></p>
-                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature1Pro', 'Unlimited calls')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature2Pro', 'Advanced analytics')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature3Pro', 'Up to 10 users')}</li>
-                </ul>
-                <div className="mt-3">
-                  <button className="w-full py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                    {t('settings.upgrade', 'Upgrade')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Enterprise Plan */}
-              <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-4 h-4 text-amber-500" />
-                  <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Enterprise</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('settings.custom', 'Custom')}</p>
-                <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature1Ent', 'Everything in Pro')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature2Ent', 'Dedicated support')}</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature3Ent', 'Unlimited users')}</li>
-                </ul>
-                <div className="mt-3">
-                  <button className="w-full py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                    {t('settings.contactSales', 'Contact Sales')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Method */}
-          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('settings.paymentMethod', 'Payment Method')}
+                  {t('settings.changePassword', 'Change Password')}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {t('settings.noPaymentMethod', 'No payment method added')}
-                </p>
-              </div>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
-                <CreditCard className="w-3.5 h-3.5" />
-                {t('settings.addPayment', 'Add')}
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Legal */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            {t('settings.legal', 'Legal')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {t('settings.legalDescription', 'View our terms of service and privacy policy.')}
-          </p>
-          <Link
-            to="/terms"
-            target="_blank"
-            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {t('legal.termsOfService', 'Terms of Service')}
+                <div className="space-y-4">
+                  {/* Current Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t('settings.currentPassword', 'Current Password')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder={t('settings.enterCurrentPassword', 'Enter current password')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {t('settings.newPassword', 'New Password')}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder={t('settings.enterNewPassword', 'Min. 6 characters')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {t('settings.confirmNewPassword', 'Confirm Password')}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder={t('settings.confirmNewPasswordPlaceholder', 'Confirm password')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Change Password Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Lock className="w-4 h-4" />
+                      {isChangingPassword ? t('settings.changingPassword', 'Changing...') : t('settings.changePasswordButton', 'Change Password')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SettingsIcon className="w-5 h-5" />
+                {t('settings.preferences', 'Preferences')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Language */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <Globe className="w-4 h-4" />
+                    {t('settings.language', 'Language')}
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setLanguagePreference('pt')}
+                      className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        languagePreference === 'pt'
+                          ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      🇵🇹 Português
+                    </button>
+                    <button
+                      onClick={() => setLanguagePreference('en')}
+                      className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        languagePreference === 'en'
+                          ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      🇬🇧 English
+                    </button>
+                  </div>
+                </div>
+
+                {/* Theme */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {themePreference === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                    {t('settings.theme', 'Theme')}
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setThemePreference('light')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        themePreference === 'light'
+                          ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Sun className="w-4 h-4 text-amber-500" />
+                      {t('settings.lightMode', 'Light')}
+                    </button>
+                    <button
+                      onClick={() => setThemePreference('dark')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        themePreference === 'dark'
+                          ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Moon className="w-4 h-4 text-indigo-500" />
+                      {t('settings.darkMode', 'Dark')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* PAYMENT TAB */}
+      {activeTab === 'payment' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              {t('settings.subscription', 'Subscription')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Current Plan */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('settings.currentPlan', 'Current Plan')}
+                </p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Free</p>
+              </div>
+              <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                {t('settings.active', 'Active')}
               </span>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
-          </Link>
-          <Link
-            to="/privacy"
-            target="_blank"
-            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {t('legal.privacyPolicy', 'Privacy Policy')}
-              </span>
+
+            {/* Plans */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                {t('settings.availablePlans', 'Available Plans')}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Free Plan */}
+                <div className="relative p-4 rounded-lg border-2 border-green-600 bg-green-50/50 dark:bg-green-900/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-green-600" />
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Free</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">0€<span className="text-sm font-normal text-gray-500">/mês</span></p>
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature1Free', '50 calls/month')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature2Free', 'Basic analytics')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-green-600 flex-shrink-0" />{t('settings.planFeature3Free', '1 user')}</li>
+                  </ul>
+                  <div className="mt-3">
+                    <span className="block w-full text-center py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                      {t('settings.currentPlanLabel', 'Current Plan')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Pro Plan */}
+                <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Pro</span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                      {t('settings.popular', 'Popular')}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">--€<span className="text-sm font-normal text-gray-500">/mês</span></p>
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature1Pro', 'Unlimited calls')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature2Pro', 'Advanced analytics')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600 flex-shrink-0" />{t('settings.planFeature3Pro', 'Up to 10 users')}</li>
+                  </ul>
+                  <div className="mt-3">
+                    <button className="w-full py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                      {t('settings.upgrade', 'Upgrade')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Enterprise Plan */}
+                <div className="relative p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Crown className="w-4 h-4 text-amber-500" />
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Enterprise</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('settings.custom', 'Custom')}</p>
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature1Ent', 'Everything in Pro')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature2Ent', 'Dedicated support')}</li>
+                    <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-amber-500 flex-shrink-0" />{t('settings.planFeature3Ent', 'Unlimited users')}</li>
+                  </ul>
+                  <div className="mt-3">
+                    <button className="w-full py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                      {t('settings.contactSales', 'Contact Sales')}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
-          </Link>
-        </CardContent>
-      </Card>
+
+            {/* Payment Method */}
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('settings.paymentMethod', 'Payment Method')}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {t('settings.noPaymentMethod', 'No payment method added')}
+                  </p>
+                </div>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
+                  <CreditCard className="w-3.5 h-3.5" />
+                  {t('settings.addPayment', 'Add')}
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* LEGAL TAB */}
+      {activeTab === 'legal' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {t('settings.legal', 'Legal')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('settings.legalDescription', 'View our terms of service and privacy policy.')}
+            </p>
+            <Link
+              to="/terms"
+              target="_blank"
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {t('legal.termsOfService', 'Terms of Service')}
+                </span>
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+            </Link>
+            <Link
+              to="/privacy"
+              target="_blank"
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {t('legal.privacyPolicy', 'Privacy Policy')}
+                </span>
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
