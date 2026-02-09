@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { supabase } from '../db/supabase';
 import { getRedisClient, isRedisAvailable } from '../db/redis';
 import { AuthenticatedRequest, authenticateToken, generateToken, generateRefreshToken, verifyRefreshToken } from '../middleware/auth';
+import { setCsrfCookie } from '../middleware/csrf';
 import { User, LoginRequest, JWTPayload } from '../types';
 
 // SECURITY: Generate cryptographically secure tokens
@@ -299,6 +300,9 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
+    // SECURITY: Set CSRF token cookie for double-submit protection
+    setCsrfCookie(res);
+
     // Return user data (without password) - tokens no longer in body
     const { password_hash, ...userWithoutPassword } = user;
     return res.json({
@@ -357,6 +361,9 @@ router.post('/refresh', async (req: Request, res: Response) => {
       maxAge: 8 * 60 * 60 * 1000, // 8 hours
       path: '/',
     });
+
+    // SECURITY: Refresh CSRF token alongside access token
+    setCsrfCookie(res);
 
     console.log(`[Auth] Token refreshed: userId=${user.id}`);
 
@@ -637,6 +644,9 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
     if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // SECURITY: Ensure CSRF cookie is set/refreshed on session verification
+    setCsrfCookie(res);
 
     const { password_hash, ...userWithoutPassword } = user;
     return res.json(userWithoutPassword);

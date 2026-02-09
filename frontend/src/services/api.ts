@@ -18,6 +18,23 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// SECURITY: Read CSRF token from cookie and send as header (double-submit pattern)
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(^| )csrf-token=([^;]+)/);
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+api.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase();
+  if (method && ['post', 'put', 'patch', 'delete'].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  return config;
+});
+
 // Flag to prevent multiple refresh attempts
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: () => void; reject: (error: unknown) => void }> = [];
