@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { Secret } from 'jsonwebtoken';
 import { JWTPayload, UserRole } from '../types';
+import { supabase } from '../db/supabase';
 
 // SECURITY: JWT_SECRET must be set in environment variables
 const JWT_SECRET: Secret = process.env.JWT_SECRET || '';
@@ -49,7 +50,7 @@ export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
 }
 
-export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export async function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   // SECURITY: Read token from httpOnly cookie first, fallback to Authorization header (for API clients)
   const cookieToken = req.cookies?.accessToken;
   const authHeader = req.headers['authorization'];
@@ -63,8 +64,26 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
 
   try {
     // SECURITY: Verify with key rotation support
-    const decoded = verifyWithRotation(token);
+    const decoded = verifyWithRotation(token) as JWTPayload & { iat?: number };
     req.user = decoded;
+
+    // SECURITY: Check if password was changed after token was issued (invalidates all sessions)
+    if (decoded.iat) {
+      const { data: user } = await supabase
+        .from('users')
+        .select('password_changed_at')
+        .eq('id', decoded.userId)
+        .single();
+
+      if (user?.password_changed_at) {
+        const passwordChangedAt = Math.floor(new Date(user.password_changed_at).getTime() / 1000);
+        if (decoded.iat < passwordChangedAt) {
+          res.status(401).json({ error: 'Session invalidated due to password change' });
+          return;
+        }
+      }
+    }
+
     next();
   } catch (error) {
     // Return 401 for expired/invalid tokens so frontend can redirect to login

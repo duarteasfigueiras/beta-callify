@@ -878,10 +878,11 @@ router.post('/reset-password', async (req, res: Response) => {
     // Hash new password
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    // Update password
+    // SECURITY: Update password and password_changed_at to invalidate all existing sessions
+    const now = new Date().toISOString();
     const { error: updateError } = await supabase
       .from('users')
-      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .update({ password_hash: passwordHash, password_changed_at: now, updated_at: now })
       .eq('id', resetRecord.user_id);
 
     if (updateError) {
