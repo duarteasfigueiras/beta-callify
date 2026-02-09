@@ -14,46 +14,36 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Add token to requests (check both localStorage and sessionStorage)
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  // SECURITY: Send httpOnly cookies with every request
+  withCredentials: true,
 });
 
 // Flag to prevent multiple refresh attempts
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
+let failedQueue: Array<{ resolve: () => void; reject: (error: unknown) => void }> = [];
 
-const processQueue = (error: unknown, token: string | null = null) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token!);
+      prom.resolve();
     }
   });
   failedQueue = [];
 };
 
-// Clear all auth data and redirect to login
+// Clear user data from storage and redirect to login
 const clearAuthAndRedirect = () => {
-  localStorage.removeItem('token');
   localStorage.removeItem('user');
   localStorage.removeItem('rememberMe');
   localStorage.removeItem('lastActivity');
-  localStorage.removeItem('refreshToken');
-  sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
   sessionStorage.removeItem('lastActivity');
   window.location.href = '/login';
 };
 
-// Handle auth errors with automatic token refresh
+// Handle auth errors with automatic token refresh via httpOnly cookies
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -65,11 +55,11 @@ api.interceptors.response.use(
     const isAuthError = error.response?.status === 401 || error.response?.status === 403;
 
     if (isAuthError && !isAuthEndpoint && !originalRequest._retry) {
-      // Check if we have a refresh token (rememberMe was enabled)
-      const refreshToken = localStorage.getItem('refreshToken');
+      // Check if rememberMe was enabled (meaning refresh token cookie exists)
+      const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
-      if (!refreshToken) {
-        // No refresh token, redirect to login
+      if (!rememberMe) {
+        // No refresh token cookie, redirect to login
         clearAuthAndRedirect();
         return Promise.reject(error);
       }
@@ -77,12 +67,10 @@ api.interceptors.response.use(
       if (isRefreshing) {
         // Wait for the refresh to complete
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
+          failedQueue.push({
+            resolve: () => resolve(api(originalRequest)),
+            reject,
+          });
         });
       }
 
@@ -90,27 +78,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Try to refresh the token
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-        const { token: newToken } = response.data;
+        // Try to refresh the token (refresh token is sent automatically via httpOnly cookie)
+        await api.post('/auth/refresh');
 
-        // Update stored token
-        const rememberMe = localStorage.getItem('rememberMe') === 'true';
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('token', newToken);
-
-        // Update authorization header
-        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
-        processQueue(null, newToken);
+        processQueue(null);
 
         console.log('[API] Token refreshed successfully');
 
-        // Retry the original request
+        // Retry the original request (new access token cookie is already set)
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         console.log('[API] Token refresh failed, redirecting to login');
         clearAuthAndRedirect();
         return Promise.reject(refreshError);
@@ -131,8 +109,8 @@ export const authApi = {
     const response = await api.post('/auth/login', { email, password, rememberMe });
     return response.data;
   },
-  refresh: async (refreshToken: string) => {
-    const response = await api.post('/auth/refresh', { refreshToken });
+  refresh: async () => {
+    const response = await api.post('/auth/refresh');
     return response.data;
   },
   logout: async () => {
@@ -408,4 +386,3 @@ export const stripeApi = {
     return response.data;
   },
 };
-

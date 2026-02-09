@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, AuthState, LoginCredentials } from '../types';
+import { AuthState, LoginCredentials } from '../types';
 import { authApi, usersApi } from '../services/api';
 
 interface AuthContextType extends AuthState {
@@ -15,14 +15,8 @@ const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
 
 // Helper to get storage based on rememberMe preference
 const getStorage = (): Storage => {
-  // Check if we're using localStorage (rememberMe was checked)
   const rememberMe = localStorage.getItem('rememberMe') === 'true';
   return rememberMe ? localStorage : sessionStorage;
-};
-
-// Helper to get token from either storage
-const getToken = (): string | null => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
 };
 
 // Helper to get user from either storage
@@ -46,7 +40,6 @@ const updateLastActivity = () => {
 // Helper to check if session has expired (only for non-rememberMe sessions)
 const isSessionExpired = (): boolean => {
   const rememberMe = localStorage.getItem('rememberMe') === 'true';
-  // If rememberMe is checked, session never expires due to inactivity
   if (rememberMe) return false;
 
   const lastActivity = getLastActivity();
@@ -55,14 +48,11 @@ const isSessionExpired = (): boolean => {
   return Date.now() - lastActivity > SESSION_TIMEOUT;
 };
 
-// Helper to clear both storages
+// Helper to clear auth data from storage (tokens are in httpOnly cookies, cleared by server)
 const clearAuth = () => {
-  localStorage.removeItem('token');
   localStorage.removeItem('user');
   localStorage.removeItem('rememberMe');
   localStorage.removeItem('lastActivity');
-  localStorage.removeItem('refreshToken');
-  sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
   sessionStorage.removeItem('lastActivity');
 };
@@ -77,24 +67,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing session on mount
   useEffect(() => {
-    const token = getToken();
     const userStr = getUser();
 
     // Check if session has expired due to inactivity
-    if (token && userStr && isSessionExpired()) {
+    if (userStr && isSessionExpired()) {
       clearAuth();
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    if (token && userStr) {
+    if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        // Update last activity on session restore
         updateLastActivity();
+
+        // Verify session is still valid by calling /auth/me
+        authApi.me().then((freshUser) => {
+          const storage = getStorage();
+          storage.setItem('user', JSON.stringify(freshUser));
+          setState({
+            user: freshUser,
+            token: null, // Tokens are in httpOnly cookies
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        }).catch(() => {
+          // Token expired or invalid - clear auth
+          clearAuth();
+          setState({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        });
+
+        // Set optimistic state while verifying
         setState({
           user,
-          token,
+          token: null,
           isAuthenticated: true,
           isLoading: false,
         });
@@ -111,12 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!state.isAuthenticated) return;
 
-    // Update activity on user interactions
     const handleActivity = () => {
       updateLastActivity();
     };
 
-    // Check session expiration periodically (every minute)
     const checkExpiration = () => {
       if (isSessionExpired()) {
         clearAuth();
@@ -130,11 +139,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Listen for user activity events
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
     events.forEach(event => window.addEventListener(event, handleActivity));
 
-    // Check expiration every minute
     const interval = setInterval(checkExpiration, 60 * 1000);
 
     return () => {
@@ -144,32 +151,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.isAuthenticated]);
 
   const login = useCallback(async (credentials: LoginCredentials, rememberMe: boolean = false) => {
-    // Support both email (new) and username (legacy)
     const loginIdentifier = credentials.email || credentials.username || '';
     const response = await authApi.login(loginIdentifier, credentials.password, rememberMe);
-    const { token, refreshToken, user } = response;
+    const { user } = response;
 
     // Clear any existing auth data first
     clearAuth();
 
-    // Store rememberMe preference in localStorage (always persists to remember the choice)
+    // Store rememberMe preference
     localStorage.setItem('rememberMe', rememberMe.toString());
 
-    // Store refresh token in localStorage if provided (only when rememberMe is true)
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
-
-    // Use appropriate storage based on rememberMe
+    // Store user data (tokens are in httpOnly cookies set by server)
     const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem('token', token);
     storage.setItem('user', JSON.stringify(user));
-    // Set initial last activity timestamp
     storage.setItem('lastActivity', Date.now().toString());
 
     setState({
       user,
-      token,
+      token: null, // Tokens are in httpOnly cookies
       isAuthenticated: true,
       isLoading: false,
     });
@@ -177,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      // Server clears httpOnly cookies
       await authApi.logout();
     } catch {
       // Ignore errors on logout

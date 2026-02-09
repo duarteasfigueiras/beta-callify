@@ -278,11 +278,30 @@ router.post('/login', async (req: Request, res: Response) => {
     // SECURITY: Only log minimal info, no sensitive data
     console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}, rememberMe=${!!rememberMe}`);
 
-    // Return user data (without password)
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // SECURITY: Set tokens as httpOnly cookies (not accessible via JavaScript)
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 8 * 60 * 60 * 1000, // 8 hours
+      path: '/',
+    });
+
+    if (refreshToken) {
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        path: '/api/auth', // Only sent to auth endpoints
+      });
+    }
+
+    // Return user data (without password) - tokens no longer in body
     const { password_hash, ...userWithoutPassword } = user;
     return res.json({
-      token,
-      refreshToken,
       user: userWithoutPassword,
     });
   } catch (error) {
@@ -291,10 +310,11 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-// Refresh token - get new access token using refresh token
+// Refresh token - get new access token using refresh token (reads from httpOnly cookie)
 router.post('/refresh', async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    // SECURITY: Read refresh token from httpOnly cookie (fallback to body for backwards compat)
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });
@@ -327,11 +347,20 @@ router.post('/refresh', async (req: Request, res: Response) => {
     };
     const newToken = generateToken(payload);
 
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // SECURITY: Set new access token as httpOnly cookie
+    res.cookie('accessToken', newToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 8 * 60 * 60 * 1000, // 8 hours
+      path: '/',
+    });
+
     console.log(`[Auth] Token refreshed: userId=${user.id}`);
 
-    return res.json({
-      token: newToken,
-    });
+    return res.json({ success: true });
   } catch (error) {
     console.error('Refresh token error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -572,8 +601,23 @@ router.post('/register', async (req, res: Response) => {
   }
 });
 
-// Logout (just invalidates the token on client side - no server action needed)
-router.post('/logout', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+// Logout - clear httpOnly cookies
+router.post('/logout', (req: Request, res: Response) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  });
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/api/auth',
+  });
+
   return res.json({ message: 'Logged out successfully' });
 });
 

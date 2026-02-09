@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -110,6 +111,7 @@ app.use(cors({
 // Stripe webhook needs raw body for signature verification - MUST be before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));  // Limit body size
 
 // Serve uploaded files
