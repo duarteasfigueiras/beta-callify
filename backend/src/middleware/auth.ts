@@ -8,6 +8,43 @@ if (!JWT_SECRET) {
   throw new Error('CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.');
 }
 
+// SECURITY: Previous secrets for graceful key rotation
+// Set JWT_SECRET_PREVIOUS to a comma-separated list of old secrets when rotating.
+// These are only used for VERIFICATION (not signing). Remove after max token lifetime (30 days).
+const JWT_PREVIOUS_SECRETS: Secret[] = (process.env.JWT_SECRET_PREVIOUS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(s => s.length > 0);
+
+if (JWT_PREVIOUS_SECRETS.length > 0) {
+  console.log(`[Auth] Key rotation active: ${JWT_PREVIOUS_SECRETS.length} previous secret(s) accepted for verification`);
+}
+
+// Try to verify a token against the current secret, then fall back to previous secrets
+function verifyWithRotation(token: string): JWTPayload {
+  // Try current secret first
+  try {
+    return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+  } catch (primaryError) {
+    // If no previous secrets, throw immediately
+    if (JWT_PREVIOUS_SECRETS.length === 0) {
+      throw primaryError;
+    }
+
+    // Try each previous secret
+    for (const secret of JWT_PREVIOUS_SECRETS) {
+      try {
+        return jwt.verify(token, secret, { algorithms: ['HS256'] }) as JWTPayload;
+      } catch {
+        // Continue to next secret
+      }
+    }
+
+    // All secrets failed - throw the original error
+    throw primaryError;
+  }
+}
+
 export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
 }
@@ -25,8 +62,8 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   }
 
   try {
-    // SECURITY: Use explicit algorithm verification
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+    // SECURITY: Verify with key rotation support
+    const decoded = verifyWithRotation(token);
     req.user = decoded;
     next();
   } catch (error) {
@@ -51,6 +88,7 @@ export function requireRole(...roles: UserRole[]) {
   };
 }
 
+// Always sign with the CURRENT secret
 export function generateToken(payload: JWTPayload): string {
   // SECURITY: Shorter expiration, explicit algorithm
   return jwt.sign(payload, JWT_SECRET, {
@@ -67,16 +105,41 @@ export function generateRefreshToken(payload: JWTPayload): string {
   });
 }
 
-// SECURITY: Verify with explicit algorithm to prevent algorithm confusion attacks
+// SECURITY: Verify with key rotation and explicit algorithm
 export function verifyToken(token: string): JWTPayload {
-  return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+  return verifyWithRotation(token);
 }
 
-// Verify refresh token and return payload
+// Verify refresh token with key rotation support
 export function verifyRefreshToken(token: string): JWTPayload & { type?: string } {
-  const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload & { type?: string };
-  if (decoded.type !== 'refresh') {
+  // Try current secret first, then previous secrets
+  let decoded: JWTPayload & { type?: string };
+
+  try {
+    decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload & { type?: string };
+  } catch (primaryError) {
+    if (JWT_PREVIOUS_SECRETS.length === 0) {
+      throw primaryError;
+    }
+
+    let found = false;
+    for (const secret of JWT_PREVIOUS_SECRETS) {
+      try {
+        decoded = jwt.verify(token, secret, { algorithms: ['HS256'] }) as JWTPayload & { type?: string };
+        found = true;
+        break;
+      } catch {
+        // Continue to next secret
+      }
+    }
+
+    if (!found) {
+      throw primaryError;
+    }
+  }
+
+  if (decoded!.type !== 'refresh') {
     throw new Error('Invalid refresh token');
   }
-  return decoded;
+  return decoded!;
 }
