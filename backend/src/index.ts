@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { csrfProtection } from './middleware/csrf';
+import { inputLengthValidation } from './middleware/validateInput';
 
 // Load environment variables
 dotenv.config();
@@ -113,7 +114,10 @@ app.use(cors({
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
 app.use(cookieParser());
-app.use(express.json({ limit: '10mb' }));  // Limit body size
+app.use(express.json({ limit: '2mb' }));  // Limit body size (enough for transcriptions)
+
+// SECURITY: Validate input field lengths on all POST/PUT/PATCH requests
+app.use(inputLengthValidation);
 
 // SECURITY: CSRF protection (double-submit cookie pattern)
 app.use(csrfProtection);
