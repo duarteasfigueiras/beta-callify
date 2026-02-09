@@ -1,9 +1,67 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 import { processCall, simulateTwilioWebhook } from '../services/callProcessor';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
+
+// SECURITY: Twilio Auth Token for webhook signature verification
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+
+/**
+ * Verify Twilio webhook signature (X-Twilio-Signature)
+ * Uses HMAC-SHA1 as per Twilio's security spec:
+ * https://www.twilio.com/docs/usage/security#validating-requests
+ */
+function validateTwilioSignature(req: Request): boolean {
+  if (!TWILIO_AUTH_TOKEN) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Webhook] CRITICAL: TWILIO_AUTH_TOKEN not set in production - blocking request');
+      return false;
+    }
+    console.warn('[Webhook] WARNING: TWILIO_AUTH_TOKEN not set - skipping signature validation (development only)');
+    return true;
+  }
+
+  const signature = req.headers['x-twilio-signature'] as string;
+  if (!signature) {
+    console.warn('[Webhook] Missing X-Twilio-Signature header');
+    return false;
+  }
+
+  // Build the full URL that Twilio signed
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['host'];
+  const url = `${protocol}://${host}${req.originalUrl}`;
+
+  // Sort POST params and append key=value to URL
+  let dataString = url;
+  if (req.body && typeof req.body === 'object') {
+    const sortedKeys = Object.keys(req.body).sort();
+    for (const key of sortedKeys) {
+      dataString += key + req.body[key];
+    }
+  }
+
+  // HMAC-SHA1 with auth token, then base64 encode
+  const expectedSignature = crypto
+    .createHmac('sha1', TWILIO_AUTH_TOKEN)
+    .update(dataString)
+    .digest('base64');
+
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (sigBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Determine call direction from Twilio webhook data
@@ -100,6 +158,12 @@ async function findAgentByPhone(
  */
 router.post('/twilio', async (req: Request, res: Response) => {
   try {
+    // SECURITY: Verify Twilio signature before processing
+    if (!validateTwilioSignature(req)) {
+      console.warn('[Webhook] Twilio signature validation failed - rejecting request');
+      return res.status(403).json({ error: 'Invalid webhook signature' });
+    }
+
     console.log('[Webhook] Received Twilio webhook:', JSON.stringify(req.body, null, 2));
 
     const {
