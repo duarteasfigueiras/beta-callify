@@ -8,9 +8,13 @@ const router = Router();
 const N8N_API_KEY = process.env.N8N_API_KEY;
 
 function validateApiKey(req: Request, res: Response, next: Function) {
-  // Skip validation if no API key is configured (development mode)
+  // SECURITY: Require API key in production - never allow unprotected access
   if (!N8N_API_KEY) {
-    console.warn('[n8n] WARNING: N8N_API_KEY not set - endpoints are unprotected!');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[n8n] CRITICAL: N8N_API_KEY not set in production - blocking all requests');
+      return res.status(503).json({ error: 'Service unavailable - API key not configured' });
+    }
+    console.warn('[n8n] WARNING: N8N_API_KEY not set - endpoints are unprotected (development only)');
     return next();
   }
 
