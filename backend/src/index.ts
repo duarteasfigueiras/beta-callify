@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { csrfProtection } from './middleware/csrf';
 import { inputLengthValidation } from './middleware/validateInput';
+import { requestIdMiddleware } from './middleware/requestId';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,9 @@ console.log('Using PORT:', PORT);
 // ===========================================
 // SECURITY MIDDLEWARE
 // ===========================================
+
+// SECURITY: Unique request ID for every request (tracing in logs)
+app.use(requestIdMiddleware);
 
 // Security headers with Helmet
 app.use(helmet({
@@ -74,18 +78,14 @@ const authLimiter = rateLimit({
 });
 
 // CORS - Specific origins only (more secure)
+// SECURITY: Only allow localhost in development, never in production
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins: string[] = [
-  'http://localhost:5173',
-  'http://localhost:3000',
+  ...(isProduction ? [] : ['http://localhost:5173', 'http://localhost:3000']),
   process.env.FRONTEND_URL,
   // Also allow www version of the frontend URL
   process.env.FRONTEND_URL?.replace('https://', 'https://www.'),
 ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0);
-
-// In production, also allow the Vercel deployment URL pattern
-if (process.env.NODE_ENV === 'production' && process.env.VERCEL_URL_PATTERN) {
-  // Only add specific Vercel URLs, not wildcards
-}
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -139,6 +139,16 @@ app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/stripe', stripeRoutes);
+
+// SECURITY: security.txt for vulnerability disclosure (RFC 9116)
+app.get('/.well-known/security.txt', (req, res) => {
+  res.type('text/plain').send(
+    `Contact: mailto:security@aicoachcall.com\n` +
+    `Preferred-Languages: en, pt\n` +
+    `Canonical: https://www.aicoachcall.com/.well-known/security.txt\n` +
+    `Expires: ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()}\n`
+  );
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
