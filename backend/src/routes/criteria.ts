@@ -165,10 +165,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       query = query.eq('company_id', req.user!.companyId);
     }
 
-    // Filter by category if specified
+    // Filter by category if specified (validated against whitelist)
     if (category && VALID_CATEGORIES.includes(category as UserCategory)) {
-      // Return criteria for specific category + 'all' category
-      query = query.or(`category.eq.${category},category.eq.all`);
+      query = query.in('category', [category as string, 'all']);
     }
 
     const { data: criteria, error } = await query;

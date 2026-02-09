@@ -552,8 +552,7 @@ router.post('/invite', requireRole('developer', 'admin_manager'), async (req: Au
     const { error } = await supabase.from('invitations').insert({
       company_id: targetCompanyId,
       invited_by: req.user!.userId,
-      token,  // Keep for backwards compatibility during migration
-      token_hash: tokenHash,  // Secure hashed version
+      token_hash: tokenHash,
       role: inviteRole,
       custom_role_name: roleDisplayName,
       used: false,

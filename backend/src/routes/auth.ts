@@ -742,8 +742,9 @@ router.post('/change-password', authenticateToken, async (req: AuthenticatedRequ
       return res.status(400).json({ error: 'Current password and new password are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: 'Password too weak', details: passwordValidation.errors });
     }
 
     // Get user from database
@@ -766,13 +767,15 @@ router.post('/change-password', authenticateToken, async (req: AuthenticatedRequ
     // Hash new password
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    // Update password
+    // Update password and record timestamp (for token invalidation)
+    const now = new Date().toISOString();
     await supabase
       .from('users')
-      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .update({ password_hash: passwordHash, password_changed_at: now, updated_at: now })
       .eq('id', req.user.userId);
 
-    return res.json({ message: 'Password changed successfully' });
+    // Client should discard current tokens and re-login
+    return res.json({ message: 'Password changed successfully', requireRelogin: true });
   } catch (error) {
     console.error('Change password error:', error);
     return res.status(500).json({ error: 'Internal server error' });

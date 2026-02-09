@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 
 const router = Router();
@@ -15,8 +16,14 @@ function validateApiKey(req: Request, res: Response, next: Function) {
 
   const providedKey = req.headers['x-api-key'] || req.query.api_key;
 
-  if (!providedKey || providedKey !== N8N_API_KEY) {
-    console.warn('[n8n] Unauthorized access attempt');
+  if (!providedKey || typeof providedKey !== 'string') {
+    return res.status(401).json({ error: 'Invalid or missing API key' });
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  const keyBuffer = Buffer.from(N8N_API_KEY);
+  const providedBuffer = Buffer.from(providedKey);
+  if (keyBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(keyBuffer, providedBuffer)) {
     return res.status(401).json({ error: 'Invalid or missing API key' });
   }
 
@@ -324,15 +331,21 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
     } = req.body;
 
     if (finalScore === undefined || !summary) {
-      return res.status(400).json({
-        error: 'summary and finalScore are required',
-        example: {
-          summary: 'Customer inquiry about pricing...',
-          finalScore: 7.5,
-          nextStepRecommendation: 'Send follow-up email',
-          criteriaResults: [{ criterionId: 1, passed: true, justification: 'Good' }]
-        }
-      });
+      return res.status(400).json({ error: 'summary and finalScore are required' });
+    }
+
+    // Validate AI analysis data
+    const score = Number(finalScore);
+    if (isNaN(score) || score < 0 || score > 10) {
+      return res.status(400).json({ error: 'finalScore must be a number between 0 and 10' });
+    }
+
+    if (typeof summary !== 'string' || summary.length > 10000) {
+      return res.status(400).json({ error: 'summary must be a string under 10000 characters' });
+    }
+
+    if (!Array.isArray(criteriaResults) || criteriaResults.length > 100) {
+      return res.status(400).json({ error: 'criteriaResults must be an array with max 100 items' });
     }
 
     // Verify call exists and get details
@@ -1564,19 +1577,7 @@ router.get('/debug-call/:id', async (req: Request, res: Response) => {
 router.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    version: '1.0.0',
-    description: 'n8n Integration API for Callify',
-    endpoints: {
-      'POST /api/n8n/calls': 'Create a new call record (Step 1)',
-      'POST /api/n8n/calls/:id/transcription': 'Submit transcription (Step 2)',
-      'POST /api/n8n/calls/:id/analysis': 'Submit AI analysis (Step 3)',
-      'POST /api/n8n/calls/complete': 'Process complete call in one request',
-      'POST /api/n8n/agent-output': 'Receive AI agent output (Portuguese format)',
-      'GET /api/n8n/calls/:id/status': 'Get call processing status',
-      'GET /api/n8n/criteria': 'Get evaluation criteria for analysis',
-      'GET /api/n8n/health': 'This endpoint',
-      'POST /api/n8n/cleanup-summaries': 'Remove legacy text from call summaries'
-    }
+    timestamp: new Date().toISOString()
   });
 });
 

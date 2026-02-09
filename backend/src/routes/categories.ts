@@ -205,10 +205,13 @@ router.put('/:key', requireRole('admin_manager', 'developer'), async (req: Authe
       return res.status(400).json({ error: 'Category name is required' });
     }
 
-    // Get company_id
+    // Get company_id - only developers can override, and must be a valid number
     let companyId = req.user!.companyId;
     if (isDeveloper(req.user!.role) && req.body.company_id) {
-      companyId = req.body.company_id;
+      companyId = Number(req.body.company_id);
+      if (isNaN(companyId) || companyId <= 0) {
+        return res.status(400).json({ error: 'Invalid company_id' });
+      }
     }
 
     if (!companyId) {
