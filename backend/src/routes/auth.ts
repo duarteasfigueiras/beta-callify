@@ -7,6 +7,7 @@ import { getRedisClient, isRedisAvailable } from '../db/redis';
 import { AuthenticatedRequest, authenticateToken, generateToken, generateRefreshToken, verifyRefreshToken } from '../middleware/auth';
 import { setCsrfCookie } from '../middleware/csrf';
 import { User, LoginRequest, JWTPayload } from '../types';
+import { logAuditEvent } from '../services/auditLog';
 
 // SECURITY: Generate cryptographically secure tokens
 function generateSecureToken(): string {
@@ -308,8 +309,10 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // SECURITY: Account-level lockout - 15 attempts per 30 minutes (by email only, regardless of IP)
+    const clientIP = getClientIP(req);
     const accountLockout = await checkAccountLockout(loginIdentifier);
     if (!accountLockout.allowed) {
+      logAuditEvent({ action: 'account_locked', ip_address: clientIP, details: { email: loginIdentifier } });
       res.setHeader('Retry-After', accountLockout.retryAfterSeconds?.toString() || '1800');
       return res.status(429).json({
         error: 'Account temporarily locked due to too many failed attempts. Please try again later.',
@@ -318,7 +321,6 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // SECURITY: Rate limiting per IP+email - 8 attempts per 15 minutes (uses Redis if available)
-    const clientIP = getClientIP(req);
     const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
     const rateLimit = await checkRateLimitRedis(rateLimitKey);
 
@@ -356,6 +358,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     if (error || !user) {
+      logAuditEvent({ action: 'login_failed', ip_address: clientIP, details: { email: loginIdentifier, reason: 'user_not_found' } });
       return res.status(401).json({
         error: 'Invalid email or password',
         remainingAttempts: rateLimit.remainingAttempts
@@ -365,6 +368,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
+      logAuditEvent({ action: 'login_failed', user_id: user.id, ip_address: clientIP, details: { reason: 'wrong_password' } });
       return res.status(401).json({
         error: 'Invalid email or password',
         remainingAttempts: rateLimit.remainingAttempts
@@ -387,6 +391,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const refreshToken = rememberMe ? generateRefreshToken(payload) : undefined;
 
     // SECURITY: Only log minimal info, no sensitive data
+    logAuditEvent({ action: 'login_success', user_id: user.id, ip_address: clientIP, details: { role: user.role } });
     console.log(`[Auth] Login successful: userId=${user.id}, role=${user.role}, rememberMe=${!!rememberMe}`);
 
     const isProduction = process.env.NODE_ENV === 'production';
@@ -475,6 +480,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     // SECURITY: Refresh CSRF token alongside access token
     setCsrfCookie(res);
 
+    logAuditEvent({ action: 'token_refresh', user_id: user.id, ip_address: getClientIP(req) });
     console.log(`[Auth] Token refreshed: userId=${user.id}`);
 
     return res.json({ success: true });
@@ -711,6 +717,7 @@ router.post('/register', async (req, res: Response) => {
       console.log(`[Auth] Welcome email skipped (no Resend API key configured) for: ${email}`);
     }
 
+    logAuditEvent({ action: 'user_registered', ip_address: getClientIP(req), details: { email, role: invitation.role, company_id: invitation.company_id } });
     return res.json({ message: 'Registration successful. You can now login.' });
   } catch (error) {
     console.error('Registration error:', error);
@@ -721,6 +728,8 @@ router.post('/register', async (req, res: Response) => {
 // Logout - clear httpOnly cookies
 router.post('/logout', (req: Request, res: Response) => {
   const isProduction = process.env.NODE_ENV === 'production';
+
+  logAuditEvent({ action: 'logout', ip_address: getClientIP(req) });
 
   res.clearCookie('accessToken', {
     httpOnly: true,
@@ -938,6 +947,7 @@ router.post('/change-password', authenticateToken, async (req: AuthenticatedRequ
       .update({ password_hash: passwordHash, password_changed_at: now, updated_at: now })
       .eq('id', req.user.userId);
 
+    logAuditEvent({ action: 'password_change', user_id: req.user.userId, ip_address: getClientIP(req) });
     // Client should discard current tokens and re-login
     return res.json({ message: 'Password changed successfully', requireRelogin: true });
   } catch (error) {
@@ -1005,6 +1015,7 @@ router.post('/reset-password', async (req, res: Response) => {
       .update({ used: true })
       .eq('token_hash', tokenHash);
 
+    logAuditEvent({ action: 'password_reset', user_id: resetRecord.user_id, ip_address: getClientIP(req) });
     console.log(`[Auth] Password reset successful for userId=${resetRecord.user_id}`);
     return res.json({ message: 'Password updated successfully' });
   } catch (error) {

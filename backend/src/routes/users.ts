@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
+import { logAuditEvent } from '../services/auditLog';
 
 // SECURITY: Generate cryptographically secure tokens
 function generateSecureToken(): string {
@@ -561,6 +562,7 @@ router.post('/invite', requireRole('developer', 'admin_manager'), async (req: Au
 
     if (error) throw error;
 
+    logAuditEvent({ action: 'user_invited', user_id: req.user!.userId, details: { role: inviteRole, company_id: targetCompanyId, custom_role_name: roleDisplayName } });
     res.json({
       token,
       inviteUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?token=${token}`,
@@ -759,6 +761,7 @@ router.patch('/:id/role', requireRole('developer', 'admin_manager'), async (req:
 
     if (error) throw error;
 
+    logAuditEvent({ action: 'role_change', user_id: req.user!.userId, target_user_id: userId, details: { old_role: user.role, new_role: role } });
     res.json({ message: 'User role updated successfully', role });
   } catch (error) {
     console.error('Error updating user role:', error);
