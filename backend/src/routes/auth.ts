@@ -40,6 +40,13 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes block
 const REDIS_RATE_LIMIT_PREFIX = 'ratelimit:';
 
+// SECURITY: Account-level lockout (by email only, regardless of IP)
+// Prevents distributed brute-force attacks from multiple IPs
+const ACCOUNT_LOCKOUT_MAX_ATTEMPTS = 15;
+const ACCOUNT_LOCKOUT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+const ACCOUNT_LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes block
+const accountLockouts = new Map<string, RateLimitEntry>();
+
 // ============================================
 // PASSWORD VALIDATION: Strong password requirements
 // ============================================
@@ -196,6 +203,98 @@ function resetRateLimit(identifier: string): void {
   resetRateLimitRedis(identifier).catch(() => {});
 }
 
+// ============================================
+// ACCOUNT LOCKOUT: 15 attempts per 30 minutes (by email only, regardless of IP)
+// Prevents distributed brute-force from multiple IPs
+// ============================================
+async function checkAccountLockout(email: string): Promise<{ allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number }> {
+  const key = `account:${email.toLowerCase()}`;
+  const redis = getRedisClient();
+
+  if (redis && isRedisAvailable()) {
+    try {
+      const redisKey = `${REDIS_RATE_LIMIT_PREFIX}${key}`;
+      const blockKey = `${REDIS_RATE_LIMIT_PREFIX}block:${key}`;
+
+      const blockedTTL = await redis.ttl(blockKey);
+      if (blockedTTL > 0) {
+        return { allowed: false, remainingAttempts: 0, retryAfterSeconds: blockedTTL };
+      }
+
+      const attempts = await redis.incr(redisKey);
+      if (attempts === 1) {
+        await redis.expire(redisKey, Math.ceil(ACCOUNT_LOCKOUT_WINDOW_MS / 1000));
+      }
+
+      if (attempts > ACCOUNT_LOCKOUT_MAX_ATTEMPTS) {
+        const blockSeconds = Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000);
+        await redis.setex(blockKey, blockSeconds, '1');
+        console.log(`[Auth] Account locked out: ${email} (Redis) - ${attempts} failed attempts`);
+        return { allowed: false, remainingAttempts: 0, retryAfterSeconds: blockSeconds };
+      }
+
+      return { allowed: true, remainingAttempts: ACCOUNT_LOCKOUT_MAX_ATTEMPTS - attempts };
+    } catch (error) {
+      console.warn('[Auth] Redis account lockout error, falling back to memory:', error);
+    }
+  }
+
+  // In-memory fallback
+  const now = Date.now();
+  const entry = accountLockouts.get(key);
+
+  // Cleanup old entries
+  if (accountLockouts.size > 10000) {
+    for (const [k, v] of accountLockouts.entries()) {
+      if (now - v.firstAttempt > ACCOUNT_LOCKOUT_WINDOW_MS * 2) {
+        accountLockouts.delete(k);
+      }
+    }
+  }
+
+  if (!entry) {
+    accountLockouts.set(key, { attempts: 1, firstAttempt: now });
+    return { allowed: true, remainingAttempts: ACCOUNT_LOCKOUT_MAX_ATTEMPTS - 1 };
+  }
+
+  if (entry.blockedUntil && now < entry.blockedUntil) {
+    const retryAfterSeconds = Math.ceil((entry.blockedUntil - now) / 1000);
+    return { allowed: false, remainingAttempts: 0, retryAfterSeconds };
+  }
+
+  if (now - entry.firstAttempt > ACCOUNT_LOCKOUT_WINDOW_MS) {
+    accountLockouts.set(key, { attempts: 1, firstAttempt: now });
+    return { allowed: true, remainingAttempts: ACCOUNT_LOCKOUT_MAX_ATTEMPTS - 1 };
+  }
+
+  entry.attempts++;
+
+  if (entry.attempts > ACCOUNT_LOCKOUT_MAX_ATTEMPTS) {
+    entry.blockedUntil = now + ACCOUNT_LOCKOUT_DURATION_MS;
+    console.log(`[Auth] Account locked out: ${email} (Memory) - ${entry.attempts} failed attempts`);
+    return { allowed: false, remainingAttempts: 0, retryAfterSeconds: Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000) };
+  }
+
+  return { allowed: true, remainingAttempts: ACCOUNT_LOCKOUT_MAX_ATTEMPTS - entry.attempts };
+}
+
+async function resetAccountLockout(email: string): Promise<void> {
+  const key = `account:${email.toLowerCase()}`;
+  const redis = getRedisClient();
+
+  if (redis && isRedisAvailable()) {
+    try {
+      const redisKey = `${REDIS_RATE_LIMIT_PREFIX}${key}`;
+      const blockKey = `${REDIS_RATE_LIMIT_PREFIX}block:${key}`;
+      await redis.del(redisKey, blockKey);
+    } catch (error) {
+      console.warn('[Auth] Redis account lockout reset error:', error);
+    }
+  }
+
+  accountLockouts.delete(key);
+}
+
 // Login - supports both email and username for backwards compatibility
 router.post('/login', async (req: Request, res: Response) => {
   try {
@@ -208,7 +307,17 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // SECURITY: Rate limiting - 8 attempts per 15 minutes (uses Redis if available)
+    // SECURITY: Account-level lockout - 15 attempts per 30 minutes (by email only, regardless of IP)
+    const accountLockout = await checkAccountLockout(loginIdentifier);
+    if (!accountLockout.allowed) {
+      res.setHeader('Retry-After', accountLockout.retryAfterSeconds?.toString() || '1800');
+      return res.status(429).json({
+        error: 'Account temporarily locked due to too many failed attempts. Please try again later.',
+        retryAfterSeconds: accountLockout.retryAfterSeconds
+      });
+    }
+
+    // SECURITY: Rate limiting per IP+email - 8 attempts per 15 minutes (uses Redis if available)
     const clientIP = getClientIP(req);
     const rateLimitKey = `${clientIP}:${loginIdentifier.toLowerCase()}`;
     const rateLimit = await checkRateLimitRedis(rateLimitKey);
@@ -262,8 +371,9 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Reset rate limit on successful login
+    // Reset rate limits on successful login
     resetRateLimit(rateLimitKey);
+    await resetAccountLockout(loginIdentifier);
 
     // Generate JWT token
     const payload: JWTPayload = {
