@@ -11,7 +11,9 @@ export default function ResetPassword() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+
+  // SECURITY: Read token from URL once, store in state, then clean URL
+  const [token] = useState(() => searchParams.get('token'));
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,6 +22,13 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // SECURITY: Remove token from URL immediately to prevent exposure in history/referrer
+  React.useEffect(() => {
+    if (searchParams.has('token')) {
+      window.history.replaceState({}, '', '/reset-password');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

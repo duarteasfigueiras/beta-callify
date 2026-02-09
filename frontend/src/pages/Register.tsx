@@ -14,7 +14,10 @@ export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+
+  // SECURITY: Read token from URL once, store in state, then clean URL
+  // This prevents the token from staying in browser history, address bar, and referrer headers
+  const [token] = useState(() => searchParams.get('token'));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,10 +32,14 @@ export default function Register() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // SECURITY: Remove token from URL immediately to prevent exposure in history/referrer
+    if (searchParams.has('token')) {
+      window.history.replaceState({}, '', '/register');
+    }
     if (!token) {
       setError(t('register.invalidToken', 'Invalid or missing invitation token'));
     }
-  }, [token, t]);
+  }, [token, t, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
