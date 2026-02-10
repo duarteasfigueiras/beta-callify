@@ -36,6 +36,17 @@ const router = Router();
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 console.log(`[Auth] Resend configured: ${!!resend}, API key present: ${!!process.env.RESEND_API_KEY}, from: ${process.env.RESEND_FROM_EMAIL || 'default noreply@aicoachcall.com'}`);
 
+// TEMPORARY: Diagnostic endpoint to check Resend configuration (remove after debugging)
+router.get('/email-diagnostic', (_req, res) => {
+  const apiKeyPrefix = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 8) + '...' : 'NOT SET';
+  res.json({
+    resendConfigured: !!resend,
+    apiKeyPrefix,
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'default: AI CoachCall <noreply@aicoachcall.com>',
+    nodeEnv: process.env.NODE_ENV,
+  });
+});
+
 // ============================================
 // RATE LIMITING: 8 attempts per 15 minutes
 // Uses Redis if available, falls back to in-memory
