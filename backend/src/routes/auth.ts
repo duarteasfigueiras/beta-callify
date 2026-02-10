@@ -522,26 +522,25 @@ router.post('/register', async (req, res: Response) => {
       });
     }
 
-    // Find valid invitation
-    const { data: invitation } = await supabase
+    // SECURITY: Atomically claim the invitation to prevent race conditions
+    // First, try to mark it as used (only if not already used and not expired)
+    const { data: claimedInvitation, error: claimError } = await supabase
       .from('invitations')
-      .select('*')
+      .update({ used: true })
       .eq('token', token)
+      .eq('used', false)
+      .gte('expires_at', new Date().toISOString())
+      .select('*')
       .single();
 
-    if (!invitation) {
-      return res.status(400).json({ error: 'Invalid invitation token' });
+    if (claimError || !claimedInvitation) {
+      // Could be: invalid token, already used, or expired - use generic message
+      return res.status(400).json({ error: 'Invalid or expired invitation token' });
     }
 
-    if (invitation.used) {
-      return res.status(400).json({ error: 'Invitation has already been used' });
-    }
+    const invitation = claimedInvitation;
 
-    if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'Invitation has expired' });
-    }
-
-    // Check if email already exists
+    // SECURITY: Check if email already exists — use generic message to prevent email enumeration
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -549,7 +548,12 @@ router.post('/register', async (req, res: Response) => {
       .single();
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      // Rollback the invitation claim since registration won't proceed
+      await supabase
+        .from('invitations')
+        .update({ used: false })
+        .eq('id', invitation.id);
+      return res.status(400).json({ error: 'Registration failed. Please check your details and try again.' });
     }
 
     // Validate phone number format if provided
@@ -570,7 +574,12 @@ router.post('/register', async (req, res: Response) => {
         .single();
 
       if (existingPhone) {
-        return res.status(400).json({ error: 'Phone number already in use' });
+        // Rollback the invitation claim since registration won't proceed
+        await supabase
+          .from('invitations')
+          .update({ used: false })
+          .eq('id', invitation.id);
+        return res.status(400).json({ error: 'Registration failed. Please check your details and try again.' });
       }
 
       normalizedPhone = cleanPhone;
@@ -580,7 +589,7 @@ router.post('/register', async (req, res: Response) => {
     const passwordHash = await bcrypt.hash(password, 13);
 
     // Create user with email and other fields
-    await supabase.from('users').insert({
+    const { error: insertError } = await supabase.from('users').insert({
       company_id: invitation.company_id,
       email,
       username: email,  // Use email as username for backwards compatibility
@@ -593,11 +602,15 @@ router.post('/register', async (req, res: Response) => {
       theme_preference: 'light'
     });
 
-    // Mark invitation as used
-    await supabase
-      .from('invitations')
-      .update({ used: true })
-      .eq('id', invitation.id);
+    // SECURITY: If user creation fails, rollback the invitation claim
+    if (insertError) {
+      await supabase
+        .from('invitations')
+        .update({ used: false })
+        .eq('id', invitation.id);
+      console.error('[Register] User creation failed, invitation rolled back:', insertError.message);
+      return res.status(500).json({ error: 'Registration failed' });
+    }
 
     // Get company name for welcome email
     const { data: company } = await supabase

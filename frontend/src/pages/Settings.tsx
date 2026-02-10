@@ -218,8 +218,18 @@ export default function Settings() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error(t('settings.passwordTooShort', 'New password must be at least 6 characters'));
+    if (newPassword.length < 8) {
+      toast.error(t('settings.passwordTooShort', 'New password must be at least 8 characters'));
+      return;
+    }
+
+    // SECURITY: Match registration password complexity requirements
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword);
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+      toast.error(t('settings.passwordComplexity', 'Password must include uppercase, lowercase, number, and special character'));
       return;
     }
 

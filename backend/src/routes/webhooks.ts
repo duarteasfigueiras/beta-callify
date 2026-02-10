@@ -100,7 +100,8 @@ async function findAgentByPhone(
  */
 router.post('/twilio', async (req: Request, res: Response) => {
   try {
-    console.log('[Webhook] Received Twilio webhook:', JSON.stringify(req.body, null, 2));
+    // SECURITY: Log only non-sensitive fields (no phone numbers or recording URLs)
+    console.log(`[Webhook] Received Twilio webhook: CallSid=${req.body.CallSid}, Direction=${req.body.Direction}, RecordingStatus=${req.body.RecordingStatus || 'N/A'}`);
 
     const {
       CallSid,
