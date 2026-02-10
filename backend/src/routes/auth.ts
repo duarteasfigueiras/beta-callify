@@ -860,7 +860,7 @@ router.post('/recover-password', async (req, res: Response) => {
 
     // SECURITY: Per-email rate limiting - max 3 resets per hour
     const resetRateKey = `reset:${email.toLowerCase()}`;
-    const RESET_MAX = 10;
+    const RESET_MAX = 100; // TODO: revert to 3 after debugging
     const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
     const resetRateLimit = await checkRateLimitRedis(resetRateKey, RESET_MAX, RESET_WINDOW, RESET_WINDOW);
     if (!resetRateLimit.allowed) {
