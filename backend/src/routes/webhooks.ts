@@ -219,7 +219,19 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
 
     // Use provided agent or find one
     let targetAgentId = agentId;
-    if (!targetAgentId) {
+    if (targetAgentId) {
+      // SECURITY: Verify the agent belongs to the user's company (prevent IDOR)
+      const { data: agentRecord } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', targetAgentId)
+        .eq('company_id', req.user!.companyId)
+        .single();
+
+      if (!agentRecord) {
+        return res.status(403).json({ error: 'Agent not found or does not belong to your company' });
+      }
+    } else {
       const { data: agent } = await supabase
         .from('users')
         .select('id')

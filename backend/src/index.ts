@@ -89,8 +89,11 @@ const allowedOrigins: string[] = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or server-to-server)
-    // In production, consider being stricter here
+    // Allow requests with no origin header (server-to-server: webhooks, n8n, Stripe)
+    // SECURITY: This is safe because browsers ALWAYS send Origin for cross-origin requests.
+    // Non-browser tools (curl, webhooks) don't have cookies, so credentials aren't at risk.
+    // Browser requests with "Origin: null" (sandboxed iframes) are the string "null",
+    // which is NOT falsy and will be rejected by the allowedOrigins check below.
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
