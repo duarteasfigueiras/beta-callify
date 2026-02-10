@@ -479,17 +479,22 @@ router.get('/:id/debug-coaching', requireRole('developer', 'admin_manager'), asy
   }
 });
 
-// Delete call (developer only - to preserve data for analysis)
-router.delete('/:id', requireRole('developer'), async (req: AuthenticatedRequest, res: Response) => {
+// Delete call (developer or admin_manager)
+router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const callId = parseInt(req.params.id);
 
-    // Verify the call exists (developer can delete any call)
-    const { data: call } = await supabase
+    // SECURITY: Verify the call exists AND belongs to user's company (developer sees all)
+    let callQuery = supabase
       .from('calls')
-      .select('id')
-      .eq('id', callId)
-      .single();
+      .select('id, company_id')
+      .eq('id', callId);
+
+    if (!isDeveloper(req.user!.role)) {
+      callQuery = callQuery.eq('company_id', req.user!.companyId);
+    }
+
+    const { data: call } = await callQuery.single();
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
