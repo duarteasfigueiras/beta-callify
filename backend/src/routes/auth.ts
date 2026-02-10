@@ -870,15 +870,26 @@ router.post('/recover-password', async (req, res: Response) => {
     // }
     console.log(`[Auth] Password reset rate limit temporarily disabled for debugging`);
 
-    const { data: user } = await supabase
+    // Check both email and username columns (email may be stored in username)
+    let { data: user } = await supabase
       .from('users')
       .select('*, companies(name)')
       .ilike('email', email.trim())
       .single();
 
     if (!user) {
+      // Fallback: check username column (some accounts store email as username)
+      const { data: userByUsername } = await supabase
+        .from('users')
+        .select('*, companies(name)')
+        .ilike('username', email.trim())
+        .single();
+      user = userByUsername;
+    }
+
+    if (!user) {
       // Don't reveal if user exists or not - always return success message
-      console.log(`[Auth] Password reset: no user found for email`);
+      console.log(`[Auth] Password reset: no user found for email or username`);
       return res.json({ message: 'If the email exists, password reset instructions will be sent' });
     }
 
