@@ -73,10 +73,15 @@ const MAX_ARRAY_LENGTH = 500;
  * Validates string field lengths and array sizes in req.body.
  * Returns an error message if any field exceeds its limit, or null if all valid.
  */
+// SECURITY: Max number of fields per object level
+const MAX_FIELDS_PER_LEVEL = 100;
+
 export function checkInputLengths(body: Record<string, unknown>, depth: number = 0): string | null {
   if (!body || typeof body !== 'object') return null;
   // SECURITY: Prevent deeply nested payloads (max 5 levels)
   if (depth > 5) return 'Request body is too deeply nested';
+  // SECURITY: Prevent objects with excessive fields
+  if (Object.keys(body).length > MAX_FIELDS_PER_LEVEL) return 'Too many fields in request body';
 
   for (const [key, value] of Object.entries(body)) {
     if (typeof value === 'string') {

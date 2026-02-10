@@ -105,11 +105,19 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       query = query.eq('agent_id', Number(agent_id));
     }
 
+    // SECURITY: Validate date format before using in query (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (date_from) {
-      query = query.gte('call_date', String(date_from) + 'T00:00:00.000Z');
+      const df = String(date_from);
+      if (dateRegex.test(df) && !isNaN(Date.parse(df))) {
+        query = query.gte('call_date', df + 'T00:00:00.000Z');
+      }
     }
     if (date_to) {
-      query = query.lte('call_date', String(date_to) + 'T23:59:59.999Z');
+      const dt = String(date_to);
+      if (dateRegex.test(dt) && !isNaN(Date.parse(dt))) {
+        query = query.lte('call_date', dt + 'T23:59:59.999Z');
+      }
     }
     if (score_min) {
       query = query.gte('final_score', Number(score_min));

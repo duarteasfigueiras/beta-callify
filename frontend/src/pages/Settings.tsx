@@ -165,7 +165,7 @@ export default function Settings() {
       if (url) {
         try {
           const parsed = new URL(url);
-          if (parsed.protocol === 'https:' && parsed.hostname.endsWith('.stripe.com')) {
+          if (parsed.protocol === 'https:' && /^[\w-]+\.stripe\.com$/.test(parsed.hostname)) {
             window.location.href = url;
           } else {
             toast.error('Invalid redirect URL');
@@ -795,6 +795,7 @@ export default function Settings() {
             <Link
               to="/terms"
               target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
             >
               <div className="flex items-center gap-3">
@@ -808,6 +809,7 @@ export default function Settings() {
             <Link
               to="/privacy"
               target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
             >
               <div className="flex items-center gap-3">

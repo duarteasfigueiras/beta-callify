@@ -24,6 +24,14 @@ const PLAN_PRODUCTS: Record<string, string> = {
   master: process.env.STRIPE_PRODUCT_MASTER || '',
 };
 
+// SECURITY: Warn if plan products are not configured
+if (STRIPE_SECRET_KEY) {
+  const emptyPlans = Object.entries(PLAN_PRODUCTS).filter(([, v]) => !v).map(([k]) => k);
+  if (emptyPlans.length > 0) {
+    console.warn(`[Stripe] Missing product IDs for plans: ${emptyPlans.join(', ')}`);
+  }
+}
+
 // Cache for price IDs (looked up from products)
 const priceCache: Record<string, string> = {};
 
@@ -95,8 +103,8 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
     const userId = req.user!.userId;
     const companyId = req.user!.companyId;
 
-    if (!plan || !PLAN_PRODUCTS[plan]) {
-      res.status(400).json({ error: 'Invalid plan. Must be one of: starter, medium, pro, master' });
+    if (!plan || !PLAN_PRODUCTS[plan] || !PLAN_PRODUCTS[plan].trim()) {
+      res.status(400).json({ error: 'Invalid plan or plan not configured' });
       return;
     }
 
@@ -105,20 +113,20 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
       return;
     }
 
-    // Get user email
+    // Get user email for Stripe customer
     const { data: user } = await supabase
       .from('users')
-      .select('username')
+      .select('email')
       .eq('id', userId)
       .single();
 
-    if (!user) {
+    if (!user?.email) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
     // Get or create Stripe customer
-    const customerId = await getOrCreateCustomer(companyId, user.username);
+    const customerId = await getOrCreateCustomer(companyId, user.email);
 
     // Get the price ID for this plan's product
     const productId = PLAN_PRODUCTS[plan];
@@ -262,7 +270,9 @@ router.post('/webhook', async (req: Request, res: Response) => {
         const companyId = session.metadata?.company_id;
         const plan = session.metadata?.plan;
 
-        if (companyId && session.subscription) {
+        // SECURITY: Validate metadata before using
+      const parsedCompanyId = companyId ? Number(companyId) : NaN;
+      if (!isNaN(parsedCompanyId) && parsedCompanyId > 0 && session.subscription) {
           await supabase
             .from('companies')
             .update({
@@ -270,7 +280,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
               subscription_status: 'active',
               subscription_plan: plan || null,
             })
-            .eq('id', Number(companyId));
+            .eq('id', parsedCompanyId);
 
           console.log(`Subscription activated for company ${companyId}: plan=${plan}`);
         }
