@@ -14,12 +14,28 @@ export function setCsrfCookie(res: Response): void {
   const token = generateCsrfToken();
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // In production with cross-origin setup (e.g., www.aicoachcall.com → api.aicoachcall.com),
+  // set domain to parent domain so frontend JS can read the cookie via document.cookie
+  let domain: string | undefined;
+  if (isProduction && process.env.FRONTEND_URL) {
+    try {
+      const hostname = new URL(process.env.FRONTEND_URL).hostname;
+      const parts = hostname.split('.');
+      if (parts.length >= 2) {
+        domain = '.' + parts.slice(-2).join('.');
+      }
+    } catch {
+      // If URL parsing fails, don't set domain
+    }
+  }
+
   res.cookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false, // JS must be able to read this to send as header
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
     maxAge: 8 * 60 * 60 * 1000, // 8 hours (match access token)
     path: '/',
+    ...(domain && { domain }),
   });
 }
 
