@@ -574,6 +574,17 @@ const resources = {
         manageViaPortal: 'Manage your payment method and invoices via the billing portal',
         subscribeError: 'Failed to start checkout',
         portalError: 'Failed to open billing portal',
+        // Per-user pricing
+        perUserPricing: 'Per-User Pricing',
+        pricePerUserLabel: 'Price per User',
+        includedMinutesLabel: 'Included Minutes',
+        extraMinuteCostLabel: 'Extra Minute Cost',
+        perUserPerMonth: '/user/month',
+        perExtraMinute: '/extra minute',
+        contactForPricing: 'Contact for Pricing',
+        contactForPricingDesc: 'Get a customized plan for your team. Contact us for pricing details.',
+        includedFeatures: 'Included Features',
+        toBeConfigured: 'To be defined',
       },
       // Alerts
       alerts: {
@@ -1371,6 +1382,17 @@ const resources = {
         manageViaPortal: 'Gerir método de pagamento e faturas no portal de faturação',
         subscribeError: 'Falha ao iniciar checkout',
         portalError: 'Falha ao abrir portal de faturação',
+        // Preço por utilizador
+        perUserPricing: 'Preço por Utilizador',
+        pricePerUserLabel: 'Preço por Utilizador',
+        includedMinutesLabel: 'Minutos Incluídos',
+        extraMinuteCostLabel: 'Custo Minuto Extra',
+        perUserPerMonth: '/utilizador/mês',
+        perExtraMinute: '/minuto extra',
+        contactForPricing: 'Contactar para Preços',
+        contactForPricingDesc: 'Obtenha um plano personalizado para a sua equipa. Contacte-nos para detalhes de preços.',
+        includedFeatures: 'Funcionalidades Incluídas',
+        toBeConfigured: 'A definir',
       },
       // Alerts
       alerts: {

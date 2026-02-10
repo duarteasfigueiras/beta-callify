@@ -87,8 +87,12 @@ const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins: string[] = [
   ...(isProduction ? [] : ['http://localhost:5173', 'http://localhost:3000']),
   process.env.FRONTEND_URL,
-  // Also allow www version of the frontend URL
-  process.env.FRONTEND_URL?.replace('https://', 'https://www.'),
+  // Also allow www/non-www variant of the frontend URL
+  ...(process.env.FRONTEND_URL?.includes('://www.')
+    ? [process.env.FRONTEND_URL.replace('://www.', '://')]
+    : process.env.FRONTEND_URL
+      ? [process.env.FRONTEND_URL.replace('://', '://www.')]
+      : []),
 ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0);
 
 app.use(cors({
