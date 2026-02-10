@@ -234,16 +234,17 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
 
     // SECURITY: Require company_id to prevent cross-tenant access
     const companyId = req.headers['x-company-id'] ? parseInt(String(req.headers['x-company-id']), 10) : null;
+    if (!companyId || isNaN(companyId) || companyId <= 0) {
+      return res.status(400).json({ error: 'Valid x-company-id header is required' });
+    }
 
     // Verify call exists and get agent_id
-    let callQuery = supabase
+    const { data: call, error: callError } = await supabase
       .from('calls')
       .select('id, company_id, agent_id')
-      .eq('id', callId);
-    if (companyId) {
-      callQuery = callQuery.eq('company_id', companyId);
-    }
-    const { data: call, error: callError } = await callQuery.single();
+      .eq('id', callId)
+      .eq('company_id', companyId)
+      .single();
 
     if (callError || !call) {
       return res.status(404).json({ error: 'Call not found' });
@@ -368,16 +369,17 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
 
     // SECURITY: Require company_id to prevent cross-tenant access
     const companyId = req.headers['x-company-id'] ? parseInt(String(req.headers['x-company-id']), 10) : null;
+    if (!companyId || isNaN(companyId) || companyId <= 0) {
+      return res.status(400).json({ error: 'Valid x-company-id header is required' });
+    }
 
     // Verify call exists and get details
-    let callQuery = supabase
+    const { data: call, error: callError } = await supabase
       .from('calls')
       .select('id, company_id, agent_id, duration_seconds, transcription')
-      .eq('id', callId);
-    if (companyId) {
-      callQuery = callQuery.eq('company_id', companyId);
-    }
-    const { data: call, error: callError } = await callQuery.single();
+      .eq('id', callId)
+      .eq('company_id', companyId)
+      .single();
 
     if (callError || !call) {
       return res.status(404).json({ error: 'Call not found' });

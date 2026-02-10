@@ -948,10 +948,10 @@ router.post('/recover-password', async (req, res: Response) => {
         console.warn(`[Auth] Email sending failed for password reset: ${email}`);
       }
     } else {
-      // SECURITY: Only log reset URL in development, never in production/staging
+      // SECURITY: Never log reset tokens, even in development
       if (process.env.NODE_ENV === 'development') {
         console.log(`[Auth][DEV] Password reset requested for: ${email}`);
-        console.log(`[Auth][DEV] Reset URL: ${resetUrl}`);
+        console.log(`[Auth][DEV] Reset link generated (check database for token)`);
       } else {
         console.warn(`[Auth] Resend not configured, password reset email not sent for: ${email}`);
       }
