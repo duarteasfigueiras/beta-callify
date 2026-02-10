@@ -860,22 +860,24 @@ router.post('/recover-password', async (req, res: Response) => {
 
     // SECURITY: Per-email rate limiting - max 3 resets per hour
     const resetRateKey = `reset:${email.toLowerCase()}`;
-    const RESET_MAX = 3;
+    const RESET_MAX = 10;
     const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
     const resetRateLimit = await checkRateLimitRedis(resetRateKey, RESET_MAX, RESET_WINDOW, RESET_WINDOW);
     if (!resetRateLimit.allowed) {
       // Always return success message to prevent email enumeration via rate limit timing
+      console.log(`[Auth] Password reset rate limited for email (max ${RESET_MAX}/hour)`);
       return res.json({ message: 'If the email exists, password reset instructions will be sent' });
     }
 
     const { data: user } = await supabase
       .from('users')
       .select('*, companies(name)')
-      .eq('email', email)
+      .eq('email', email.toLowerCase())
       .single();
 
     if (!user) {
       // Don't reveal if user exists or not - always return success message
+      console.log(`[Auth] Password reset: no user found for email`);
       return res.json({ message: 'If the email exists, password reset instructions will be sent' });
     }
 
