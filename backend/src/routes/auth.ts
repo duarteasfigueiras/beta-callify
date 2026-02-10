@@ -34,6 +34,7 @@ const router = Router();
 
 // Initialize Resend for email sending (optional - works without API key in dev mode)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+console.log(`[Auth] Resend configured: ${!!resend}, API key present: ${!!process.env.RESEND_API_KEY}, from: ${process.env.RESEND_FROM_EMAIL || 'default noreply@aicoachcall.com'}`);
 
 // ============================================
 // RATE LIMITING: 8 attempts per 15 minutes
@@ -884,10 +885,13 @@ router.post('/recover-password', async (req, res: Response) => {
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     // Try to send email via Resend, fallback to console log in dev mode
+    console.log(`[Auth] Attempting password reset for: ${email}, resend configured: ${!!resend}`);
     if (resend) {
       try {
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@aicoachcall.com>',
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@aicoachcall.com>';
+        console.log(`[Auth] Sending email via Resend from: ${fromEmail} to: ${email}`);
+        const result = await resend.emails.send({
+          from: fromEmail,
           to: email,
           subject: 'Recuperação de Password - AI CoachCall',
           html: `
@@ -940,7 +944,7 @@ router.post('/recover-password', async (req, res: Response) => {
             </html>
           `
         });
-        console.log(`[Auth] Password reset email sent to: ${email}`);
+        console.log(`[Auth] Password reset email sent to: ${email}, result:`, JSON.stringify(result));
       } catch (emailError) {
         console.error('[Auth] Failed to send email via Resend:', emailError);
         // Fall back to console log
