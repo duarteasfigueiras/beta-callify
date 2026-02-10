@@ -24,17 +24,21 @@ export function setCsrfCookie(res: Response): void {
 }
 
 // Paths excluded from CSRF validation (unauthenticated or external endpoints)
-const CSRF_EXEMPT_PATHS = [
+// SECURITY: Use exact paths only — no prefix matching to prevent bypass via subpaths
+const CSRF_EXEMPT_EXACT_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/recover-password',
   '/api/auth/reset-password',
-  '/api/auth/refresh',
   '/api/auth/logout',
+  '/api/health',
+];
+
+// Prefix paths for external service webhooks (server-to-server, no cookies/CSRF possible)
+const CSRF_EXEMPT_PREFIXES = [
   '/api/stripe/webhook',
   '/api/webhooks/',
   '/api/n8n/',
-  '/api/health',
 ];
 
 // Middleware to validate CSRF token on state-changing requests
@@ -45,8 +49,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // Skip CSRF for exempt paths
-  const isExempt = CSRF_EXEMPT_PATHS.some(path => req.path.startsWith(path));
-  if (isExempt) {
+  // SECURITY: Exact match for auth paths, prefix match only for external webhooks
+  const isExactExempt = CSRF_EXEMPT_EXACT_PATHS.includes(req.path);
+  const isPrefixExempt = CSRF_EXEMPT_PREFIXES.some(prefix => req.path.startsWith(prefix));
+  if (isExactExempt || isPrefixExempt) {
     return next();
   }
 

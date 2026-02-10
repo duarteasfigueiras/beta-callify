@@ -411,7 +411,7 @@ router.post('/login', async (req: Request, res: Response) => {
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        path: '/api/auth', // Only sent to auth endpoints
+        path: '/api/auth/refresh', // SECURITY: Only sent to refresh endpoint
       });
     }
 
@@ -577,7 +577,7 @@ router.post('/register', async (req, res: Response) => {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 13);
 
     // Create user with email and other fields
     await supabase.from('users').insert({
@@ -741,7 +741,7 @@ router.post('/logout', (req: Request, res: Response) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    path: '/api/auth',
+    path: '/api/auth/refresh', // SECURITY: Must match the path used when setting the cookie
   });
 
   return res.json({ message: 'Logged out successfully' });
@@ -938,7 +938,7 @@ router.post('/change-password', authenticateToken, async (req: AuthenticatedRequ
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 13);
 
     // Update password and record timestamp (for token invalidation)
     const now = new Date().toISOString();
@@ -996,7 +996,7 @@ router.post('/reset-password', async (req, res: Response) => {
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 13);
 
     // SECURITY: Update password and password_changed_at to invalidate all existing sessions
     const now = new Date().toISOString();

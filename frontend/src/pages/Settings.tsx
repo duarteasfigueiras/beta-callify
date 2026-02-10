@@ -161,8 +161,18 @@ export default function Settings() {
     setLoadingPortal(true);
     try {
       const { url } = await stripeApi.createCustomerPortal();
+      // SECURITY: Only allow redirects to Stripe domains to prevent open redirect
       if (url) {
-        window.location.href = url;
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol === 'https:' && parsed.hostname.endsWith('.stripe.com')) {
+            window.location.href = url;
+          } else {
+            toast.error('Invalid redirect URL');
+          }
+        } catch {
+          toast.error('Invalid redirect URL');
+        }
       }
     } catch (error: any) {
       console.error('Error opening portal:', error);

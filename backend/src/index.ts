@@ -131,6 +131,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // API Routes
 // Apply strict rate limiting to auth routes
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);  // SECURITY: Prevent invitation token brute-force
 app.use('/api/auth/recover-password', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
