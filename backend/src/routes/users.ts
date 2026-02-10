@@ -285,23 +285,15 @@ router.delete('/companies/:id', requireRole('developer'), async (req: Authentica
 // Get all users (admin or developer)
 router.get('/', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    console.log('=== GET USERS ===');
-    console.log('Requesting user ID:', req.user!.userId);
-    console.log('Requesting user role:', req.user!.role);
-    console.log('Requesting user companyId:', req.user!.companyId);
-
+    // SECURITY: No sensitive data in logs (user IDs, roles, company IDs)
     let query = supabase
       .from('users')
       .select('id, company_id, username, role, custom_role_name, categories, display_name, phone_number, language_preference, theme_preference, created_at, updated_at, companies(name)')
       .order('created_at', { ascending: false });
 
     if (isDeveloper(req.user!.role)) {
-      // Developer sees all users except other developers
-      console.log('Developer mode - seeing all users');
       query = query.neq('role', 'developer');
     } else {
-      // Admin sees only users from their company (excluding developers)
-      console.log('Admin mode - filtering by company_id:', req.user!.companyId);
       query = query
         .eq('company_id', req.user!.companyId)
         .neq('role', 'developer');
@@ -310,12 +302,9 @@ router.get('/', requireRole('developer', 'admin_manager'), async (req: Authentic
     const { data: users, error } = await query;
 
     if (error) {
-      console.error('Supabase error fetching users:', error);
+      console.error('[Users] Error fetching users');
       throw error;
     }
-
-    console.log('Found', users?.length || 0, 'users');
-    console.log('=================');
 
     // Transform data to include company_name
     const transformedUsers = (users || []).map((user: any) => ({

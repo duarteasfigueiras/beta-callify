@@ -7,7 +7,10 @@ let API_BASE_URL = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
 if (!API_BASE_URL.endsWith('/api')) {
   API_BASE_URL = API_BASE_URL.replace(/\/$/, '') + '/api';
 }
-console.log('API Base URL:', API_BASE_URL);
+// SECURITY: Only log API URL in development, not production
+if (import.meta.env.DEV) {
+  console.log('API Base URL:', API_BASE_URL);
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,

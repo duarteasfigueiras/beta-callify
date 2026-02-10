@@ -185,7 +185,7 @@ async function startServer() {
     // Start server - bind to 0.0.0.0 for Railway
     const HOST = '0.0.0.0';
     console.log(`Attempting to start server on ${HOST}:${PORT}...`);
-    app.listen(PORT, HOST, () => {
+    const server = app.listen(PORT, HOST, () => {
       console.log(`\n========================================`);
       console.log(`Callify Backend Server`);
       console.log(`========================================`);
@@ -200,6 +200,10 @@ async function startServer() {
       }
       console.log(`========================================\n`);
     });
+
+    // SECURITY: Set request timeout to prevent slow-client attacks (30 seconds)
+    server.timeout = 30000;
+    server.keepAliveTimeout = 65000;
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

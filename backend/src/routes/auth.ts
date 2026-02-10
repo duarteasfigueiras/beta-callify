@@ -804,7 +804,7 @@ router.post('/recover-password', async (req, res: Response) => {
     // SECURITY: Generate cryptographically secure reset token
     const resetToken = generateSecureToken();
     const tokenHash = hashToken(resetToken);
-    const expiresAt = new Date(Date.now() + 3600000).toISOString();  // 1 hour
+    const expiresAt = new Date(Date.now() + 4 * 3600000).toISOString();  // 4 hours
 
     // Store hashed token in database
     await supabase.from('password_reset_tokens').upsert({

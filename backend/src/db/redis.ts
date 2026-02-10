@@ -7,6 +7,9 @@ const REDIS_URL = process.env.REDIS_URL;
 
 if (REDIS_URL) {
   try {
+    // SECURITY: Enable TLS for rediss:// URLs (Railway uses TLS by default)
+    const useTls = REDIS_URL.startsWith('rediss://');
+
     redisClient = new Redis(REDIS_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
@@ -17,6 +20,7 @@ if (REDIS_URL) {
         return Math.min(times * 100, 3000); // Exponential backoff
       },
       lazyConnect: true,
+      ...(useTls ? { tls: { rejectUnauthorized: false } } : {}),
     });
 
     redisClient.on('connect', () => {

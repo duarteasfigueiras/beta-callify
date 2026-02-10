@@ -5,8 +5,13 @@ import { AuthenticatedRequest, authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+// SECURITY: Require Stripe secret key in production
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+  console.error('CRITICAL: STRIPE_SECRET_KEY not set in production');
+}
+
+const stripe = new Stripe(STRIPE_SECRET_KEY || '', {
   apiVersion: '2026-01-28.clover',
 });
 

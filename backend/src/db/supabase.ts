@@ -12,6 +12,11 @@ if (!supabaseKey) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY environment variable is required');
 }
 
+// SECURITY: Warn if using ANON_KEY in production (should use SERVICE_ROLE_KEY)
+if (process.env.NODE_ENV === 'production' && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('[Supabase] WARNING: Using ANON_KEY in production. Set SUPABASE_SERVICE_ROLE_KEY for full database access.');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper function to handle Supabase errors

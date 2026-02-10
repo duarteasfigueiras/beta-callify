@@ -10,8 +10,9 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Session timeout: 24 hours in milliseconds
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+// SECURITY: Session timeout - 2 hours for regular sessions, 8 hours for rememberMe
+const SESSION_TIMEOUT = 2 * 60 * 60 * 1000;
+const REMEMBER_ME_TIMEOUT = 8 * 60 * 60 * 1000;
 
 // Helper to get storage based on rememberMe preference
 const getStorage = (): Storage => {
@@ -37,15 +38,16 @@ const updateLastActivity = () => {
   storage.setItem('lastActivity', Date.now().toString());
 };
 
-// Helper to check if session has expired (only for non-rememberMe sessions)
+// Helper to check if session has expired
+// SECURITY: Both regular and rememberMe sessions have timeouts
 const isSessionExpired = (): boolean => {
   const rememberMe = localStorage.getItem('rememberMe') === 'true';
-  if (rememberMe) return false;
+  const timeout = rememberMe ? REMEMBER_ME_TIMEOUT : SESSION_TIMEOUT;
 
   const lastActivity = getLastActivity();
   if (!lastActivity) return false;
 
-  return Date.now() - lastActivity > SESSION_TIMEOUT;
+  return Date.now() - lastActivity > timeout;
 };
 
 // Helper to clear auth data from storage (tokens are in httpOnly cookies, cleared by server)

@@ -3,10 +3,13 @@ import jwt, { Secret } from 'jsonwebtoken';
 import { JWTPayload, UserRole } from '../types';
 import { supabase } from '../db/supabase';
 
-// SECURITY: JWT_SECRET must be set in environment variables
+// SECURITY: JWT_SECRET must be set in environment variables with minimum 32 characters
 const JWT_SECRET: Secret = process.env.JWT_SECRET || '';
 if (!JWT_SECRET) {
   throw new Error('CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.');
+}
+if (typeof JWT_SECRET === 'string' && JWT_SECRET.length < 32) {
+  throw new Error('CRITICAL: JWT_SECRET must be at least 32 characters. Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
 }
 
 // SECURITY: Previous secrets for graceful key rotation
