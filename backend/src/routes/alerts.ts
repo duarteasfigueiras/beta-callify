@@ -12,8 +12,8 @@ router.use(authenticateToken);
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, unread_only, company_id } = req.query;
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
     const offset = (pageNum - 1) * limitNum;
     const isAdmin = isAdminOrDeveloper(req.user!.role);
 

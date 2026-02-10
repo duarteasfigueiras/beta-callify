@@ -11,9 +11,10 @@ if (!STRIPE_SECRET_KEY && process.env.NODE_ENV === 'production') {
   console.error('CRITICAL: STRIPE_SECRET_KEY not set in production');
 }
 
-const stripe = new Stripe(STRIPE_SECRET_KEY || '', {
+// SECURITY: Only initialize Stripe if key is present; endpoints will return 503 otherwise
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2026-01-28.clover',
-});
+}) : null;
 
 // Map plan names to product IDs
 const PLAN_PRODUCTS: Record<string, string> = {
@@ -26,13 +27,22 @@ const PLAN_PRODUCTS: Record<string, string> = {
 // Cache for price IDs (looked up from products)
 const priceCache: Record<string, string> = {};
 
+// SECURITY: Guard to return 503 if Stripe is not configured
+function requireStripe(res: Response): res is Response {
+  if (!stripe) {
+    res.status(503).json({ error: 'Payment service not configured' });
+    return false;
+  }
+  return true;
+}
+
 // Helper: Get the default price for a product
 async function getPriceForProduct(productId: string): Promise<string> {
   if (priceCache[productId]) {
     return priceCache[productId];
   }
 
-  const prices = await stripe.prices.list({
+  const prices = await stripe!.prices.list({
     product: productId,
     active: true,
     limit: 1,
@@ -60,7 +70,7 @@ async function getOrCreateCustomer(companyId: number, email: string): Promise<st
   }
 
   // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await stripe!.customers.create({
     email,
     metadata: { company_id: String(companyId) },
   });
@@ -79,6 +89,7 @@ async function getOrCreateCustomer(companyId: number, email: string): Promise<st
 // Creates a Stripe Checkout session for a plan
 // ============================================
 router.post('/create-checkout-session', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (!requireStripe(res)) return;
   try {
     const { plan } = req.body;
     const userId = req.user!.userId;
@@ -117,7 +128,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
     // Create Embedded Checkout Session
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripe!.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       ui_mode: 'embedded',
@@ -147,6 +158,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
 // Creates a Stripe Customer Portal session
 // ============================================
 router.post('/customer-portal', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (!requireStripe(res)) return;
   try {
     const companyId = req.user!.companyId;
 
@@ -169,7 +181,7 @@ router.post('/customer-portal', authenticateToken, async (req: AuthenticatedRequ
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await stripe!.billingPortal.sessions.create({
       customer: company.stripe_customer_id,
       return_url: `${frontendUrl}/settings?tab=payment`,
     });
@@ -221,6 +233,7 @@ router.get('/subscription-status', authenticateToken, async (req: AuthenticatedR
 // Handles Stripe webhook events
 // ============================================
 router.post('/webhook', async (req: Request, res: Response) => {
+  if (!requireStripe(res)) return;
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -233,7 +246,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    event = stripe!.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     // SECURITY: Don't expose internal error details to client

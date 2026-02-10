@@ -200,6 +200,9 @@ router.get('/by-risk-word/:word', async (req: AuthenticatedRequest, res: Respons
     // Order by date descending
     query = query.order('call_date', { ascending: false });
 
+    // SECURITY: Limit results to prevent unbounded memory usage
+    query = query.limit(1000);
+
     const { data: allCalls, error } = await query;
 
     if (error) throw error;

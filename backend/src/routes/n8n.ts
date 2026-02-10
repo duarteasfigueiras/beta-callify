@@ -214,7 +214,10 @@ router.post('/calls', async (req: Request, res: Response) => {
  */
 router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
   try {
-    const callId = parseInt(req.params.id);
+    const callId = parseInt(req.params.id, 10);
+    if (isNaN(callId) || callId <= 0) {
+      return res.status(400).json({ error: 'Invalid call ID' });
+    }
     console.log('[n8n] Received transcription for call:', callId);
 
     const { transcription, timestamps } = req.body;
@@ -229,12 +232,18 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
       });
     }
 
+    // SECURITY: Require company_id to prevent cross-tenant access
+    const companyId = req.headers['x-company-id'] ? parseInt(String(req.headers['x-company-id']), 10) : null;
+
     // Verify call exists and get agent_id
-    const { data: call, error: callError } = await supabase
+    let callQuery = supabase
       .from('calls')
       .select('id, company_id, agent_id')
-      .eq('id', callId)
-      .single();
+      .eq('id', callId);
+    if (companyId) {
+      callQuery = callQuery.eq('company_id', companyId);
+    }
+    const { data: call, error: callError } = await callQuery.single();
 
     if (callError || !call) {
       return res.status(404).json({ error: 'Call not found' });
@@ -320,7 +329,10 @@ router.post('/calls/:id/transcription', async (req: Request, res: Response) => {
  */
 router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
   try {
-    const callId = parseInt(req.params.id);
+    const callId = parseInt(req.params.id, 10);
+    if (isNaN(callId) || callId <= 0) {
+      return res.status(400).json({ error: 'Invalid call ID' });
+    }
     console.log('[n8n] Received analysis for call:', callId);
 
     const {
@@ -354,12 +366,18 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'criteriaResults must be an array with max 100 items' });
     }
 
+    // SECURITY: Require company_id to prevent cross-tenant access
+    const companyId = req.headers['x-company-id'] ? parseInt(String(req.headers['x-company-id']), 10) : null;
+
     // Verify call exists and get details
-    const { data: call, error: callError } = await supabase
+    let callQuery = supabase
       .from('calls')
       .select('id, company_id, agent_id, duration_seconds, transcription')
-      .eq('id', callId)
-      .single();
+      .eq('id', callId);
+    if (companyId) {
+      callQuery = callQuery.eq('company_id', companyId);
+    }
+    const { data: call, error: callError } = await callQuery.single();
 
     if (callError || !call) {
       return res.status(404).json({ error: 'Call not found' });
@@ -469,10 +487,11 @@ router.get('/calls/:id/status', async (req: Request, res: Response) => {
       .select('id, phone_number, direction, duration_seconds, transcription, summary, final_score, next_step_recommendation, risk_words_detected, created_at')
       .eq('id', callId);
 
-    // SECURITY: Scope to company if provided (prevent cross-tenant access)
-    if (companyId) {
-      query = query.eq('company_id', companyId);
+    // SECURITY: Require company_id to prevent cross-tenant access
+    if (!companyId) {
+      return res.status(400).json({ error: 'company_id query parameter is required' });
     }
+    query = query.eq('company_id', companyId);
 
     const { data: call, error } = await query.single();
 
@@ -994,10 +1013,12 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       requestBody = requestBody[0];
     }
 
-    console.log('[n8n] Received AI agent output:', JSON.stringify(requestBody, null, 2).substring(0, 2000));
-    console.log('[n8n] Request body keys:', Object.keys(requestBody));
-    console.log('[n8n] Has agent_output:', !!requestBody.agent_output);
-    console.log('[n8n] Has output:', !!requestBody.output);
+    // SECURITY: Only log verbose debug info in development (PII risk)
+    const isDebug = process.env.NODE_ENV !== 'production';
+    if (isDebug) {
+      console.log('[n8n] Request body keys:', Object.keys(requestBody));
+    }
+    console.log('[n8n] Received AI agent output for call, keys:', Object.keys(requestBody).join(','));
     console.log('[n8n] agent_output type:', typeof requestBody.agent_output);
     console.log('[n8n] output type:', typeof requestBody.output);
 
@@ -1048,8 +1069,9 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     // Parse agent_output if it's a string (also accept 'output' field name from n8n)
     let aiOutput = agent_output || output;
 
-    console.log('[n8n] aiOutput type:', typeof aiOutput);
-    console.log('[n8n] aiOutput raw value (first 500 chars):', typeof aiOutput === 'string' ? aiOutput.substring(0, 500) : JSON.stringify(aiOutput)?.substring(0, 500));
+    if (isDebug) {
+      console.log('[n8n] aiOutput type:', typeof aiOutput);
+    }
 
     // Special handling: if aiOutput is a string that looks like it contains literal \n characters
     // (common when n8n sends the AI Agent output as a string)
@@ -1061,7 +1083,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
         const parsed = JSON.parse(fixedString);
         if (parsed && typeof parsed === 'object') {
           aiOutput = parsed;
-          console.log('[n8n] Successfully parsed after removing literal \\n, keys:', Object.keys(aiOutput));
+          if (isDebug) console.log('[n8n] Successfully parsed after removing literal \\n, keys:', Object.keys(aiOutput));
         }
       } catch (e) {
         console.log('[n8n] Could not parse with \\n fix, continuing with other methods');
@@ -1070,11 +1092,10 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
     // If aiOutput is already a properly parsed object with expected fields, use it directly
     if (aiOutput && typeof aiOutput === 'object' && !Array.isArray(aiOutput) && (aiOutput.score !== undefined || aiOutput.resumo || aiOutput.pontos_fortes)) {
-      console.log('[n8n] aiOutput is already a parsed object, using directly');
-      console.log('[n8n] aiOutput keys:', Object.keys(aiOutput));
+      if (isDebug) console.log('[n8n] aiOutput is already a parsed object, keys:', Object.keys(aiOutput));
       // aiOutput is ready to use
     } else if (typeof aiOutput === 'string') {
-      console.log('[n8n] aiOutput is a string, attempting to parse...');
+      if (isDebug) console.log('[n8n] aiOutput is a string, attempting to parse...');
       let cleanedOutput = aiOutput;
 
       // Check if it's a double-encoded JSON string (starts and ends with quotes)
@@ -1269,14 +1290,8 @@ router.post('/agent-output', async (req: Request, res: Response) => {
       }
     }
 
-    // Log all aiOutput fields for debugging
-    console.log('[n8n] Final aiOutput keys:', aiOutput ? Object.keys(aiOutput) : 'null');
-    if (aiOutput) {
-      console.log('[n8n] aiOutput.frases_a_evitar:', JSON.stringify(aiOutput.frases_a_evitar)?.substring(0, 200));
-      console.log('[n8n] aiOutput.frases_recomendadas:', JSON.stringify(aiOutput.frases_recomendadas)?.substring(0, 200));
-      console.log('[n8n] aiOutput.pontuacao_skills:', JSON.stringify(aiOutput.pontuacao_skills)?.substring(0, 200));
-      console.log('[n8n] aiOutput.motivos_contacto:', JSON.stringify(aiOutput.motivos_contacto)?.substring(0, 200));
-      console.log('[n8n] aiOutput.objecoes:', JSON.stringify(aiOutput.objecoes)?.substring(0, 200));
+    if (isDebug) {
+      console.log('[n8n] Final aiOutput keys:', aiOutput ? Object.keys(aiOutput) : 'null');
     }
 
     // Use direct fields or from agent_output object
@@ -1296,10 +1311,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     const objections = objecoes ?? aiOutput?.objecoes ?? aiOutput?.objections ?? [];
     // Next step - what was agreed/pending
     const nextStep = proximo_passo ?? aiOutput?.proximo_passo ?? aiOutput?.nextStep ?? '';
-    // AI coaching fields - log intermediate values for debugging
-    console.log('[n8n] Direct body frases_a_evitar:', JSON.stringify(frases_a_evitar));
-    console.log('[n8n] Direct body frases_recomendadas:', JSON.stringify(frases_recomendadas));
-    console.log('[n8n] Direct body pontuacao_skills:', JSON.stringify(pontuacao_skills));
+    // AI coaching fields
 
     const phrasesToAvoid = frases_a_evitar ?? aiOutput?.frases_a_evitar ?? aiOutput?.phrasesToAvoid ?? [];
     const recommendedPhrases = frases_recomendadas ?? aiOutput?.frases_recomendadas ?? aiOutput?.recommendedPhrases ?? [];
@@ -1309,8 +1321,7 @@ router.post('/agent-output', async (req: Request, res: Response) => {
     // Risk words detected by AI
     const aiDetectedRiskWords = palavras_risco_detectadas ?? aiOutput?.palavras_risco_detectadas ?? aiOutput?.riskWordsDetected ?? [];
 
-    // Log extracted coaching fields for debugging
-    console.log('[n8n] Extracted coaching fields:', {
+    if (isDebug) console.log('[n8n] Extracted coaching fields:', {
       phrasesToAvoid: phrasesToAvoid?.length || 0,
       recommendedPhrases: recommendedPhrases?.length || 0,
       skillScores: skillScoresData?.length || 0,
@@ -1539,18 +1550,19 @@ router.post('/agent-output', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('[n8n] Error processing AI agent output:', error);
-    res.status(500).json({
-      error: 'Failed to process AI agent output',
-      details: error?.message || String(error),
-      code: error?.code
-    });
+    // SECURITY: Don't leak internal error details to client
+    res.status(500).json({ error: 'Failed to process AI agent output' });
   }
 });
 
 /**
  * Debug endpoint - check coaching fields for a specific call
+ * SECURITY: Only available in development mode
  */
 router.get('/debug-call/:id', async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   try {
     const callId = parseInt(req.params.id);
 
@@ -1603,7 +1615,8 @@ router.post('/cleanup-summaries', async (_req: Request, res: Response) => {
     const { data: calls, error: findError } = await supabase
       .from('calls')
       .select('id, summary')
-      .like('summary', '%[Utilizador não identificado pelo telefone]%');
+      .like('summary', '%[Utilizador não identificado pelo telefone]%')
+      .limit(500);
 
     if (findError) {
       throw findError;
@@ -1797,6 +1810,9 @@ async function generateAlerts(
  * POST /api/n8n/generate-test-calls
  */
 router.post('/generate-test-calls', async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   try {
     const { count = 20 } = req.body;
 
@@ -1988,8 +2004,12 @@ router.post('/generate-test-calls', async (req: Request, res: Response) => {
 /**
  * Generate test users with different categories and calls
  * POST /api/n8n/generate-test-users-and-calls
+ * SECURITY: Only available in development mode
  */
 router.post('/generate-test-users-and-calls', async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   try {
     const { userCount = 20, callCount = 30 } = req.body;
 
@@ -2025,7 +2045,9 @@ router.post('/generate-test-users-and-calls', async (req: Request, res: Response
 
     const categories = ['Comercial', 'Suporte', 'Técnico', 'Retenção', 'Premium'];
     const bcrypt = require('bcryptjs');
-    const passwordHash = await bcrypt.hash('test123', 10);
+    // SECURITY: Generate random password for test users instead of using a static weak one
+    const testPassword = crypto.randomBytes(16).toString('hex');
+    const passwordHash = await bcrypt.hash(testPassword, 10);
 
     // Create users
     const createdUsers: { id: number; name: string; category: string }[] = [];

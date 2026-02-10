@@ -179,12 +179,9 @@ export default function Reports() {
       setNextStepRate(allCalls.length > 0 ? Math.round((withNextStep / allCalls.length) * 100) : 0);
 
       // Calculate risk words frequency based on configured words
-      console.log('Alert settings:', alertSettings);
-      console.log('Risk words list:', alertSettings?.risk_words_list);
       const configuredRiskWords = alertSettings?.risk_words_list
         ? alertSettings.risk_words_list.split(',').map((w: string) => w.trim().toLowerCase()).filter(Boolean)
         : [];
-      console.log('Configured risk words:', configuredRiskWords);
 
       // Initialize all configured words with count 0
       const riskWords: Record<string, number> = {};
@@ -318,13 +315,16 @@ export default function Reports() {
       csvContent += `${escapeCsv(item.word)},${item.count}\n`;
     });
 
-    const encodedUri = encodeURI(csvContent);
+    // SECURITY: Use Blob for CSV export instead of data URI to avoid injection
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `callify-reports-${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     setShowExportMenu(false);
   };
 
@@ -495,7 +495,8 @@ export default function Reports() {
       </html>
     `;
 
-    const printWindow = window.open('', '_blank');
+    // SECURITY: Use noopener to prevent reverse tabnabbing
+    const printWindow = window.open('', '_blank', 'noopener');
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();

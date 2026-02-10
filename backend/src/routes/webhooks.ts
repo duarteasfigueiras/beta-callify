@@ -1,9 +1,62 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 import { processCall, simulateTwilioWebhook } from '../services/callProcessor';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
+
+// SECURITY: Twilio webhook authentication
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+if (!TWILIO_AUTH_TOKEN && process.env.NODE_ENV === 'production') {
+  console.error('CRITICAL: TWILIO_AUTH_TOKEN not set - Twilio webhooks will be rejected in production');
+}
+
+/**
+ * Validate Twilio webhook signature (X-Twilio-Signature)
+ * Uses HMAC-SHA1 as per Twilio's specification
+ */
+function validateTwilioSignature(req: Request): boolean {
+  if (!TWILIO_AUTH_TOKEN) {
+    if (process.env.NODE_ENV === 'production') {
+      return false; // Reject in production without auth token
+    }
+    console.warn('[Webhook] TWILIO_AUTH_TOKEN not set - skipping signature validation (dev only)');
+    return true;
+  }
+
+  const signature = req.headers['x-twilio-signature'] as string;
+  if (!signature) {
+    return false;
+  }
+
+  // Build the full URL Twilio used to sign
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['host'];
+  const url = `${protocol}://${host}${req.originalUrl}`;
+
+  // Sort POST params and append to URL
+  const params = req.body || {};
+  const sortedKeys = Object.keys(params).sort();
+  const paramString = sortedKeys.map(key => key + params[key]).join('');
+  const data = url + paramString;
+
+  // Compute HMAC-SHA1
+  const expectedSignature = crypto
+    .createHmac('sha1', TWILIO_AUTH_TOKEN)
+    .update(data)
+    .digest('base64');
+
+  // Timing-safe comparison
+  try {
+    const sigBuf = Buffer.from(signature, 'base64');
+    const expectedBuf = Buffer.from(expectedSignature, 'base64');
+    if (sigBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Determine call direction from Twilio webhook data
@@ -100,6 +153,12 @@ async function findAgentByPhone(
  */
 router.post('/twilio', async (req: Request, res: Response) => {
   try {
+    // SECURITY: Validate Twilio webhook signature
+    if (!validateTwilioSignature(req)) {
+      console.warn('[Webhook] Invalid Twilio signature - rejecting request');
+      return res.status(403).send('Invalid signature');
+    }
+
     // SECURITY: Log only non-sensitive fields (no phone numbers or recording URLs)
     console.log(`[Webhook] Received Twilio webhook: CallSid=${req.body.CallSid}, Direction=${req.body.Direction}, RecordingStatus=${req.body.RecordingStatus || 'N/A'}`);
 
@@ -300,12 +359,9 @@ router.post('/simulate', authenticateToken, requireRole('admin_manager'), async 
  * Health check for webhooks
  */
 router.get('/health', (req: Request, res: Response) => {
+  // SECURITY: Don't enumerate endpoints - only return status
   res.json({
     status: 'ok',
-    endpoints: {
-      twilio: 'POST /api/webhooks/twilio',
-      simulate: 'POST /api/webhooks/simulate (requires auth)'
-    },
     timestamp: new Date().toISOString()
   });
 });

@@ -1519,9 +1519,6 @@ export default function Users() {
                       <Copy className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    <strong>{t('users.token', 'Token')}:</strong> {inviteResult.token}
-                  </div>
                 </div>
 
                 <div className="flex justify-end">

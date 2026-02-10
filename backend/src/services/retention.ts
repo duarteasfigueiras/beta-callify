@@ -2,7 +2,7 @@ import { supabase } from '../db/supabase';
 import fs from 'fs';
 import path from 'path';
 
-const RETENTION_DAYS = 60;
+const RETENTION_DAYS = parseInt(process.env.RETENTION_DAYS || '60', 10) || 60;
 
 interface ExpiredCall {
   id: number;
@@ -48,7 +48,13 @@ export async function cleanupExpiredCalls(): Promise<{ deletedCount: number; err
     for (const call of expiredCalls as ExpiredCall[]) {
       if (call.audio_file_path) {
         try {
-          const audioPath = path.join(__dirname, '..', '..', call.audio_file_path);
+          const uploadsDir = path.resolve(__dirname, '..', '..', 'uploads');
+          const audioPath = path.resolve(__dirname, '..', '..', call.audio_file_path);
+          // SECURITY: Prevent path traversal - only delete files within uploads directory
+          if (!audioPath.startsWith(uploadsDir)) {
+            console.warn(`[Retention] Skipping suspicious audio path for call ${call.id}`);
+            continue;
+          }
           if (fs.existsSync(audioPath)) {
             fs.unlinkSync(audioPath);
             console.log(`[Retention] Deleted audio file: ${call.audio_file_path}`);

@@ -14,10 +14,7 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
     const { date_from, date_to, company_id } = req.query;
     const isAdmin = isAdminOrDeveloper(req.user!.role);
 
-    console.log('=== DASHBOARD OVERVIEW ===');
-    console.log('User ID:', req.user!.userId);
-    console.log('User role:', req.user!.role);
-    console.log('User companyId:', req.user!.companyId);
+    // Dashboard overview request
 
     // Build calls query
     let callsQuery = supabase
@@ -26,12 +23,12 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
 
     // Developer sees all, admin sees company, agent sees own
     if (isDeveloper(req.user!.role)) {
-      console.log('Developer mode - company_id filter:', company_id || 'none');
+      // Developer mode - optional company filter
       if (company_id) {
         callsQuery = callsQuery.eq('company_id', Number(company_id));
       }
     } else {
-      console.log('Non-developer mode - filtering by companyId:', req.user!.companyId);
+      // Non-developer mode - filter by company
       callsQuery = callsQuery.eq('company_id', req.user!.companyId);
     }
 
@@ -80,8 +77,7 @@ router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
 
     const { count: alertsCount } = await alertsQuery;
 
-    console.log('Dashboard results - total_calls:', totalCalls, 'average_score:', averageScore, 'alerts:', alertsCount);
-    console.log('==========================');
+    // Dashboard overview computed
 
     res.json({
       total_calls: totalCalls || 0,
@@ -192,14 +188,17 @@ router.get('/score-evolution', async (req: AuthenticatedRequest, res: Response) 
   try {
     const { days = 30, agent_id, company_id } = req.query;
     const isAdmin = isAdminOrDeveloper(req.user!.role);
+    // SECURITY: Cap days parameter to prevent unbounded queries
+    const daysNum = Math.min(Math.max(1, Number(days) || 30), 365);
     const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - Number(days));
+    daysAgo.setDate(daysAgo.getDate() - daysNum);
 
     let query = supabase
       .from('calls')
       .select('call_date, final_score')
       .not('final_score', 'is', null)
-      .gte('call_date', daysAgo.toISOString());
+      .gte('call_date', daysAgo.toISOString())
+      .limit(10000);
 
     if (isDeveloper(req.user!.role)) {
       if (company_id) {
@@ -317,15 +316,16 @@ router.get('/calls-by-period', async (req: AuthenticatedRequest, res: Response) 
     }
 
     const { days = 30, agent_id, company_id } = req.query;
+    // SECURITY: Cap days parameter to prevent unbounded queries
+    const daysNum = Math.min(Math.max(1, Number(days) || 30), 365);
     const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - Number(days));
-
-    console.log('Calls by period - days:', days, 'daysAgo:', daysAgo.toISOString(), 'company_id:', company_id || req.user!.companyId);
+    daysAgo.setDate(daysAgo.getDate() - daysNum);
 
     let query = supabase
       .from('calls')
       .select('call_date')
-      .gte('call_date', daysAgo.toISOString());
+      .gte('call_date', daysAgo.toISOString())
+      .limit(10000);
 
     if (isDeveloper(req.user!.role)) {
       if (company_id) {
@@ -342,7 +342,7 @@ router.get('/calls-by-period', async (req: AuthenticatedRequest, res: Response) 
 
     const { data: calls, error } = await query;
 
-    console.log('Calls by period - found:', calls?.length || 0, 'calls');
+    // Calls by period query completed
 
     if (error) throw error;
 

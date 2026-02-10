@@ -169,8 +169,7 @@ export default function Criteria() {
       toast.success(t('alertSettings.saved', 'Alert settings saved successfully'));
     } catch (error: any) {
       console.error('Error saving alert settings:', error);
-      console.error('Error response:', error?.response?.data);
-      toast.error(t('alertSettings.saveError', 'Failed to save alert settings') + ': ' + (error?.response?.data?.error || error.message));
+      toast.error(t('alertSettings.saveError', 'Failed to save alert settings'));
     } finally {
       setIsSavingAlerts(false);
     }

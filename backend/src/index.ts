@@ -104,8 +104,8 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Allow Vercel preview deployments in development
-    if (process.env.NODE_ENV !== 'production' && /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+    // Allow Vercel preview deployments in development (only this project's deploys)
+    if (process.env.NODE_ENV !== 'production' && /^https:\/\/beta-callify(-[a-z0-9]+)*\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
 
@@ -222,4 +222,13 @@ async function startServer() {
 
 startServer();
 
+// SECURITY: Handle unhandled rejections and uncaught exceptions to prevent silent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process] Unhandled Rejection:', reason);
+});
 
+process.on('uncaughtException', (error) => {
+  console.error('[Process] Uncaught Exception:', error);
+  // Give time for logs to flush, then exit
+  setTimeout(() => process.exit(1), 1000);
+});

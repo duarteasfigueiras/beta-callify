@@ -14,6 +14,20 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000;
 const REMEMBER_ME_TIMEOUT = 8 * 60 * 60 * 1000;
 
+// SECURITY: Only store essential user fields in client storage (no sensitive data)
+const sanitizeUserForStorage = (user: any) => ({
+  id: user.id,
+  company_id: user.company_id,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  custom_role_name: user.custom_role_name,
+  display_name: user.display_name,
+  language_preference: user.language_preference,
+  theme_preference: user.theme_preference,
+  categories: user.categories,
+});
+
 // Helper to get storage based on rememberMe preference
 const getStorage = (): Storage => {
   const rememberMe = localStorage.getItem('rememberMe') === 'true';
@@ -86,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Verify session is still valid by calling /auth/me
         authApi.me().then((freshUser) => {
           const storage = getStorage();
-          storage.setItem('user', JSON.stringify(freshUser));
+          storage.setItem('user', JSON.stringify(sanitizeUserForStorage(freshUser)));
           setState({
             user: freshUser,
             token: null, // Tokens are in httpOnly cookies
@@ -165,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Store user data (tokens are in httpOnly cookies set by server)
     const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem('user', JSON.stringify(user));
+    storage.setItem('user', JSON.stringify(sanitizeUserForStorage(user)));
     storage.setItem('lastActivity', Date.now().toString());
 
     setState({
@@ -198,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await usersApi.getMe();
       const storage = getStorage();
-      storage.setItem('user', JSON.stringify(user));
+      storage.setItem('user', JSON.stringify(sanitizeUserForStorage(user)));
       setState(prev => ({
         ...prev,
         user,

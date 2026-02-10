@@ -20,7 +20,7 @@ if (REDIS_URL) {
         return Math.min(times * 100, 3000); // Exponential backoff
       },
       lazyConnect: true,
-      ...(useTls ? { tls: { rejectUnauthorized: false } } : {}),
+      ...(useTls ? { tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' } } : {}),
     });
 
     redisClient.on('connect', () => {

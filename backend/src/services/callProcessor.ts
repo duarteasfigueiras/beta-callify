@@ -61,6 +61,25 @@ interface ProcessedCall {
  */
 async function downloadAudio(audioUrl: string, callId: number): Promise<string | null> {
   try {
+    // SECURITY: Validate URL scheme to prevent SSRF
+    try {
+      const parsedUrl = new URL(audioUrl);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        console.warn('[CallProcessor] Rejected non-HTTP audio URL');
+        return null;
+      }
+      // Block internal/private IPs
+      const hostname = parsedUrl.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('10.') ||
+          hostname.startsWith('172.') || hostname.startsWith('192.168.') || hostname.startsWith('169.254.')) {
+        console.warn('[CallProcessor] Rejected internal audio URL');
+        return null;
+      }
+    } catch {
+      console.warn('[CallProcessor] Invalid audio URL');
+      return null;
+    }
+
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
     const audioDir = path.join(uploadDir, 'audio');
 
@@ -396,7 +415,8 @@ async function generateAlerts(
  * 6. Generate alerts
  */
 export async function processCall(callData: CallData): Promise<ProcessedCall> {
-  console.log('[CallProcessor] Starting call processing for:', callData.phoneNumber);
+  // SECURITY: Don't log phone numbers (PII)
+  console.log('[CallProcessor] Starting call processing for agent:', callData.agentId);
 
   // Step 1: Create initial call record
   const callDate = new Date().toISOString();

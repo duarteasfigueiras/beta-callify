@@ -30,7 +30,7 @@ const CSRF_EXEMPT_EXACT_PATHS = [
   '/api/auth/register',
   '/api/auth/recover-password',
   '/api/auth/reset-password',
-  '/api/auth/logout',
+  // SECURITY: logout requires CSRF token to prevent forced-logout attacks
   '/api/health',
 ];
 

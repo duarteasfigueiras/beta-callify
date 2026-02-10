@@ -73,8 +73,10 @@ const MAX_ARRAY_LENGTH = 500;
  * Validates string field lengths and array sizes in req.body.
  * Returns an error message if any field exceeds its limit, or null if all valid.
  */
-export function checkInputLengths(body: Record<string, unknown>): string | null {
+export function checkInputLengths(body: Record<string, unknown>, depth: number = 0): string | null {
   if (!body || typeof body !== 'object') return null;
+  // SECURITY: Prevent deeply nested payloads (max 5 levels)
+  if (depth > 5) return 'Request body is too deeply nested';
 
   for (const [key, value] of Object.entries(body)) {
     if (typeof value === 'string') {
@@ -86,12 +88,20 @@ export function checkInputLengths(body: Record<string, unknown>): string | null 
       if (value.length > MAX_ARRAY_LENGTH) {
         return `Field '${key}' exceeds maximum array length of ${MAX_ARRAY_LENGTH}`;
       }
-      // Check string items in arrays
+      // Check string items and nested objects in arrays
       for (const item of value) {
         if (typeof item === 'string' && item.length > DEFAULT_MAX_LENGTH) {
           return `Item in '${key}' exceeds maximum length of ${DEFAULT_MAX_LENGTH} characters`;
         }
+        if (item && typeof item === 'object' && !Array.isArray(item)) {
+          const nestedError = checkInputLengths(item as Record<string, unknown>, depth + 1);
+          if (nestedError) return nestedError;
+        }
       }
+    } else if (value && typeof value === 'object') {
+      // SECURITY: Recurse into nested objects
+      const nestedError = checkInputLengths(value as Record<string, unknown>, depth + 1);
+      if (nestedError) return nestedError;
     }
   }
 

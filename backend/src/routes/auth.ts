@@ -102,12 +102,18 @@ function getClientIP(req: Request): string {
 }
 
 // Check and update rate limit - uses Redis if available, falls back to in-memory
-async function checkRateLimitRedis(identifier: string): Promise<{ allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number }> {
+// Supports custom limits (e.g. password reset: 3 per hour vs login: 8 per 15 min)
+async function checkRateLimitRedis(
+  identifier: string,
+  maxAttempts: number = RATE_LIMIT_MAX_ATTEMPTS,
+  windowMs: number = RATE_LIMIT_WINDOW_MS,
+  blockDurationMs: number = RATE_LIMIT_BLOCK_DURATION_MS
+): Promise<{ allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number }> {
   const redis = getRedisClient();
 
   if (!redis || !isRedisAvailable()) {
     // Fallback to in-memory
-    return checkRateLimitMemory(identifier);
+    return checkRateLimitMemory(identifier, maxAttempts, windowMs, blockDurationMs);
   }
 
   try {
@@ -125,33 +131,38 @@ async function checkRateLimitRedis(identifier: string): Promise<{ allowed: boole
 
     // Set expiry on first attempt
     if (attempts === 1) {
-      await redis.expire(key, Math.ceil(RATE_LIMIT_WINDOW_MS / 1000));
+      await redis.expire(key, Math.ceil(windowMs / 1000));
     }
 
-    if (attempts > RATE_LIMIT_MAX_ATTEMPTS) {
+    if (attempts > maxAttempts) {
       // Block the user
-      const blockSeconds = Math.ceil(RATE_LIMIT_BLOCK_DURATION_MS / 1000);
+      const blockSeconds = Math.ceil(blockDurationMs / 1000);
       await redis.setex(blockKey, blockSeconds, '1');
       console.log(`[Auth] Rate limit exceeded for: ${identifier} (Redis)`);
       return { allowed: false, remainingAttempts: 0, retryAfterSeconds: blockSeconds };
     }
 
-    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - attempts };
+    return { allowed: true, remainingAttempts: maxAttempts - attempts };
   } catch (error) {
     console.warn('[Auth] Redis rate limit error, falling back to memory:', error);
-    return checkRateLimitMemory(identifier);
+    return checkRateLimitMemory(identifier, maxAttempts, windowMs, blockDurationMs);
   }
 }
 
 // In-memory rate limit check (fallback)
-function checkRateLimitMemory(identifier: string): { allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number } {
+function checkRateLimitMemory(
+  identifier: string,
+  maxAttempts: number = RATE_LIMIT_MAX_ATTEMPTS,
+  windowMs: number = RATE_LIMIT_WINDOW_MS,
+  blockDurationMs: number = RATE_LIMIT_BLOCK_DURATION_MS
+): { allowed: boolean; remainingAttempts: number; retryAfterSeconds?: number } {
   const now = Date.now();
   const entry = loginAttempts.get(identifier);
 
   // Clean up old entries periodically
   if (loginAttempts.size > 10000) {
     for (const [key, value] of loginAttempts.entries()) {
-      if (now - value.firstAttempt > RATE_LIMIT_WINDOW_MS * 2) {
+      if (now - value.firstAttempt > windowMs * 2) {
         loginAttempts.delete(key);
       }
     }
@@ -160,7 +171,7 @@ function checkRateLimitMemory(identifier: string): { allowed: boolean; remaining
   if (!entry) {
     // First attempt
     loginAttempts.set(identifier, { attempts: 1, firstAttempt: now });
-    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - 1 };
+    return { allowed: true, remainingAttempts: maxAttempts - 1 };
   }
 
   // Check if currently blocked
@@ -170,23 +181,23 @@ function checkRateLimitMemory(identifier: string): { allowed: boolean; remaining
   }
 
   // Check if window has expired - reset counter
-  if (now - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+  if (now - entry.firstAttempt > windowMs) {
     loginAttempts.set(identifier, { attempts: 1, firstAttempt: now });
-    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - 1 };
+    return { allowed: true, remainingAttempts: maxAttempts - 1 };
   }
 
   // Increment attempts
   entry.attempts++;
 
-  if (entry.attempts > RATE_LIMIT_MAX_ATTEMPTS) {
+  if (entry.attempts > maxAttempts) {
     // Block the user
-    entry.blockedUntil = now + RATE_LIMIT_BLOCK_DURATION_MS;
-    const retryAfterSeconds = Math.ceil(RATE_LIMIT_BLOCK_DURATION_MS / 1000);
+    entry.blockedUntil = now + blockDurationMs;
+    const retryAfterSeconds = Math.ceil(blockDurationMs / 1000);
     console.log(`[Auth] Rate limit exceeded for: ${identifier} (Memory)`);
     return { allowed: false, remainingAttempts: 0, retryAfterSeconds };
   }
 
-  return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - entry.attempts };
+  return { allowed: true, remainingAttempts: maxAttempts - entry.attempts };
 }
 
 // Reset rate limit on successful login
@@ -369,20 +380,15 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (error || !user) {
       logAuditEvent({ action: 'login_failed', ip_address: clientIP, details: { email: loginIdentifier, reason: 'user_not_found' } });
-      return res.status(401).json({
-        error: 'Invalid email or password',
-        remainingAttempts: rateLimit.remainingAttempts
-      });
+      // SECURITY: Don't disclose remainingAttempts to avoid aiding brute-force
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       logAuditEvent({ action: 'login_failed', user_id: user.id, ip_address: clientIP, details: { reason: 'wrong_password' } });
-      return res.status(401).json({
-        error: 'Invalid email or password',
-        remainingAttempts: rateLimit.remainingAttempts
-      });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Reset rate limits on successful login
@@ -460,12 +466,21 @@ router.post('/refresh', async (req: Request, res: Response) => {
     // Check if user still exists and is active
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, company_id, role')
+      .select('id, company_id, role, password_changed_at')
       .eq('id', decoded.userId)
       .single();
 
     if (userError || !user) {
       return res.status(401).json({ error: 'User not found' });
+    }
+
+    // SECURITY: Reject refresh if password was changed after the refresh token was issued
+    const iat = (decoded as any).iat;
+    if (iat && user.password_changed_at) {
+      const passwordChangedAt = Math.floor(new Date(user.password_changed_at).getTime() / 1000);
+      if (iat < passwordChangedAt) {
+        return res.status(401).json({ error: 'Session invalidated due to password change' });
+      }
     }
 
     // Generate new access token with current user data
@@ -793,8 +808,22 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
     // SECURITY: Ensure CSRF cookie is set/refreshed on session verification
     setCsrfCookie(res);
 
-    const { password_hash, ...userWithoutPassword } = user;
-    return res.json(userWithoutPassword);
+    // SECURITY: Return explicit field list instead of select('*') to avoid leaking future sensitive fields
+    return res.json({
+      id: user.id,
+      company_id: user.company_id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      custom_role_name: user.custom_role_name,
+      categories: user.categories,
+      display_name: user.display_name,
+      phone_number: user.phone_number,
+      language_preference: user.language_preference,
+      theme_preference: user.theme_preference,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    });
   } catch (error) {
     console.error('Get user error:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -818,7 +847,9 @@ router.post('/recover-password', async (req, res: Response) => {
 
     // SECURITY: Per-email rate limiting - max 3 resets per hour
     const resetRateKey = `reset:${email.toLowerCase()}`;
-    const resetRateLimit = await checkRateLimitRedis(resetRateKey);
+    const RESET_MAX = 3;
+    const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
+    const resetRateLimit = await checkRateLimitRedis(resetRateKey, RESET_MAX, RESET_WINDOW, RESET_WINDOW);
     if (!resetRateLimit.allowed) {
       // Always return success message to prevent email enumeration via rate limit timing
       return res.json({ message: 'If the email exists, password reset instructions will be sent' });
@@ -912,21 +943,17 @@ router.post('/recover-password', async (req, res: Response) => {
       } catch (emailError) {
         console.error('[Auth] Failed to send email via Resend:', emailError);
         // Fall back to console log
-        console.log('\n========================================');
-        console.log('PASSWORD RESET LINK (Email failed, showing in console)');
-        console.log('========================================');
-        console.log(`Email: ${email}`);
-        console.log(`Reset URL: ${resetUrl}`);
-        console.log('========================================\n');
+        // SECURITY: Never log reset tokens - they allow password changes
+        console.warn(`[Auth] Email sending failed for password reset: ${email}`);
       }
     } else {
-      // No Resend API key configured - log to console (development mode)
-      console.log('\n========================================');
-      console.log('PASSWORD RESET LINK (Development Mode)');
-      console.log('========================================');
-      console.log(`Email: ${email}`);
-      console.log(`Reset URL: ${resetUrl}`);
-      console.log('========================================\n');
+      // SECURITY: Only log reset URL in development, never in production/staging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Auth][DEV] Password reset requested for: ${email}`);
+        console.log(`[Auth][DEV] Reset URL: ${resetUrl}`);
+      } else {
+        console.warn(`[Auth] Resend not configured, password reset email not sent for: ${email}`);
+      }
     }
 
     return res.json({ message: 'If the email exists, password reset instructions will be sent' });
