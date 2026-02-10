@@ -873,7 +873,7 @@ router.post('/recover-password', async (req, res: Response) => {
     const { data: user } = await supabase
       .from('users')
       .select('*, companies(name)')
-      .eq('email', email.toLowerCase())
+      .ilike('email', email.trim())
       .single();
 
     if (!user) {
