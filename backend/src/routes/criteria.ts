@@ -373,7 +373,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
     res.json({ message: 'Criterion deleted successfully' });
   } catch (error: any) {
     console.error('[Criteria] Error in delete operation:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete criterion' });
+    res.status(500).json({ error: 'Failed to delete criterion' });
   }
 });
 

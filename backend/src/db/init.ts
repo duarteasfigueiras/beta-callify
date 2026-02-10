@@ -99,6 +99,12 @@ export async function seedDatabase(): Promise<void> {
     .single();
 
   if (!existingCompany) {
+    // SECURITY: Never create demo accounts with hardcoded passwords in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[Seed] Skipping demo data creation in production');
+      return;
+    }
+
     console.log('Creating demo data...');
 
     // Create demo company
@@ -116,7 +122,7 @@ export async function seedDatabase(): Promise<void> {
     console.log('Default categories created (Comercial, Suporte)');
 
     // Create demo admin user
-    const adminPasswordHash = await bcrypt.hash('admin123', 10);
+    const adminPasswordHash = await bcrypt.hash('admin123', 13);
     const { error: adminError } = await supabase
       .from('users')
       .insert({
@@ -130,7 +136,7 @@ export async function seedDatabase(): Promise<void> {
     console.log('Demo admin user created (username: admin, password: admin123)');
 
     // Create demo agent user
-    const agentPasswordHash = await bcrypt.hash('agent123', 10);
+    const agentPasswordHash = await bcrypt.hash('agent123', 13);
     const { data: agent, error: agentError } = await supabase
       .from('users')
       .insert({

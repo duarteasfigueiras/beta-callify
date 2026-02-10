@@ -168,8 +168,7 @@ router.post('/companies', requireRole('developer'), async (req: AuthenticatedReq
     res.status(201).json({ ...company, users_count: 0, criteria_created: !criteriaError });
   } catch (error: any) {
     console.error('Error creating company:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    res.status(500).json({ error: 'Failed to create company', details: error?.message || error });
+    res.status(500).json({ error: 'Failed to create company' });
   }
 });
 

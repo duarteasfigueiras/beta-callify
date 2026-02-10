@@ -138,7 +138,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
     res.json({ clientSecret: session.client_secret });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
+    res.status(500).json({ error: 'Failed to create checkout session' });
   }
 });
 
@@ -177,7 +177,7 @@ router.post('/customer-portal', authenticateToken, async (req: AuthenticatedRequ
     res.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating portal session:', error);
-    res.status(500).json({ error: error.message || 'Failed to create portal session' });
+    res.status(500).json({ error: 'Failed to create portal session' });
   }
 });
 
@@ -212,7 +212,7 @@ router.get('/subscription-status', authenticateToken, async (req: AuthenticatedR
     });
   } catch (error: any) {
     console.error('Error getting subscription status:', error);
-    res.status(500).json({ error: error.message || 'Failed to get subscription status' });
+    res.status(500).json({ error: 'Failed to get subscription status' });
   }
 });
 

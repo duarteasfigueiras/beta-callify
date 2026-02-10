@@ -18,7 +18,8 @@ function validateApiKey(req: Request, res: Response, next: Function) {
     return next();
   }
 
-  const providedKey = req.headers['x-api-key'] || req.query.api_key;
+  // SECURITY: Only accept API key via header (never query string - leaks in logs/referer)
+  const providedKey = req.headers['x-api-key'];
 
   if (!providedKey || typeof providedKey !== 'string') {
     return res.status(401).json({ error: 'Invalid or missing API key' });
@@ -97,7 +98,8 @@ const MIN_CALL_DURATION_SECONDS = parseInt(process.env.MIN_CALL_DURATION_SECONDS
  */
 router.post('/calls', async (req: Request, res: Response) => {
   try {
-    console.log('[n8n] Received new call:', JSON.stringify(req.body, null, 2));
+    // SECURITY: Log only non-sensitive fields (no phone numbers or audio URLs)
+    console.log(`[n8n] Received new call: direction=${req.body.direction || 'N/A'}, companyId=${req.body.companyId || 'N/A'}`);
 
     const {
       phoneNumber,
@@ -460,12 +462,19 @@ router.post('/calls/:id/analysis', async (req: Request, res: Response) => {
 router.get('/calls/:id/status', async (req: Request, res: Response) => {
   try {
     const callId = parseInt(req.params.id);
+    const companyId = req.query.company_id ? parseInt(String(req.query.company_id)) : null;
 
-    const { data: call, error } = await supabase
+    let query = supabase
       .from('calls')
       .select('id, phone_number, direction, duration_seconds, transcription, summary, final_score, next_step_recommendation, risk_words_detected, created_at')
-      .eq('id', callId)
-      .single();
+      .eq('id', callId);
+
+    // SECURITY: Scope to company if provided (prevent cross-tenant access)
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    }
+
+    const { data: call, error } = await query.single();
 
     if (error || !call) {
       return res.status(404).json({ error: 'Call not found' });

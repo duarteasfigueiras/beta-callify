@@ -19,6 +19,16 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// SECURITY: Escape HTML to prevent injection in email templates
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 const router = Router();
 
 // Initialize Resend for email sending (optional - works without API key in dev mode)
@@ -432,8 +442,8 @@ router.post('/login', async (req: Request, res: Response) => {
 // Refresh token - get new access token using refresh token (reads from httpOnly cookie)
 router.post('/refresh', async (req: Request, res: Response) => {
   try {
-    // SECURITY: Read refresh token from httpOnly cookie (fallback to body for backwards compat)
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    // SECURITY: Read refresh token ONLY from httpOnly cookie (never from body)
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });
@@ -522,12 +532,15 @@ router.post('/register', async (req, res: Response) => {
       });
     }
 
+    // SECURITY: Hash the token and look up by token_hash (tokens are stored hashed)
+    const invitationTokenHash = hashToken(token);
+
     // SECURITY: Atomically claim the invitation to prevent race conditions
     // First, try to mark it as used (only if not already used and not expired)
     const { data: claimedInvitation, error: claimError } = await supabase
       .from('invitations')
       .update({ used: true })
-      .eq('token', token)
+      .eq('token_hash', invitationTokenHash)
       .eq('used', false)
       .gte('expires_at', new Date().toISOString())
       .select('*')
@@ -661,8 +674,8 @@ router.post('/register', async (req, res: Response) => {
                 </div>
                 <div class="content">
                   <div class="welcome-box">
-                    <p>Olá <strong>${display_name?.trim() || 'Utilizador'}</strong>,</p>
-                    <p>A sua conta no <strong>AI CoachCall</strong> foi criada com sucesso para a empresa <strong>${companyName}</strong>.</p>
+                    <p>Olá <strong>${escapeHtml(display_name?.trim() || 'Utilizador')}</strong>,</p>
+                    <p>A sua conta no <strong>AI CoachCall</strong> foi criada com sucesso para a empresa <strong>${escapeHtml(companyName)}</strong>.</p>
                     <p>Agora pode começar a utilizar o sistema de avaliação de chamadas para melhorar o desempenho da sua equipa.</p>
                   </div>
 
@@ -701,7 +714,7 @@ router.post('/register', async (req, res: Response) => {
                   </div>
 
                   <div class="info-box">
-                    <strong>📧 O seu email de acesso:</strong> ${email}
+                    <strong>📧 O seu email de acesso:</strong> ${escapeHtml(email)}
                   </div>
 
                   <p style="text-align: center;">
@@ -803,6 +816,14 @@ router.post('/recover-password', async (req, res: Response) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
+    // SECURITY: Per-email rate limiting - max 3 resets per hour
+    const resetRateKey = `reset:${email.toLowerCase()}`;
+    const resetRateLimit = await checkRateLimitRedis(resetRateKey);
+    if (!resetRateLimit.allowed) {
+      // Always return success message to prevent email enumeration via rate limit timing
+      return res.json({ message: 'If the email exists, password reset instructions will be sent' });
+    }
+
     const { data: user } = await supabase
       .from('users')
       .select('*, companies(name)')
@@ -863,8 +884,8 @@ router.post('/recover-password', async (req, res: Response) => {
                   <p>Pedido de redefinição de password</p>
                 </div>
                 <div class="content">
-                  <p>Olá <strong>${user.display_name || user.username}</strong>,</p>
-                  <p>Recebemos um pedido para recuperar a password da sua conta no AI CoachCall${user.companies?.name ? ` (${user.companies.name})` : ''}.</p>
+                  <p>Olá <strong>${escapeHtml(user.display_name || user.username)}</strong>,</p>
+                  <p>Recebemos um pedido para recuperar a password da sua conta no AI CoachCall${user.companies?.name ? ` (${escapeHtml(user.companies.name)})` : ''}.</p>
                   <p>Clique no botão abaixo para definir uma nova password:</p>
                   <p style="text-align: center;">
                     <a href="${resetUrl}" class="button">Redefinir Password</a>
@@ -874,7 +895,7 @@ router.post('/recover-password', async (req, res: Response) => {
                     <p style="word-break: break-all; margin: 10px 0 0 0; font-size: 13px; color: #15803d;">${resetUrl}</p>
                   </div>
                   <div class="warning-box">
-                    <p style="margin: 0; color: #92400e;"><strong>⏱️ Este link é válido apenas por 1 hora.</strong></p>
+                    <p style="margin: 0; color: #92400e;"><strong>⏱️ Este link é válido apenas por 4 horas.</strong></p>
                   </div>
                   <p style="color: #6b7280; font-size: 14px;">Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
                 </div>
@@ -987,25 +1008,20 @@ router.post('/reset-password', async (req, res: Response) => {
       });
     }
 
-    // SECURITY: Hash the provided token and look it up
+    // SECURITY: Hash the provided token and atomically claim it (prevent TOCTOU race)
     const tokenHash = hashToken(token);
 
-    const { data: resetRecord, error: findError } = await supabase
+    const { data: resetRecord, error: claimError } = await supabase
       .from('password_reset_tokens')
-      .select('user_id, expires_at, used')
+      .update({ used: true })
       .eq('token_hash', tokenHash)
+      .eq('used', false)
+      .gte('expires_at', new Date().toISOString())
+      .select('user_id')
       .single();
 
-    if (findError || !resetRecord) {
-      return res.status(400).json({ error: 'Invalid reset token' });
-    }
-
-    if (resetRecord.used) {
-      return res.status(400).json({ error: 'Reset token has already been used' });
-    }
-
-    if (new Date(resetRecord.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'Reset token has expired' });
+    if (claimError || !resetRecord) {
+      return res.status(400).json({ error: 'Invalid, expired, or already used reset token' });
     }
 
     // Hash new password
@@ -1019,14 +1035,13 @@ router.post('/reset-password', async (req, res: Response) => {
       .eq('id', resetRecord.user_id);
 
     if (updateError) {
+      // Rollback token claim on failure
+      await supabase
+        .from('password_reset_tokens')
+        .update({ used: false })
+        .eq('token_hash', tokenHash);
       throw updateError;
     }
-
-    // SECURITY: Mark token as used (one-time use)
-    await supabase
-      .from('password_reset_tokens')
-      .update({ used: true })
-      .eq('token_hash', tokenHash);
 
     logAuditEvent({ action: 'password_reset', user_id: resetRecord.user_id, ip_address: getClientIP(req) });
     console.log(`[Auth] Password reset successful for userId=${resetRecord.user_id}`);

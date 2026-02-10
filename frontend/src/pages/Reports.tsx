@@ -37,6 +37,25 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+// SECURITY: Escape HTML to prevent XSS in document.write PDF export
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// SECURITY: Sanitize CSV cell values to prevent formula injection
+function escapeCsv(value: string | number): string {
+  const str = String(value);
+  // Prefix formula-triggering characters to prevent CSV injection in Excel/Sheets
+  const needsPrefix = /^[=+\-@\t\r]/.test(str);
+  const escaped = str.replace(/"/g, '""');
+  return needsPrefix ? `"'${escaped}"` : `"${escaped}"`;
+}
+
 interface CriteriaStats {
   criterion_name: string;
   passed: number;
@@ -256,7 +275,7 @@ export default function Reports() {
     csvContent += `${t('reports.scoreByAgent', 'Score by Agent')}\n`;
     csvContent += `${t('calls.agent', 'Agent')},${t('reports.avgScore', 'Avg. Score')},${t('reports.totalCalls', 'Total Calls')}\n`;
     scoreByAgent.forEach(agent => {
-      csvContent += `${agent.agent_username},${agent.average_score},${agent.total_calls}\n`;
+      csvContent += `${escapeCsv(agent.agent_username)},${agent.average_score},${agent.total_calls}\n`;
     });
     csvContent += '\n';
 
@@ -270,7 +289,7 @@ export default function Reports() {
     csvContent += `${t('reports.callsByAgent', 'Calls by Agent')}\n`;
     csvContent += `${t('calls.agent', 'Agent')},${t('reports.totalCalls', 'Total Calls')}\n`;
     callsByAgent.forEach(item => {
-      csvContent += `${item.agent},${item.count}\n`;
+      csvContent += `${escapeCsv(item.agent)},${item.count}\n`;
     });
     csvContent += '\n';
 
@@ -279,7 +298,7 @@ export default function Reports() {
     csvContent += `${t('common.category', 'Category')},${t('common.reason', 'Reason')},${t('common.count', 'Count')}\n`;
     topReasons.forEach(group => {
       group.reasons.forEach(reason => {
-        csvContent += `"${group.category}","${reason.reason}",${reason.count}\n`;
+        csvContent += `${escapeCsv(group.category)},${escapeCsv(reason.reason)},${reason.count}\n`;
       });
     });
     csvContent += '\n';
@@ -287,8 +306,8 @@ export default function Reports() {
     // Top Objections
     csvContent += `${t('reports.topObjections', 'Top Objections')}\n`;
     csvContent += `${t('common.objection', 'Objection')},${t('common.count', 'Count')}\n`;
-    topObjections.forEach(objection => {
-      csvContent += `"${objection.objection}",${objection.count}\n`;
+    topObjections.forEach(obj => {
+      csvContent += `${escapeCsv(obj.category)},${obj.count}\n`;
     });
     csvContent += '\n';
 
@@ -296,7 +315,7 @@ export default function Reports() {
     csvContent += `${t('reports.riskWordsFrequency', 'Risk Words Frequency')}\n`;
     csvContent += `${t('common.word', 'Word')},${t('common.count', 'Count')}\n`;
     riskWordsCount.forEach(item => {
-      csvContent += `"${item.word}",${item.count}\n`;
+      csvContent += `${escapeCsv(item.word)},${item.count}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -370,7 +389,7 @@ export default function Reports() {
           <tbody>
             ${scoreByAgent.map(agent => `
               <tr>
-                <td>${agent.agent_username}</td>
+                <td>${escapeHtml(agent.agent_username)}</td>
                 <td>${agent.average_score}</td>
                 <td>${agent.total_calls}</td>
               </tr>
@@ -404,7 +423,7 @@ export default function Reports() {
           <tbody>
             ${callsByAgent.map(item => `
               <tr>
-                <td>${item.agent}</td>
+                <td>${escapeHtml(item.agent)}</td>
                 <td>${item.count}</td>
               </tr>
             `).join('')}
@@ -424,8 +443,8 @@ export default function Reports() {
             ${topReasons.flatMap(group =>
               group.reasons.map(reason => `
                 <tr>
-                  <td>${group.category}</td>
-                  <td>${reason.reason}</td>
+                  <td>${escapeHtml(group.category)}</td>
+                  <td>${escapeHtml(reason.reason)}</td>
                   <td>${reason.count}</td>
                 </tr>
               `)
@@ -442,10 +461,10 @@ export default function Reports() {
             </tr>
           </thead>
           <tbody>
-            ${topObjections.map(objection => `
+            ${topObjections.map(obj => `
               <tr>
-                <td>${objection.objection}</td>
-                <td>${objection.count}</td>
+                <td>${escapeHtml(obj.category)}</td>
+                <td>${obj.count}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -462,7 +481,7 @@ export default function Reports() {
           <tbody>
             ${riskWordsCount.map(item => `
               <tr>
-                <td style="color: #dc2626;">${item.word}</td>
+                <td style="color: #dc2626;">${escapeHtml(item.word)}</td>
                 <td>${item.count}</td>
               </tr>
             `).join('')}

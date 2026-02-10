@@ -122,13 +122,16 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Filter by contact reason (searches within JSON field)
+    // SECURITY: Escape LIKE wildcards to prevent pattern injection
     if (contact_reason) {
-      query = query.ilike('contact_reasons', `%${String(contact_reason)}%`);
+      const safeReason = String(contact_reason).replace(/%/g, '\\%').replace(/_/g, '\\_');
+      query = query.ilike('contact_reasons', `%${safeReason}%`);
     }
 
     // Filter by objection (searches within JSON field)
     if (objection) {
-      query = query.ilike('objections', `%${String(objection)}%`);
+      const safeObjection = String(objection).replace(/%/g, '\\%').replace(/_/g, '\\_');
+      query = query.ilike('objections', `%${safeObjection}%`);
     }
 
     // Sort
@@ -365,7 +368,19 @@ router.post('/', requireRole('admin_manager'), async (req: AuthenticatedRequest,
 
     // Use provided agent_id or find an agent in the company
     let targetAgentId = agent_id;
-    if (!targetAgentId) {
+    if (targetAgentId) {
+      // SECURITY: Verify agent belongs to this company (prevent IDOR)
+      const { data: agentRecord } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', targetAgentId)
+        .eq('company_id', req.user!.companyId)
+        .single();
+
+      if (!agentRecord) {
+        return res.status(403).json({ error: 'Agent not found or does not belong to your company' });
+      }
+    } else {
       const { data: agent } = await supabase
         .from('users')
         .select('id')
@@ -410,11 +425,17 @@ router.get('/:id/debug-coaching', requireRole('developer', 'admin_manager'), asy
   try {
     const callId = parseInt(req.params.id);
 
-    const { data: call, error } = await supabase
+    let query = supabase
       .from('calls')
       .select('id, skill_scores, phrases_to_avoid, recommended_phrases, contact_reasons, objections, response_improvement_example, history_comparison, top_performer_comparison')
-      .eq('id', callId)
-      .single();
+      .eq('id', callId);
+
+    // SECURITY: Non-developers can only see their own company's calls
+    if (!isDeveloper(req.user!.role)) {
+      query = query.eq('company_id', req.user!.companyId);
+    }
+
+    const { data: call, error } = await query.single();
 
     if (error || !call) {
       return res.status(404).json({ error: 'Call not found' });
@@ -443,7 +464,7 @@ router.get('/:id/debug-coaching', requireRole('developer', 'admin_manager'), asy
     });
   } catch (error: any) {
     console.error('Error debugging call:', error);
-    res.status(500).json({ error: error.message || 'Failed to debug call' });
+    res.status(500).json({ error: 'Failed to debug call' });
   }
 });
 

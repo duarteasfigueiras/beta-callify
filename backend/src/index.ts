@@ -8,6 +8,7 @@ import path from 'path';
 import { csrfProtection } from './middleware/csrf';
 import { inputLengthValidation } from './middleware/validateInput';
 import { requestIdMiddleware } from './middleware/requestId';
+import { authenticateToken } from './middleware/auth';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,9 @@ import { startRetentionScheduler, getRetentionPolicy } from './services/retentio
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+
+// SECURITY: Trust first proxy (Railway) so req.ip returns real client IP for rate limiting
+app.set('trust proxy', 1);
 
 console.log('Environment PORT:', process.env.PORT);
 console.log('Using PORT:', PORT);
@@ -125,8 +129,8 @@ app.use(inputLengthValidation);
 // SECURITY: CSRF protection (double-submit cookie pattern)
 app.use(csrfProtection);
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// SECURITY: Serve uploaded files only to authenticated users
+app.use('/uploads', authenticateToken, express.static(path.join(__dirname, '..', 'uploads')));
 
 // API Routes
 // Apply strict rate limiting to auth routes
@@ -152,6 +156,12 @@ app.get('/.well-known/security.txt', (req, res) => {
     `Canonical: https://www.aicoachcall.com/.well-known/security.txt\n` +
     `Expires: ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()}\n`
   );
+});
+
+// SECURITY: CSP violation reporting endpoint
+app.post('/api/csp-report', express.json({ type: 'application/csp-report' }), (req, res) => {
+  console.warn('[CSP] Violation:', JSON.stringify(req.body?.['csp-report']?.['violated-directive'] || 'unknown'));
+  res.status(204).end();
 });
 
 // Health check
