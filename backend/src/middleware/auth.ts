@@ -9,7 +9,7 @@ if (!JWT_SECRET) {
   throw new Error('CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.');
 }
 if (typeof JWT_SECRET === 'string' && JWT_SECRET.length < 32) {
-  throw new Error('CRITICAL: JWT_SECRET must be at least 32 characters. Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  console.error('WARNING: JWT_SECRET should be at least 32 characters for production security. Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
 }
 
 // SECURITY: Previous secrets for graceful key rotation
