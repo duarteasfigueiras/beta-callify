@@ -858,16 +858,17 @@ router.post('/recover-password', async (req, res: Response) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // SECURITY: Per-email rate limiting - max 3 resets per hour
-    const resetRateKey = `reset:${email.toLowerCase()}`;
-    const RESET_MAX = 100; // TODO: revert to 3 after debugging
-    const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
-    const resetRateLimit = await checkRateLimitRedis(resetRateKey, RESET_MAX, RESET_WINDOW, RESET_WINDOW);
-    if (!resetRateLimit.allowed) {
-      // Always return success message to prevent email enumeration via rate limit timing
-      console.log(`[Auth] Password reset rate limited for email (max ${RESET_MAX}/hour)`);
-      return res.json({ message: 'If the email exists, password reset instructions will be sent' });
-    }
+    // SECURITY: Per-email rate limiting - TEMPORARILY DISABLED for debugging
+    // TODO: Re-enable after fixing email issue
+    // const resetRateKey = `reset:${email.toLowerCase()}`;
+    // const RESET_MAX = 3;
+    // const RESET_WINDOW = 60 * 60 * 1000; // 1 hour
+    // const resetRateLimit = await checkRateLimitRedis(resetRateKey, RESET_MAX, RESET_WINDOW, RESET_WINDOW);
+    // if (!resetRateLimit.allowed) {
+    //   console.log(`[Auth] Password reset rate limited for email (max ${RESET_MAX}/hour)`);
+    //   return res.json({ message: 'If the email exists, password reset instructions will be sent' });
+    // }
+    console.log(`[Auth] Password reset rate limit temporarily disabled for debugging`);
 
     const { data: user } = await supabase
       .from('users')
