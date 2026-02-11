@@ -214,20 +214,6 @@ export default function Landing() {
               </Button>
             </a>
           </div>
-          <div className="mt-12 flex items-center justify-center space-x-8 text-sm text-gray-500 dark:text-gray-400">
-            <div className="flex items-center">
-              <CheckCircle2 className="w-4 h-4 text-green-500 mr-1.5" />
-              {t('landing.hero.check1', 'No credit card required')}
-            </div>
-            <div className="flex items-center">
-              <CheckCircle2 className="w-4 h-4 text-green-500 mr-1.5" />
-              {t('landing.hero.check2', 'Setup in 5 minutes')}
-            </div>
-            <div className="flex items-center">
-              <CheckCircle2 className="w-4 h-4 text-green-500 mr-1.5" />
-              {t('landing.hero.check3', 'Cancel anytime')}
-            </div>
-          </div>
         </div>
       </section>
 
