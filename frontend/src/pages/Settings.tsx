@@ -15,6 +15,43 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as strin
 // Tab type
 type SettingsTab = 'profile' | 'payment' | 'legal' | 'contacts';
 
+const COUNTRY_CODES = [
+  { code: '+351', country: 'PT', flag: '\u{1F1F5}\u{1F1F9}' },
+  { code: '+55', country: 'BR', flag: '\u{1F1E7}\u{1F1F7}' },
+  { code: '+244', country: 'AO', flag: '\u{1F1E6}\u{1F1F4}' },
+  { code: '+258', country: 'MZ', flag: '\u{1F1F2}\u{1F1FF}' },
+  { code: '+238', country: 'CV', flag: '\u{1F1E8}\u{1F1FB}' },
+  { code: '+1', country: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
+  { code: '+44', country: 'GB', flag: '\u{1F1EC}\u{1F1E7}' },
+  { code: '+34', country: 'ES', flag: '\u{1F1EA}\u{1F1F8}' },
+  { code: '+33', country: 'FR', flag: '\u{1F1EB}\u{1F1F7}' },
+  { code: '+49', country: 'DE', flag: '\u{1F1E9}\u{1F1EA}' },
+  { code: '+39', country: 'IT', flag: '\u{1F1EE}\u{1F1F9}' },
+  { code: '+31', country: 'NL', flag: '\u{1F1F3}\u{1F1F1}' },
+  { code: '+32', country: 'BE', flag: '\u{1F1E7}\u{1F1EA}' },
+  { code: '+41', country: 'CH', flag: '\u{1F1E8}\u{1F1ED}' },
+  { code: '+43', country: 'AT', flag: '\u{1F1E6}\u{1F1F9}' },
+  { code: '+48', country: 'PL', flag: '\u{1F1F5}\u{1F1F1}' },
+  { code: '+46', country: 'SE', flag: '\u{1F1F8}\u{1F1EA}' },
+  { code: '+47', country: 'NO', flag: '\u{1F1F3}\u{1F1F4}' },
+  { code: '+45', country: 'DK', flag: '\u{1F1E9}\u{1F1F0}' },
+  { code: '+358', country: 'FI', flag: '\u{1F1EB}\u{1F1EE}' },
+  { code: '+353', country: 'IE', flag: '\u{1F1EE}\u{1F1EA}' },
+  { code: '+30', country: 'GR', flag: '\u{1F1EC}\u{1F1F7}' },
+  { code: '+90', country: 'TR', flag: '\u{1F1F9}\u{1F1F7}' },
+  { code: '+7', country: 'RU', flag: '\u{1F1F7}\u{1F1FA}' },
+  { code: '+86', country: 'CN', flag: '\u{1F1E8}\u{1F1F3}' },
+  { code: '+81', country: 'JP', flag: '\u{1F1EF}\u{1F1F5}' },
+  { code: '+82', country: 'KR', flag: '\u{1F1F0}\u{1F1F7}' },
+  { code: '+91', country: 'IN', flag: '\u{1F1EE}\u{1F1F3}' },
+  { code: '+61', country: 'AU', flag: '\u{1F1E6}\u{1F1FA}' },
+  { code: '+64', country: 'NZ', flag: '\u{1F1F3}\u{1F1FF}' },
+  { code: '+52', country: 'MX', flag: '\u{1F1F2}\u{1F1FD}' },
+  { code: '+54', country: 'AR', flag: '\u{1F1E6}\u{1F1F7}' },
+  { code: '+56', country: 'CL', flag: '\u{1F1E8}\u{1F1F1}' },
+  { code: '+57', country: 'CO', flag: '\u{1F1E8}\u{1F1F4}' },
+];
+
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -57,42 +94,7 @@ export default function Settings() {
   const [phoneNumber, setPhoneNumber] = useState<string>(parsed.number);
   const [isSavingPhone, setIsSavingPhone] = useState(false);
 
-  const countryCodes = [
-    { code: '+351', country: 'PT', flag: '\u{1F1F5}\u{1F1F9}' },
-    { code: '+55', country: 'BR', flag: '\u{1F1E7}\u{1F1F7}' },
-    { code: '+244', country: 'AO', flag: '\u{1F1E6}\u{1F1F4}' },
-    { code: '+258', country: 'MZ', flag: '\u{1F1F2}\u{1F1FF}' },
-    { code: '+238', country: 'CV', flag: '\u{1F1E8}\u{1F1FB}' },
-    { code: '+1', country: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
-    { code: '+44', country: 'GB', flag: '\u{1F1EC}\u{1F1E7}' },
-    { code: '+34', country: 'ES', flag: '\u{1F1EA}\u{1F1F8}' },
-    { code: '+33', country: 'FR', flag: '\u{1F1EB}\u{1F1F7}' },
-    { code: '+49', country: 'DE', flag: '\u{1F1E9}\u{1F1EA}' },
-    { code: '+39', country: 'IT', flag: '\u{1F1EE}\u{1F1F9}' },
-    { code: '+31', country: 'NL', flag: '\u{1F1F3}\u{1F1F1}' },
-    { code: '+32', country: 'BE', flag: '\u{1F1E7}\u{1F1EA}' },
-    { code: '+41', country: 'CH', flag: '\u{1F1E8}\u{1F1ED}' },
-    { code: '+43', country: 'AT', flag: '\u{1F1E6}\u{1F1F9}' },
-    { code: '+48', country: 'PL', flag: '\u{1F1F5}\u{1F1F1}' },
-    { code: '+46', country: 'SE', flag: '\u{1F1F8}\u{1F1EA}' },
-    { code: '+47', country: 'NO', flag: '\u{1F1F3}\u{1F1F4}' },
-    { code: '+45', country: 'DK', flag: '\u{1F1E9}\u{1F1F0}' },
-    { code: '+358', country: 'FI', flag: '\u{1F1EB}\u{1F1EE}' },
-    { code: '+353', country: 'IE', flag: '\u{1F1EE}\u{1F1EA}' },
-    { code: '+30', country: 'GR', flag: '\u{1F1EC}\u{1F1F7}' },
-    { code: '+90', country: 'TR', flag: '\u{1F1F9}\u{1F1F7}' },
-    { code: '+7', country: 'RU', flag: '\u{1F1F7}\u{1F1FA}' },
-    { code: '+86', country: 'CN', flag: '\u{1F1E8}\u{1F1F3}' },
-    { code: '+81', country: 'JP', flag: '\u{1F1EF}\u{1F1F5}' },
-    { code: '+82', country: 'KR', flag: '\u{1F1F0}\u{1F1F7}' },
-    { code: '+91', country: 'IN', flag: '\u{1F1EE}\u{1F1F3}' },
-    { code: '+61', country: 'AU', flag: '\u{1F1E6}\u{1F1FA}' },
-    { code: '+64', country: 'NZ', flag: '\u{1F1F3}\u{1F1FF}' },
-    { code: '+52', country: 'MX', flag: '\u{1F1F2}\u{1F1FD}' },
-    { code: '+54', country: 'AR', flag: '\u{1F1E6}\u{1F1F7}' },
-    { code: '+56', country: 'CL', flag: '\u{1F1E8}\u{1F1F1}' },
-    { code: '+57', country: 'CO', flag: '\u{1F1E8}\u{1F1F4}' },
-  ];
+  const countryCodes = COUNTRY_CODES;
 
   // Display name state
   const [displayName, setDisplayName] = useState<string>(user?.display_name || '');

@@ -180,7 +180,6 @@ router.post('/', requireRole('admin_manager', 'developer'), async (req: Authenti
       throw metadataError;
     }
 
-    console.log(`Created category "${key}" with color "${colorData.id}" in company ${companyId}`);
 
     res.status(201).json({
       key: key,
@@ -267,7 +266,6 @@ router.put('/:key', requireRole('admin_manager', 'developer'), async (req: Authe
       }
 
       categoryExistsInMetadata = true;
-      console.log(`Created metadata entry for category "${oldKey}" from user custom_role_name`);
     }
 
     // If key is changing, check if new key already exists
@@ -331,8 +329,6 @@ router.put('/:key', requireRole('admin_manager', 'developer'), async (req: Authe
       .eq('key', oldKey);
 
     if (updateError) throw updateError;
-
-    console.log(`Updated category "${oldKey}" to "${newKey}" with color "${colorData.id}" in company ${companyId}`);
 
     res.json({
       key: newKey,
@@ -429,13 +425,9 @@ router.delete('/:key', requireRole('admin_manager', 'developer'), async (req: Au
 
         if (usersError) {
           console.error('Error clearing user categories:', usersError);
-        } else {
-          console.log(`Cleared custom_role_name from ${userIdsToUpdate.length} users`);
         }
       }
     }
-
-    console.log(`Deleted category "${categoryKey}" and ${deletedCriteria?.length || 0} criteria from company ${companyId}`);
 
     res.json({
       message: 'Category deleted successfully',

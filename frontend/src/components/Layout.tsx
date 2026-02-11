@@ -178,7 +178,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 onClick={toggleLanguage}
-                title={i18n.language === 'pt' ? 'English' : 'Portugues'}
+                title={i18n.language === 'pt' ? 'English' : 'Português'}
               >
                 <Globe className="w-5 h-5" />
               </Button>

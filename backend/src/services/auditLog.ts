@@ -40,6 +40,9 @@ export function logAuditEvent(entry: AuditLogEntry): void {
         if (error) {
           console.warn('[Audit] Failed to write audit log:', error.message);
         }
+      })
+      .catch((err) => {
+        console.warn('[Audit] Unhandled audit log error:', err);
       });
   } catch (err) {
     console.warn('[Audit] Audit log error:', err);

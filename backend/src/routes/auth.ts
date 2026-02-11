@@ -36,17 +36,6 @@ const router = Router();
 const resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/^=/, '') || '';
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-// TEMPORARY: Diagnostic endpoint to check Resend configuration (remove after debugging)
-router.get('/email-diagnostic', (_req, res) => {
-  const apiKeyPrefix = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 8) + '...' : 'NOT SET';
-  res.json({
-    resendConfigured: !!resend,
-    apiKeyPrefix,
-    fromEmail: process.env.RESEND_FROM_EMAIL || 'default: AI CoachCall <noreply@aicoachcall.com>',
-    nodeEnv: process.env.NODE_ENV,
-  });
-});
-
 // ============================================
 // RATE LIMITING: 8 attempts per 15 minutes
 // Uses Redis if available, falls back to in-memory

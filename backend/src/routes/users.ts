@@ -176,6 +176,7 @@ router.post('/companies', requireRole('developer'), async (req: AuthenticatedReq
 router.delete('/companies/:id', requireRole('developer'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const companyId = parseInt(req.params.id);
+    if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
 
     // Verify company exists
     const { data: company } = await supabase
@@ -569,6 +570,7 @@ router.post('/invite', requireRole('developer', 'admin_manager'), async (req: Au
 router.patch('/:id/phone', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
     const { phone_number } = req.body;
 
     // Build query based on role
@@ -649,6 +651,7 @@ const mapToUserCategory = (customRoleName: string | null): string => {
 router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
     const { custom_role_name, categories } = req.body;
 
     // Support both old format (custom_role_name string) and new format (categories array)
@@ -713,6 +716,7 @@ router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (
 router.patch('/:id/role', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
     const { role } = req.body;
 
     if (!role || !['admin_manager', 'agent'].includes(role)) {
@@ -761,6 +765,7 @@ router.patch('/:id/role', requireRole('developer', 'admin_manager'), async (req:
 router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
     // Cannot delete yourself
     if (userId === req.user!.userId) {

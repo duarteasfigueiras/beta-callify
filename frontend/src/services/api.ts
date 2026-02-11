@@ -103,13 +103,10 @@ api.interceptors.response.use(
 
         processQueue(null);
 
-        console.log('[API] Token refreshed successfully');
-
         // Retry the original request (new access token cookie is already set)
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        console.log('[API] Token refresh failed, redirecting to login');
         clearAuthAndRedirect();
         return Promise.reject(refreshError);
       } finally {

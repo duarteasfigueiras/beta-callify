@@ -304,8 +304,6 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
   try {
     const criterionId = parseInt(req.params.id);
 
-    console.log('[Criteria] Attempting to delete criterion:', criterionId);
-
     // Check criterion exists and belongs to company
     const { data: existing } = await supabase
       .from('criteria')
@@ -318,8 +316,6 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       return res.status(404).json({ error: 'Criterion not found' });
     }
 
-    console.log('[Criteria] Found criterion:', existing.name);
-
     // First, try to update criterion_name for historical records (if column exists)
     const { error: nameUpdateError } = await supabase
       .from('call_criteria_results')
@@ -327,9 +323,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       .eq('criterion_id', criterionId)
       .is('criterion_name', null);
 
-    if (nameUpdateError) {
-      console.log('[Criteria] Could not update criterion_name (column may not exist):', nameUpdateError.message);
-    }
+    // nameUpdateError is non-critical (column may not exist yet)
 
     // Try multiple strategies to handle the foreign key constraint
     // Strategy 1: Set criterion_id to NULL (requires migration to have been applied)
@@ -339,10 +333,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       .eq('criterion_id', criterionId);
 
     if (updateError) {
-      console.log('[Criteria] Could not set criterion_id to NULL:', updateError.message);
-
       // Strategy 2: Delete the results (fallback if NULL is not allowed)
-      console.log('[Criteria] Attempting to delete results instead...');
       const { error: deleteResultsError } = await supabase
         .from('call_criteria_results')
         .delete()
@@ -350,12 +341,7 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
 
       if (deleteResultsError) {
         console.error('[Criteria] Could not delete results:', deleteResultsError.message);
-        // Continue anyway - maybe there are no results
-      } else {
-        console.log('[Criteria] Results deleted successfully');
       }
-    } else {
-      console.log('[Criteria] Results updated (criterion_id set to NULL)');
     }
 
     // Now delete the criterion
@@ -369,7 +355,6 @@ router.delete('/:id', requireRole('admin_manager'), async (req: AuthenticatedReq
       throw error;
     }
 
-    console.log('[Criteria] Criterion deleted successfully');
     res.json({ message: 'Criterion deleted successfully' });
   } catch (error: any) {
     console.error('[Criteria] Error in delete operation:', error);

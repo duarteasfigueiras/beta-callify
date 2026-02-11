@@ -158,12 +158,10 @@ export default function Criteria() {
 
     try {
       setIsSavingAlerts(true);
-      console.log('Saving alert settings:', { ...alertSettings, risk_words_list: riskWordsInput });
       const updatedSettings = await alertSettingsApi.update({
         ...alertSettings,
         risk_words_list: riskWordsInput
       });
-      console.log('Updated settings received:', updatedSettings);
       setAlertSettings(updatedSettings);
       setRiskWordsInput(updatedSettings.risk_words_list || '');
       toast.success(t('alertSettings.saved', 'Alert settings saved successfully'));
