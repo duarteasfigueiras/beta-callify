@@ -34,7 +34,7 @@ const router = Router();
 
 // Initialize Resend for email sending (optional - works without API key in dev mode)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-console.log(`[Auth] Resend configured: ${!!resend}, API key present: ${!!process.env.RESEND_API_KEY}, from: ${process.env.RESEND_FROM_EMAIL || 'default noreply@aicoachcall.com'}`);
+console.log(`[Auth] Resend configured: ${!!resend}, API key prefix: ${process.env.RESEND_API_KEY?.substring(0, 12)}..., from: ${process.env.RESEND_FROM_EMAIL || 'default noreply@aicoachcall.com'}`);
 
 // TEMPORARY: Diagnostic endpoint to check Resend configuration (remove after debugging)
 router.get('/email-diagnostic', (_req, res) => {
