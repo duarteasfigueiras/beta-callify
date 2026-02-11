@@ -155,15 +155,6 @@ export default function Landing() {
               </a>
             </div>
             <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleLanguage}
-                title={i18n.language === 'pt' ? 'English' : 'Português'}
-                className="text-gray-600 dark:text-gray-300"
-              >
-                <Globe className="w-5 h-5" />
-              </Button>
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard">
@@ -195,6 +186,15 @@ export default function Landing() {
                   </Link>
                 </>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLanguage}
+                title={i18n.language === 'pt' ? 'English' : 'Português'}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>
