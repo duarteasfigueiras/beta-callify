@@ -648,6 +648,105 @@ const resources = {
         website: 'Website',
         websiteDescription: 'Visit our website for more information about our services.',
       },
+      // Landing Page
+      landing: {
+        nav: {
+          features: 'Features',
+          howItWorks: 'How it Works',
+          pricing: 'Pricing',
+          getStarted: 'Get Started',
+        },
+        hero: {
+          badge: 'AI-Powered Call Analysis Platform',
+          title: 'Analyze Every Call With',
+          titleHighlight: 'Artificial Intelligence',
+          subtitle: 'AI CoachCall is a call analysis platform that automatically transcribes, scores, and extracts insights from every conversation — helping your team identify what works and what needs improvement.',
+          cta: 'Start Free Trial',
+          secondary: 'See How It Works',
+          check1: 'No credit card required',
+          check2: 'Setup in 5 minutes',
+          check3: 'Cancel anytime',
+        },
+        features: {
+          title: 'Complete Call Analysis Tools',
+          subtitle: 'Everything you need to monitor, analyze, and improve the quality of your team\'s calls.',
+          ai: {
+            title: 'AI-Powered Analysis',
+            description: 'Every call is automatically analyzed by AI that evaluates performance, identifies patterns, and suggests improvements.',
+          },
+          transcription: {
+            title: 'Real-Time Transcription',
+            description: 'Get full call transcriptions with speaker identification, timestamps, and keyword highlighting.',
+          },
+          reports: {
+            title: 'Detailed Reports',
+            description: 'Dashboards with performance metrics, score evolution, contact reasons, and team comparisons.',
+          },
+          criteria: {
+            title: 'Custom Criteria',
+            description: 'Define your own evaluation criteria and scoring rules to match your business standards.',
+          },
+          team: {
+            title: 'Team Management',
+            description: 'Manage agents, track individual performance, and identify coaching opportunities across your team.',
+          },
+          alerts: {
+            title: 'Smart Alerts',
+            description: 'Automatic alerts for low scores, risk words, and compliance issues so nothing goes unnoticed.',
+          },
+        },
+        howItWorks: {
+          title: 'How It Works',
+          subtitle: 'Get started in three simple steps and see results from day one.',
+        },
+        steps: {
+          connect: {
+            title: 'Connect Your Calls',
+            description: 'Integrate with your telephony provider or upload call recordings. Setup takes minutes.',
+          },
+          analyze: {
+            title: 'AI Analyzes Everything',
+            description: 'Our AI transcribes, scores, and extracts insights from every conversation automatically.',
+          },
+          improve: {
+            title: 'Improve Performance',
+            description: 'Use actionable insights and coaching recommendations to boost your team\'s results.',
+          },
+        },
+        pricing: {
+          title: 'Simple, Transparent Pricing',
+          subtitle: 'Choose the plan that fits your team. All plans include core AI analysis features.',
+          popular: 'Most Popular',
+          month: 'month',
+          minutes: 'minutes',
+          unlimited: 'Unlimited',
+          choosePlan: 'Choose Plan',
+          features: {
+            aiAnalysis: 'AI call analysis & scoring',
+            transcription: 'Real-time transcription',
+            basicReports: 'Basic reports',
+            allStarter: 'Everything in Starter',
+            advancedReports: 'Performance reports & analytics',
+            coaching: 'Coaching recommendations',
+            allMedium: 'Everything in Medium',
+            customCriteria: 'Custom evaluation criteria',
+            teamManagement: 'Team management',
+            allPro: 'Everything in Pro',
+            prioritySupport: 'Priority support',
+            allFeatures: 'All features included',
+          },
+        },
+        cta: {
+          title: 'Ready to Improve Your Call Quality?',
+          subtitle: 'Join teams that are already using AI to analyze calls and improve their performance every day.',
+          button: 'Get Started Now',
+        },
+        footer: {
+          terms: 'Terms of Service',
+          privacy: 'Privacy Policy',
+          contact: 'Contact',
+        },
+      },
       // Common
       common: {
         loading: 'Loading...',
@@ -1604,6 +1703,105 @@ const resources = {
         generalDescription: 'Para sugestões, questões gerais ou feedback sobre o AI CoachCall.',
         website: 'Website',
         websiteDescription: 'Visite o nosso website para mais informações sobre os nossos serviços.',
+      },
+      // Landing Page
+      landing: {
+        nav: {
+          features: 'Funcionalidades',
+          howItWorks: 'Como Funciona',
+          pricing: 'Preços',
+          getStarted: 'Começar',
+        },
+        hero: {
+          badge: 'Plataforma de Análise de Chamadas com IA',
+          title: 'Analise Cada Chamada Com',
+          titleHighlight: 'Inteligência Artificial',
+          subtitle: 'O AI CoachCall é uma plataforma de análise de chamadas que transcreve, pontua e extrai insights de cada conversa automaticamente — ajudando a sua equipa a identificar o que funciona e o que precisa de melhorar.',
+          cta: 'Começar Gratuitamente',
+          secondary: 'Ver Como Funciona',
+          check1: 'Sem cartão de crédito',
+          check2: 'Configuração em 5 minutos',
+          check3: 'Cancele a qualquer momento',
+        },
+        features: {
+          title: 'Ferramentas Completas de Análise de Chamadas',
+          subtitle: 'Tudo o que precisa para monitorizar, analisar e melhorar a qualidade das chamadas da sua equipa.',
+          ai: {
+            title: 'Análise com IA',
+            description: 'Cada chamada é automaticamente analisada por IA que avalia o desempenho, identifica padrões e sugere melhorias.',
+          },
+          transcription: {
+            title: 'Transcrição em Tempo Real',
+            description: 'Obtenha transcrições completas com identificação de interlocutores, timestamps e destaque de palavras-chave.',
+          },
+          reports: {
+            title: 'Relatórios Detalhados',
+            description: 'Dashboards com métricas de desempenho, evolução de pontuação, motivos de contacto e comparações de equipa.',
+          },
+          criteria: {
+            title: 'Critérios Personalizados',
+            description: 'Defina os seus próprios critérios de avaliação e regras de pontuação adaptados ao seu negócio.',
+          },
+          team: {
+            title: 'Gestão de Equipa',
+            description: 'Gerir agentes, acompanhar desempenho individual e identificar oportunidades de coaching em toda a equipa.',
+          },
+          alerts: {
+            title: 'Alertas Inteligentes',
+            description: 'Alertas automáticos para pontuações baixas, palavras de risco e problemas de conformidade.',
+          },
+        },
+        howItWorks: {
+          title: 'Como Funciona',
+          subtitle: 'Comece em três passos simples e veja resultados desde o primeiro dia.',
+        },
+        steps: {
+          connect: {
+            title: 'Conecte as Suas Chamadas',
+            description: 'Integre com o seu fornecedor de telefonia ou carregue gravações. A configuração demora minutos.',
+          },
+          analyze: {
+            title: 'A IA Analisa Tudo',
+            description: 'A nossa IA transcreve, pontua e extrai insights de cada conversa automaticamente.',
+          },
+          improve: {
+            title: 'Melhore o Desempenho',
+            description: 'Use insights acionáveis e recomendações de coaching para impulsionar os resultados da equipa.',
+          },
+        },
+        pricing: {
+          title: 'Preços Simples e Transparentes',
+          subtitle: 'Escolha o plano ideal para a sua equipa. Todos os planos incluem análise com IA.',
+          popular: 'Mais Popular',
+          month: 'mês',
+          minutes: 'minutos',
+          unlimited: 'Ilimitados',
+          choosePlan: 'Escolher Plano',
+          features: {
+            aiAnalysis: 'Análise de chamadas com IA e pontuação',
+            transcription: 'Transcrição em tempo real',
+            basicReports: 'Relatórios básicos',
+            allStarter: 'Tudo do Starter',
+            advancedReports: 'Relatórios de desempenho e análises',
+            coaching: 'Recomendações de coaching',
+            allMedium: 'Tudo do Medium',
+            customCriteria: 'Critérios de avaliação personalizados',
+            teamManagement: 'Gestão de equipa',
+            allPro: 'Tudo do Pro',
+            prioritySupport: 'Suporte prioritário',
+            allFeatures: 'Todas as funcionalidades incluídas',
+          },
+        },
+        cta: {
+          title: 'Pronto Para Melhorar a Qualidade das Chamadas?',
+          subtitle: 'Junte-se a equipas que já usam IA para analisar chamadas e melhorar o desempenho todos os dias.',
+          button: 'Começar Agora',
+        },
+        footer: {
+          terms: 'Termos de Serviço',
+          privacy: 'Política de Privacidade',
+          contact: 'Contacto',
+        },
       },
       // Common
       common: {

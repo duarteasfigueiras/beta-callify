@@ -359,21 +359,21 @@ router.post('/login', async (req: Request, res: Response) => {
     let user = null;
     let error = null;
 
-    // Try email first
+    // Try email first (case-insensitive)
     const emailResult = await supabase
       .from('users')
       .select('*')
-      .eq('email', loginIdentifier)
+      .ilike('email', loginIdentifier.trim())
       .single();
 
     if (emailResult.data) {
       user = emailResult.data;
     } else {
-      // Fallback to username for backwards compatibility
+      // Fallback to username for backwards compatibility (case-insensitive)
       const usernameResult = await supabase
         .from('users')
         .select('*')
-        .eq('username', loginIdentifier)
+        .ilike('username', loginIdentifier.trim())
         .single();
 
       user = usernameResult.data;

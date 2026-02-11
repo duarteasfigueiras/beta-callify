@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Calls from './pages/Calls';
 import CallDetail from './pages/CallDetail';
@@ -70,7 +71,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
   // Developer and admin_manager have access
   if (!user?.role || !isAdminOrDeveloper(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -94,7 +95,7 @@ function DeveloperRoute({ children }: { children: React.ReactNode }) {
 
   // Only developer has access
   if (!user?.role || !isDeveloper(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -112,10 +113,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
+}
+
+function HomeRoute() {
+  return <Landing />;
 }
 
 function AppRoutes() {
@@ -152,9 +157,10 @@ function AppRoutes() {
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
 
-      {/* Protected routes */}
+      {/* Home: Landing for visitors, Dashboard for authenticated */}
+      <Route path="/" element={<HomeRoute />} />
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
