@@ -14,14 +14,21 @@ import {
   FileText,
   TrendingUp,
   LayoutDashboard,
+  LogOut,
+  Globe,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut } from 'lucide-react';
 
 export default function Landing() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, logout } = useAuth();
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'pt' ? 'en' : 'pt';
+    i18n.changeLanguage(newLang);
+    localStorage.setItem('language', newLang);
+  };
 
   const features = [
     {
@@ -148,6 +155,15 @@ export default function Landing() {
               </a>
             </div>
             <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLanguage}
+                title={i18n.language === 'pt' ? 'English' : 'Português'}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard">
