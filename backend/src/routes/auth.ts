@@ -33,8 +33,9 @@ function escapeHtml(str: string): string {
 const router = Router();
 
 // Initialize Resend for email sending (optional - works without API key in dev mode)
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-console.log(`[Auth] Resend configured: ${!!resend}, API key prefix: ${process.env.RESEND_API_KEY?.substring(0, 12)}..., from: ${process.env.RESEND_FROM_EMAIL || 'default noreply@aicoachcall.com'}`);
+const resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/^=/, '') || '';
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+console.log(`[Auth] Resend configured: ${!!resend}, API key prefix: "${resendApiKey.substring(0, 12)}", raw env prefix: "${process.env.RESEND_API_KEY?.substring(0, 14)}"`);
 
 // TEMPORARY: Diagnostic endpoint to check Resend configuration (remove after debugging)
 router.get('/email-diagnostic', (_req, res) => {
