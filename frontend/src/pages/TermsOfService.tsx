@@ -73,8 +73,8 @@ export default function TermsOfService() {
               </h2>
               <p className="text-gray-600 dark:text-gray-300">
                 {isPt
-                  ? 'O Serviço destina-se exclusivamente a uso empresarial e profissional (B2B).'
-                  : 'The Service is intended exclusively for business and professional use (B2B).'}
+                  ? 'O Serviço destina-se a uso empresarial e profissional. Os nossos clientes podem manter relações de negócio tanto B2B como B2C.'
+                  : 'The Service is intended for business and professional use. Our clients may maintain both B2B and B2C business relationships.'}
               </p>
             </section>
 
