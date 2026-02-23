@@ -1797,7 +1797,7 @@ const resources = {
           badge: 'Plataforma de Análise de Chamadas com IA',
           title: 'Analise Cada Chamada Com',
           titleHighlight: 'Inteligência Artificial',
-          subtitle: 'O AI CoachCall é uma plataforma de análise de chamadas que transcreve, pontua e extrai insights de cada conversa automaticamente — ajudando a sua equipa a identificar o que funciona e o que precisa de melhorar.',
+          subtitle: 'O AI CoachCall é uma plataforma de análise de chamadas que transcreve, pontua e extrai insights de cada conversa — ajudando a sua equipa a identificar o que funciona e o que precisa de melhorar.',
           cta: 'Começa Já',
           secondary: 'Ver Como Funciona',
           check1: 'Configuração em 5 minutos',
