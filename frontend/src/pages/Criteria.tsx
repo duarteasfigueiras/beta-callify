@@ -194,7 +194,7 @@ export default function Criteria() {
     // Check if category already has max criteria
     const criteriaInCategory = criteria.filter(c => c.category === formData.category).length;
     if (criteriaInCategory >= MAX_CRITERIA_PER_CATEGORY) {
-      toast.error(t('criteria.maxCriteriaReached', `Máximo de ${MAX_CRITERIA_PER_CATEGORY} critérios por categoria atingido`));
+      toast.error(t('criteria.maxCriteriaReached', { max: MAX_CRITERIA_PER_CATEGORY }));
       return;
     }
 

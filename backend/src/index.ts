@@ -9,6 +9,7 @@ import { csrfProtection } from './middleware/csrf';
 import { inputLengthValidation } from './middleware/validateInput';
 import { requestIdMiddleware } from './middleware/requestId';
 import { authenticateToken } from './middleware/auth';
+import { requireActiveSubscription } from './middleware/subscription';
 
 // Load environment variables
 dotenv.config();
@@ -141,16 +142,19 @@ app.use('/uploads', authenticateToken, express.static(path.join(__dirname, '..',
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);  // SECURITY: Prevent invitation token brute-force
 app.use('/api/auth/recover-password', authLimiter);
+// Routes exempt from subscription check
 app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/calls', callsRoutes);
-app.use('/api/criteria', criteriaRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/alerts', alertsRoutes);
+app.use('/api/stripe', stripeRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/n8n', n8nRoutes);
-app.use('/api/categories', categoriesRoutes);
-app.use('/api/stripe', stripeRoutes);
+// Users route has selective subscription check inside (GET /me exempt)
+app.use('/api/users', usersRoutes);
+// Routes that require active subscription
+app.use('/api/calls', requireActiveSubscription, callsRoutes);
+app.use('/api/criteria', requireActiveSubscription, criteriaRoutes);
+app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
+app.use('/api/alerts', requireActiveSubscription, alertsRoutes);
+app.use('/api/categories', requireActiveSubscription, categoriesRoutes);
 
 // SECURITY: security.txt for vulnerability disclosure (RFC 9116)
 app.get('/.well-known/security.txt', (req, res) => {

@@ -27,13 +27,15 @@ import ContactReasons from './pages/ContactReasons';
 import ObjectionReasons from './pages/ObjectionReasons';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import ChoosePlan from './pages/ChoosePlan';
+import MinutesExceeded from './pages/MinutesExceeded';
 import { isAdminOrDeveloper, isDeveloper } from './types';
 import './i18n';
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, subscriptionStatus } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -45,15 +47,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // Pass the current location so we can redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Developer bypasses subscription check
+  if (user?.role !== 'developer' && subscriptionStatus !== null && subscriptionStatus !== 'active') {
+    return <Navigate to="/choose-plan" replace />;
   }
 
   return <Layout>{children}</Layout>;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, subscriptionStatus } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -65,8 +71,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // Pass the current location so we can redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Developer bypasses subscription check
+  if (user?.role !== 'developer' && subscriptionStatus !== null && subscriptionStatus !== 'active') {
+    return <Navigate to="/choose-plan" replace />;
   }
 
   // Developer and admin_manager have access
@@ -119,6 +129,24 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AuthOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function HomeRoute() {
   return <Landing />;
 }
@@ -156,6 +184,9 @@ function AppRoutes() {
       {/* Legal pages - always accessible */}
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      {/* Paywall - requires auth but NOT subscription */}
+      <Route path="/choose-plan" element={<AuthOnlyRoute><ChoosePlan /></AuthOnlyRoute>} />
+      <Route path="/minutes-exceeded" element={<AuthOnlyRoute><MinutesExceeded /></AuthOnlyRoute>} />
 
       {/* Home: Landing for visitors, Dashboard for authenticated */}
       <Route path="/" element={<HomeRoute />} />

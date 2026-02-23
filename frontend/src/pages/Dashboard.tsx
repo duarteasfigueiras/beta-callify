@@ -280,7 +280,7 @@ export default function Dashboard() {
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {range === 'all' ? t('common.all') : range === 'today' ? t('calls.today', 'Today') : range}
+                {range === 'all' ? t('common.all') : range === 'today' ? t('calls.today', 'Today') : t(`dashboard.range_${range}`, range)}
               </button>
             ))}
           </div>

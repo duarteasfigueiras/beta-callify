@@ -30,6 +30,161 @@ function escapeHtml(str: string): string {
     .replace(/\r?\n/g, ' ');
 }
 
+// ============================================
+// Bilingual email templates (PT / EN)
+// ============================================
+type EmailLang = 'pt' | 'en';
+
+function getWelcomeEmail(lang: EmailLang, params: { name: string; companyName: string; email: string; loginUrl: string }) {
+  const { name, companyName, email, loginUrl } = params;
+  const t = lang === 'en' ? {
+    subject: `Welcome to AI CoachCall - ${escapeHtml(companyName)}`,
+    heading: 'Welcome to AI CoachCall!',
+    subheading: 'Your account was created successfully',
+    greeting: `Hello <strong>${escapeHtml(name)}</strong>,`,
+    intro: `Your account on <strong>AI CoachCall</strong> was created successfully for company <strong>${escapeHtml(companyName)}</strong>.`,
+    body: 'You can now start using the call evaluation system to improve your team\'s performance.',
+    featuresTitle: 'What you can do on AI CoachCall:',
+    f1Title: 'Call Analysis', f1Desc: 'Automatic AI evaluation of your calls',
+    f2Title: 'Personalized Dashboard', f2Desc: 'Track your performance and progress',
+    f3Title: 'Smart Feedback', f3Desc: 'Get suggestions to improve your calls',
+    f4Title: 'Custom Criteria', f4Desc: 'Evaluation based on your company criteria',
+    emailLabel: 'Your login email:',
+    button: 'Access AI CoachCall',
+    contactHint: 'If you have any questions, contact your company administrator.',
+    footer1: `© ${new Date().getFullYear()} AI CoachCall - Call Evaluation System`,
+    footer2: 'This email was sent automatically. Please do not reply.',
+  } : {
+    subject: `Bem-vindo ao AI CoachCall - ${escapeHtml(companyName)}`,
+    heading: 'Bem-vindo ao AI CoachCall!',
+    subheading: 'A sua conta foi criada com sucesso',
+    greeting: `Olá <strong>${escapeHtml(name)}</strong>,`,
+    intro: `A sua conta no <strong>AI CoachCall</strong> foi criada com sucesso para a empresa <strong>${escapeHtml(companyName)}</strong>.`,
+    body: 'Agora pode começar a utilizar o sistema de avaliação de chamadas para melhorar o desempenho da sua equipa.',
+    featuresTitle: 'O que pode fazer no AI CoachCall:',
+    f1Title: 'Análise de Chamadas', f1Desc: 'Avaliação automática das suas chamadas com IA',
+    f2Title: 'Dashboard Personalizado', f2Desc: 'Acompanhe o seu desempenho e evolução',
+    f3Title: 'Feedback Inteligente', f3Desc: 'Receba sugestões para melhorar as suas chamadas',
+    f4Title: 'Critérios Personalizados', f4Desc: 'Avaliação baseada nos critérios da sua empresa',
+    emailLabel: 'O seu email de acesso:',
+    button: 'Aceder ao AI CoachCall',
+    contactHint: 'Se tiver alguma dúvida, contacte o administrador da sua empresa.',
+    footer1: `© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas`,
+    footer2: 'Este email foi enviado automaticamente. Por favor não responda.',
+  };
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+      .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+      .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+      .header h1 { margin: 0; font-size: 28px; }
+      .header p { margin: 10px 0 0 0; opacity: 0.9; }
+      .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+      .welcome-box { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+      .feature { display: flex; align-items: flex-start; margin-bottom: 15px; }
+      .feature-icon { background: #dcfce7; color: #16a34a; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 16px; flex-shrink: 0; }
+      .feature-text { flex: 1; }
+      .feature-text strong { color: #15803d; }
+      .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+      .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+      .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    </style></head><body>
+    <div class="container">
+      <div class="header">
+        <h1>${t.heading}</h1>
+        <p>${t.subheading}</p>
+      </div>
+      <div class="content">
+        <div class="welcome-box">
+          <p>${t.greeting}</p>
+          <p>${t.intro}</p>
+          <p>${t.body}</p>
+        </div>
+        <h3 style="color: #15803d; margin-bottom: 15px;">${t.featuresTitle}</h3>
+        <div class="feature"><div class="feature-icon">📞</div><div class="feature-text"><strong>${t.f1Title}</strong><br>${t.f1Desc}</div></div>
+        <div class="feature"><div class="feature-icon">📊</div><div class="feature-text"><strong>${t.f2Title}</strong><br>${t.f2Desc}</div></div>
+        <div class="feature"><div class="feature-icon">💡</div><div class="feature-text"><strong>${t.f3Title}</strong><br>${t.f3Desc}</div></div>
+        <div class="feature"><div class="feature-icon">🎯</div><div class="feature-text"><strong>${t.f4Title}</strong><br>${t.f4Desc}</div></div>
+        <div class="info-box"><strong>📧 ${t.emailLabel}</strong> ${escapeHtml(email)}</div>
+        <p style="text-align: center;"><a href="${loginUrl}" class="button">${t.button}</a></p>
+        <p style="text-align: center; color: #6b7280; font-size: 14px;">${t.contactHint}</p>
+      </div>
+      <div class="footer"><p>${t.footer1}</p><p>${t.footer2}</p></div>
+    </div></body></html>`;
+
+  return { subject: t.subject, html };
+}
+
+function getResetEmail(lang: EmailLang, params: { name: string; companyName: string | null; resetUrl: string }) {
+  const { name, companyName, resetUrl } = params;
+  const companyLabel = companyName ? ` (${escapeHtml(companyName)})` : '';
+  const t = lang === 'en' ? {
+    subject: 'Password Recovery - AI CoachCall',
+    heading: 'Password Recovery',
+    subheading: 'Password reset request',
+    greeting: `Hello <strong>${escapeHtml(name)}</strong>,`,
+    intro: `We received a request to recover the password for your AI CoachCall account${companyLabel}.`,
+    action: 'Click the button below to set a new password:',
+    button: 'Reset Password',
+    linkHint: 'Or copy and paste this link in your browser:',
+    expiry: 'This link is valid for 4 hours only.',
+    ignore: 'If you did not request this recovery, you can ignore this email. Your password will remain unchanged.',
+    footer1: `© ${new Date().getFullYear()} AI CoachCall - Call Evaluation System`,
+    footer2: 'This email was sent automatically. Please do not reply.',
+  } : {
+    subject: 'Recuperação de Password - AI CoachCall',
+    heading: 'Recuperação de Password',
+    subheading: 'Pedido de redefinição de password',
+    greeting: `Olá <strong>${escapeHtml(name)}</strong>,`,
+    intro: `Recebemos um pedido para recuperar a password da sua conta no AI CoachCall${companyLabel}.`,
+    action: 'Clique no botão abaixo para definir uma nova password:',
+    button: 'Redefinir Password',
+    linkHint: 'Ou copie e cole este link no seu navegador:',
+    expiry: 'Este link é válido apenas por 4 horas.',
+    ignore: 'Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.',
+    footer1: `© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas`,
+    footer2: 'Este email foi enviado automaticamente. Por favor não responda.',
+  };
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+      .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+      .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+      .header h1 { margin: 0; font-size: 28px; }
+      .header p { margin: 10px 0 0 0; opacity: 0.9; }
+      .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+      .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+      .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+      .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+      .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    </style></head><body>
+    <div class="container">
+      <div class="header">
+        <h1>🔐 ${t.heading}</h1>
+        <p>${t.subheading}</p>
+      </div>
+      <div class="content">
+        <p>${t.greeting}</p>
+        <p>${t.intro}</p>
+        <p>${t.action}</p>
+        <p style="text-align: center;"><a href="${resetUrl}" class="button">${t.button}</a></p>
+        <div class="info-box">
+          <p style="margin: 0; font-size: 14px;">${t.linkHint}</p>
+          <p style="word-break: break-all; margin: 10px 0 0 0; font-size: 13px; color: #15803d;">${resetUrl}</p>
+        </div>
+        <div class="warning-box">
+          <p style="margin: 0; color: #92400e;"><strong>⏱️ ${t.expiry}</strong></p>
+        </div>
+        <p style="color: #6b7280; font-size: 14px;">${t.ignore}</p>
+      </div>
+      <div class="footer"><p>${t.footer1}</p><p>${t.footer2}</p></div>
+    </div></body></html>`;
+
+  return { subject: t.subject, html };
+}
+
 const router = Router();
 
 // Initialize Resend for email sending (optional - works without API key in dev mode)
@@ -653,103 +808,22 @@ router.post('/register', async (req, res: Response) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const loginUrl = `${frontendUrl}/login`;
 
-    // Send welcome email
+    // Send welcome email (bilingual: uses 'pt' for new users, as that's the default)
+    const welcomeLang: EmailLang = 'pt';
+    const welcomeEmail = getWelcomeEmail(welcomeLang, {
+      name: display_name?.trim() || 'Utilizador',
+      companyName,
+      email,
+      loginUrl,
+    });
+
     if (resend) {
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || 'AI CoachCall <noreply@aicoachcall.com>',
           to: email,
-          subject: `Bem-vindo ao AI CoachCall - ${companyName}`,
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                .header h1 { margin: 0; font-size: 28px; }
-                .header p { margin: 10px 0 0 0; opacity: 0.9; }
-                .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                .welcome-box { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-                .feature { display: flex; align-items: flex-start; margin-bottom: 15px; }
-                .feature-icon { background: #dcfce7; color: #16a34a; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 16px; flex-shrink: 0; }
-                .feature-text { flex: 1; }
-                .feature-text strong { color: #15803d; }
-                .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-                .button:hover { background: #15803d; }
-                .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
-                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>🎉 Bem-vindo ao AI CoachCall!</h1>
-                  <p>A sua conta foi criada com sucesso</p>
-                </div>
-                <div class="content">
-                  <div class="welcome-box">
-                    <p>Olá <strong>${escapeHtml(display_name?.trim() || 'Utilizador')}</strong>,</p>
-                    <p>A sua conta no <strong>AI CoachCall</strong> foi criada com sucesso para a empresa <strong>${escapeHtml(companyName)}</strong>.</p>
-                    <p>Agora pode começar a utilizar o sistema de avaliação de chamadas para melhorar o desempenho da sua equipa.</p>
-                  </div>
-
-                  <h3 style="color: #15803d; margin-bottom: 15px;">O que pode fazer no AI CoachCall:</h3>
-
-                  <div class="feature">
-                    <div class="feature-icon">📞</div>
-                    <div class="feature-text">
-                      <strong>Análise de Chamadas</strong><br>
-                      Avaliação automática das suas chamadas com IA
-                    </div>
-                  </div>
-
-                  <div class="feature">
-                    <div class="feature-icon">📊</div>
-                    <div class="feature-text">
-                      <strong>Dashboard Personalizado</strong><br>
-                      Acompanhe o seu desempenho e evolução
-                    </div>
-                  </div>
-
-                  <div class="feature">
-                    <div class="feature-icon">💡</div>
-                    <div class="feature-text">
-                      <strong>Feedback Inteligente</strong><br>
-                      Receba sugestões para melhorar as suas chamadas
-                    </div>
-                  </div>
-
-                  <div class="feature">
-                    <div class="feature-icon">🎯</div>
-                    <div class="feature-text">
-                      <strong>Critérios Personalizados</strong><br>
-                      Avaliação baseada nos critérios da sua empresa
-                    </div>
-                  </div>
-
-                  <div class="info-box">
-                    <strong>📧 O seu email de acesso:</strong> ${escapeHtml(email)}
-                  </div>
-
-                  <p style="text-align: center;">
-                    <a href="${loginUrl}" class="button">Aceder ao AI CoachCall</a>
-                  </p>
-
-                  <p style="text-align: center; color: #6b7280; font-size: 14px;">
-                    Se tiver alguma dúvida, contacte o administrador da sua empresa.
-                  </p>
-                </div>
-                <div class="footer">
-                  <p>© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas</p>
-                  <p>Este email foi enviado automaticamente. Por favor não responda.</p>
-                </div>
-              </div>
-            </body>
-            </html>
-          `
+          subject: welcomeEmail.subject,
+          html: welcomeEmail.html,
         });
         console.log(`[Auth] Welcome email sent to: ${email}`);
       } catch (emailError) {
@@ -896,7 +970,14 @@ router.post('/recover-password', async (req, res: Response) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Try to send email via Resend, fallback to console log in dev mode
+    // Send password reset email (bilingual based on user preference)
+    const resetLang: EmailLang = (user.language_preference === 'en' ? 'en' : 'pt');
+    const resetEmail = getResetEmail(resetLang, {
+      name: user.display_name || user.username,
+      companyName: user.companies?.name || null,
+      resetUrl,
+    });
+
     console.log(`[Auth] Attempting password reset for: ${email}, resend configured: ${!!resend}`);
     if (resend) {
       try {
@@ -905,61 +986,12 @@ router.post('/recover-password', async (req, res: Response) => {
         const result = await resend.emails.send({
           from: fromEmail,
           to: email,
-          subject: 'Recuperação de Password - AI CoachCall',
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                .header h1 { margin: 0; font-size: 28px; }
-                .header p { margin: 10px 0 0 0; opacity: 0.9; }
-                .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                .button { display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-                .button:hover { background: #15803d; }
-                .info-box { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
-                .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; }
-                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>🔐 Recuperação de Password</h1>
-                  <p>Pedido de redefinição de password</p>
-                </div>
-                <div class="content">
-                  <p>Olá <strong>${escapeHtml(user.display_name || user.username)}</strong>,</p>
-                  <p>Recebemos um pedido para recuperar a password da sua conta no AI CoachCall${user.companies?.name ? ` (${escapeHtml(user.companies.name)})` : ''}.</p>
-                  <p>Clique no botão abaixo para definir uma nova password:</p>
-                  <p style="text-align: center;">
-                    <a href="${resetUrl}" class="button">Redefinir Password</a>
-                  </p>
-                  <div class="info-box">
-                    <p style="margin: 0; font-size: 14px;">Ou copie e cole este link no seu navegador:</p>
-                    <p style="word-break: break-all; margin: 10px 0 0 0; font-size: 13px; color: #15803d;">${resetUrl}</p>
-                  </div>
-                  <div class="warning-box">
-                    <p style="margin: 0; color: #92400e;"><strong>⏱️ Este link é válido apenas por 4 horas.</strong></p>
-                  </div>
-                  <p style="color: #6b7280; font-size: 14px;">Se não pediu esta recuperação, pode ignorar este email. A sua password permanecerá inalterada.</p>
-                </div>
-                <div class="footer">
-                  <p>© ${new Date().getFullYear()} AI CoachCall - Sistema de Avaliação de Chamadas</p>
-                  <p>Este email foi enviado automaticamente. Por favor não responda.</p>
-                </div>
-              </div>
-            </body>
-            </html>
-          `
+          subject: resetEmail.subject,
+          html: resetEmail.html,
         });
         console.log(`[Auth] Password reset email sent to: ${email}, result:`, JSON.stringify(result));
       } catch (emailError) {
         console.error('[Auth] Failed to send email via Resend:', emailError);
-        // Fall back to console log
         // SECURITY: Never log reset tokens - they allow password changes
         console.warn(`[Auth] Email sending failed for password reset: ${email}`);
       }

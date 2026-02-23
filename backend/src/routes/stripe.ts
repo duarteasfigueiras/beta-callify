@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { supabase } from '../db/supabase';
 import { AuthenticatedRequest, authenticateToken } from '../middleware/auth';
+import { PLAN_MINUTES_PER_USER, getUserMonthlyUsage } from '../middleware/subscription';
 
 const router = Router();
 
@@ -135,6 +136,12 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
     // Determine frontend URL for return
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+    // Allow frontend to specify return path (validated against allowlist)
+    const { returnTo } = req.body;
+    const allowedReturnPaths = ['/settings?tab=payment', '/choose-plan'];
+    const returnPath = allowedReturnPaths.includes(returnTo) ? returnTo : '/settings?tab=payment';
+    const separator = returnPath.includes('?') ? '&' : '?';
+
     // Create Embedded Checkout Session
     const session = await stripe!.checkout.sessions.create({
       customer: customerId,
@@ -147,7 +154,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Authentic
           quantity: 1,
         },
       ],
-      return_url: `${frontendUrl}/settings?tab=payment&session_id={CHECKOUT_SESSION_ID}`,
+      return_url: `${frontendUrl}${returnPath}${separator}session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         company_id: String(companyId),
         plan,
@@ -233,6 +240,50 @@ router.get('/subscription-status', authenticateToken, async (req: AuthenticatedR
   } catch (error: any) {
     console.error('Error getting subscription status:', error);
     res.status(500).json({ error: 'Failed to get subscription status' });
+  }
+});
+
+// ============================================
+// GET /api/stripe/usage
+// Gets per-user minute usage for current month
+// ============================================
+router.get('/usage', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const companyId = req.user!.companyId;
+
+    if (!companyId) {
+      res.status(400).json({ error: 'User must belong to a company' });
+      return;
+    }
+
+    // Get company's plan
+    const { data: company } = await supabase
+      .from('companies')
+      .select('subscription_plan')
+      .eq('id', companyId)
+      .single();
+
+    const plan = company?.subscription_plan || null;
+
+    const limitMinutes = plan && PLAN_MINUTES_PER_USER[plan] !== undefined
+      ? PLAN_MINUTES_PER_USER[plan]
+      : 0;
+
+    const usedMinutes = await getUserMonthlyUsage(userId, companyId);
+    const isUnlimited = limitMinutes === Infinity;
+
+    res.json({
+      used_minutes: usedMinutes,
+      limit_minutes: isUnlimited ? null : limitMinutes,
+      remaining_minutes: isUnlimited ? null : Math.max(0, limitMinutes - usedMinutes),
+      percentage: isUnlimited ? 0 : (limitMinutes > 0 ? Math.round((usedMinutes / limitMinutes) * 100) : 0),
+      is_unlimited: isUnlimited,
+      plan,
+    });
+  } catch (error: any) {
+    console.error('Error getting usage:', error);
+    res.status(500).json({ error: 'Failed to get usage data' });
   }
 });
 

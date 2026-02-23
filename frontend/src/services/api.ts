@@ -69,6 +69,23 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 402 - subscription required or minutes exceeded
+    if (error.response?.status === 402) {
+      const errorCode = error.response?.data?.error;
+      if (errorCode === 'minutes_exceeded') {
+        if (!window.location.pathname.startsWith('/minutes-exceeded') &&
+            !window.location.pathname.startsWith('/settings')) {
+          window.location.href = '/minutes-exceeded';
+        }
+      } else {
+        if (!window.location.pathname.startsWith('/choose-plan') &&
+            !window.location.pathname.startsWith('/settings')) {
+          window.location.href = '/choose-plan';
+        }
+      }
+      return Promise.reject(error);
+    }
+
     // Don't handle auth errors for login/refresh endpoints
     const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
                            originalRequest?.url?.includes('/auth/refresh');
@@ -390,8 +407,8 @@ export const categoriesApi = {
 
 // Stripe API
 export const stripeApi = {
-  createCheckoutSession: async (plan: string): Promise<{ clientSecret: string }> => {
-    const response = await api.post('/stripe/create-checkout-session', { plan });
+  createCheckoutSession: async (plan: string, returnTo?: string): Promise<{ clientSecret: string }> => {
+    const response = await api.post('/stripe/create-checkout-session', { plan, returnTo });
     return response.data;
   },
   getSubscriptionStatus: async (): Promise<{ status: string; plan: string | null; hasCustomer: boolean }> => {
@@ -400,6 +417,17 @@ export const stripeApi = {
   },
   createCustomerPortal: async (): Promise<{ url: string }> => {
     const response = await api.post('/stripe/customer-portal');
+    return response.data;
+  },
+  getUsage: async (): Promise<{
+    used_minutes: number;
+    limit_minutes: number | null;
+    remaining_minutes: number | null;
+    percentage: number;
+    is_unlimited: boolean;
+    plan: string | null;
+  }> => {
+    const response = await api.get('/stripe/usage');
     return response.data;
   },
 };

@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AuthState, LoginCredentials } from '../types';
-import { authApi, usersApi } from '../services/api';
+import { authApi, usersApi, stripeApi } from '../services/api';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  subscriptionStatus: string | null;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -98,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateLastActivity();
 
         // Verify session is still valid by calling /auth/me
-        authApi.me().then((freshUser) => {
+        authApi.me().then(async (freshUser) => {
           const storage = getStorage();
           storage.setItem('user', JSON.stringify(sanitizeUserForStorage(freshUser)));
           setState({
@@ -107,6 +110,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated: true,
             isLoading: false,
           });
+          // Fetch subscription status
+          if (freshUser.role !== 'developer') {
+            try {
+              const sub = await stripeApi.getSubscriptionStatus();
+              setSubscriptionStatus(sub.status);
+            } catch {
+              setSubscriptionStatus('none');
+            }
+          } else {
+            setSubscriptionStatus('active');
+          }
         }).catch(() => {
           // Token expired or invalid - clear auth
           clearAuth();
@@ -188,6 +202,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: true,
       isLoading: false,
     });
+
+    // Fetch subscription status after login
+    if (user.role !== 'developer') {
+      try {
+        const sub = await stripeApi.getSubscriptionStatus();
+        setSubscriptionStatus(sub.status);
+      } catch {
+        setSubscriptionStatus('none');
+      }
+    } else {
+      setSubscriptionStatus('active');
+    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -199,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     clearAuth();
+    setSubscriptionStatus(null);
 
     setState({
       user: null,
@@ -222,8 +249,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshSubscription = useCallback(async () => {
+    try {
+      const sub = await stripeApi.getSubscriptionStatus();
+      setSubscriptionStatus(sub.status);
+    } catch {
+      setSubscriptionStatus('none');
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, login, logout, refreshUser, subscriptionStatus, refreshSubscription }}>
       {children}
     </AuthContext.Provider>
   );

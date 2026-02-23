@@ -170,10 +170,10 @@ export default function Settings() {
           if (parsed.protocol === 'https:' && /^[\w-]+\.stripe\.com$/.test(parsed.hostname)) {
             window.location.href = url;
           } else {
-            toast.error('Invalid redirect URL');
+            toast.error(t('settings.invalidRedirectUrl', 'Invalid redirect URL'));
           }
         } catch {
-          toast.error('Invalid redirect URL');
+          toast.error(t('settings.invalidRedirectUrl', 'Invalid redirect URL'));
         }
       }
     } catch (error: any) {
@@ -674,10 +674,10 @@ export default function Settings() {
           {/* Plans */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { name: 'starter', price: '25', color: 'green', icon: 'green-600', minutes: t('settings.starterMin', '200 minutes included'), features: [t('settings.feature1', 'AI call analysis & scoring'), t('settings.feature2', 'Real-time transcription')] },
-              { name: 'medium', price: '50', color: 'blue', icon: 'blue-600', minutes: t('settings.mediumMin', '500 minutes included'), features: [t('settings.feature3', 'Performance reports & analytics'), t('settings.feature4', 'Coaching recommendations')] },
-              { name: 'pro', price: '75', color: 'purple', icon: 'purple-600', minutes: t('settings.proMin', '1000 minutes included'), features: [t('settings.feature5', 'Custom evaluation criteria'), t('settings.feature6', 'Team management')], popular: true },
-              { name: 'master', price: '99', color: 'amber', icon: 'amber-500', minutes: t('settings.masterMin', 'Unlimited minutes'), features: [t('settings.masterSupport', 'Priority support'), t('settings.masterAll', 'All features included')] },
+              { name: 'starter', price: '25', color: 'green', icon: 'green-600', minutes: t('settings.starterMin', '20 hours included'), features: [t('settings.feature1', 'AI call analysis & scoring'), t('settings.feature2', 'Real-time transcription')] },
+              { name: 'medium', price: '50', color: 'blue', icon: 'blue-600', minutes: t('settings.mediumMin', '40 hours included'), features: [t('settings.feature3', 'Performance reports & analytics'), t('settings.feature4', 'Coaching recommendations')] },
+              { name: 'pro', price: '75', color: 'purple', icon: 'purple-600', minutes: t('settings.proMin', '60 hours included'), features: [t('settings.feature5', 'Custom evaluation criteria'), t('settings.feature6', 'Team management')], popular: true },
+              { name: 'master', price: '99', color: 'amber', icon: 'amber-500', minutes: t('settings.masterMin', 'Unlimited hours'), features: [t('settings.masterSupport', 'Priority support'), t('settings.masterAll', 'All features included')] },
             ].map((plan) => {
               const isCurrentPlan = currentPlan === plan.name && subscriptionStatus === 'active';
               const isSubscribing = subscribingPlan === plan.name;

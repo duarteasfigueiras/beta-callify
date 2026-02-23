@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Phone, Eye, EyeOff, User, Mail } from 'lucide-react';
-import { authApi } from '../services/api';
+import { authApi, stripeApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -124,11 +124,20 @@ export default function Register() {
       await authApi.register(token, email, password, displayName, fullPhoneNumber);
       toast.success(t('register.success', 'Registration successful!'));
 
-      // Auto-login after registration and redirect to settings
+      // Auto-login after registration
       try {
         await login({ email, password });
-        // Redirect to settings with newUser flag so they can configure their profile
-        navigate('/settings?newUser=true');
+        // Check subscription status to decide where to redirect
+        try {
+          const sub = await stripeApi.getSubscriptionStatus();
+          if (sub.status === 'active') {
+            navigate('/settings?newUser=true');
+          } else {
+            navigate('/choose-plan');
+          }
+        } catch {
+          navigate('/choose-plan');
+        }
       } catch (loginError) {
         // If auto-login fails, redirect to login page
         console.error('Auto-login failed:', loginError);

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import crypto from 'crypto';
 import { supabase } from '../db/supabase';
 import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { requireActiveSubscription } from '../middleware/subscription';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
 import { logAuditEvent } from '../services/auditLog';
 
@@ -73,7 +74,7 @@ router.post('/companies', requireRole('developer'), async (req: AuthenticatedReq
       return res.status(400).json({ error: 'Company with this name already exists' });
     }
 
-    const insertData: any = { name: name.trim() };
+    const insertData: any = { name: name.trim(), subscription_status: 'pending_payment' };
     if (invite_limit !== undefined && invite_limit > 0) {
       insertData.invite_limit = invite_limit;
     }
@@ -282,8 +283,8 @@ router.delete('/companies/:id', requireRole('developer'), async (req: Authentica
   }
 });
 
-// Get all users (admin or developer)
-router.get('/', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Get all users (admin or developer) - requires subscription
+router.get('/', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // SECURITY: No sensitive data in logs (user IDs, roles, company IDs)
     let query = supabase
@@ -429,8 +430,8 @@ router.get('/me/company', requireRole('admin_manager'), async (req: Authenticate
   }
 });
 
-// Get user by ID (admin or developer)
-router.get('/:id', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Get user by ID (admin or developer) - requires subscription
+router.get('/:id', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = supabase
       .from('users')
@@ -463,8 +464,8 @@ router.get('/:id', requireRole('developer', 'admin_manager'), async (req: Authen
   }
 });
 
-// Invite user (admin or developer)
-router.post('/invite', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Invite user (admin or developer) - requires subscription
+router.post('/invite', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { role, company_id, custom_role_name } = req.body;
 
@@ -566,8 +567,8 @@ router.post('/invite', requireRole('developer', 'admin_manager'), async (req: Au
   }
 });
 
-// Update user phone number (admin or developer)
-router.patch('/:id/phone', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Update user phone number (admin or developer) - requires subscription
+router.patch('/:id/phone', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
@@ -647,8 +648,8 @@ const mapToUserCategory = (customRoleName: string | null): string => {
   return 'all';
 };
 
-// Update user categories (supports multiple categories) - admin or developer
-router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Update user categories (supports multiple categories) - admin or developer - requires subscription
+router.patch('/:id/category', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
@@ -712,8 +713,8 @@ router.patch('/:id/category', requireRole('developer', 'admin_manager'), async (
   }
 });
 
-// Update user role (admin or developer)
-router.patch('/:id/role', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Update user role (admin or developer) - requires subscription
+router.patch('/:id/role', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
@@ -761,8 +762,8 @@ router.patch('/:id/role', requireRole('developer', 'admin_manager'), async (req:
   }
 });
 
-// Delete user (admin or developer)
-router.delete('/:id', requireRole('developer', 'admin_manager'), async (req: AuthenticatedRequest, res: Response) => {
+// Delete user (admin or developer) - requires subscription
+router.delete('/:id', requireRole('developer', 'admin_manager'), requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });

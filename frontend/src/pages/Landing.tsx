@@ -18,6 +18,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import ScreenshotPreview from '../components/ScreenshotPreview';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Landing() {
@@ -232,6 +233,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Platform Preview — Interactive Screenshots */}
+      <ScreenshotPreview />
 
       {/* Features Section */}
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
