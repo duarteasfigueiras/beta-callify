@@ -108,6 +108,7 @@ export default function Landing() {
     { label: t('landing.pricing.grid.alerts', 'Automatic alerts & risk words'), basic: false, pro: true, business: true },
     { label: t('landing.pricing.grid.coaching', 'Metrics, goals & coaching'), basic: false, pro: true, business: true },
     { label: t('landing.pricing.grid.teamInsights', 'Team comparison, ranking & evolution'), basic: false, pro: false, business: true },
+    { label: t('landing.pricing.grid.bestPractices', 'Best practices suggestions'), basic: false, pro: false, business: true },
     { label: t('landing.pricing.grid.prioritySupport', 'Priority support'), basic: false, pro: false, business: true },
   ];
 
