@@ -18,10 +18,7 @@ import {
   Tag,
   Shield,
   User,
-  Mail,
-  Search,
   Plus,
-  ArrowUpDown,
 } from 'lucide-react';
 
 type Tab = 'dashboard-admin' | 'dashboard-user' | 'analysis' | 'reports' | 'criteria' | 'users';
@@ -43,7 +40,7 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
   const activeKey = sidebarMap[activeTab];
 
   const adminNavItems = [
-    { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard', 'Painel') },
     { key: 'calls', icon: Phone, label: t('nav.calls', 'Chamadas') },
     { key: 'reports', icon: BarChart3, label: t('nav.reports', 'Relatórios') },
     { key: 'criteria', icon: ClipboardCheck, label: t('nav.criteria', 'Critérios') },
@@ -52,16 +49,16 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
   ];
 
   const userNavItems = [
-    { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard', 'Painel') },
     { key: 'calls', icon: Phone, label: t('nav.calls', 'Chamadas') },
     { key: 'settings', icon: Settings, label: t('nav.settings', 'Definições') },
   ];
 
   const navItems = isUserView ? userNavItems : adminNavItems;
 
-  const userName = isUserView ? 'Maria S.' : 'Duarte F.';
-  const userInitial = isUserView ? 'M' : 'D';
-  const userRole = isUserView ? t('users.user', 'Utilizador') : 'Admin';
+  const userName = isUserView ? 'Maria S.' : 'admin@aicoachcall.com';
+  const userInitial = isUserView ? 'M' : 'A';
+  const userRole = isUserView ? t('users.user', 'Utilizador') : 'Admin/Gestor';
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
@@ -101,7 +98,7 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
         </div>
         <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg">
           <LogOut className="w-4 h-4" />
-          <span>{t('auth.logout', 'Logout')}</span>
+          <span>{t('auth.logout', 'Sair')}</span>
         </div>
       </div>
     </aside>
@@ -130,32 +127,32 @@ function AdminDashboardView() {
   const { t } = useTranslation();
 
   const stats = [
-    { label: t('dashboard.totalCalls', 'Total de Chamadas'), value: '1,247', icon: Phone, iconBg: 'bg-green-100 dark:bg-green-900/30', iconColor: 'text-green-600 dark:text-green-400' },
-    { label: t('dashboard.averageScore', 'Pontuação Média'), value: '7.8', icon: TrendingUp, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
-    { label: t('dashboard.alertsCount', 'Alertas'), value: '23', icon: AlertTriangle, iconBg: 'bg-amber-100 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400' },
-    { label: t('dashboard.callsWithNextStep', 'Com Próximo Passo'), value: '68%', icon: CheckCircle, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400' },
+    { label: t('dashboard.totalCalls', 'Total de Chamadas'), value: '387', icon: Phone, iconBg: 'bg-green-100 dark:bg-green-900/30', iconColor: 'text-green-600 dark:text-green-400' },
+    { label: t('dashboard.averageScore', 'Pontuação Média'), value: '6.9', icon: TrendingUp, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: t('dashboard.alertsCount', 'Alertas'), value: '89', icon: AlertTriangle, iconBg: 'bg-amber-100 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400' },
+    { label: t('dashboard.callsWithNextStep', 'Com Próximo Passo'), value: '100%', icon: CheckCircle, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400' },
   ];
 
   const calls = [
-    { phone: '912 345 678', agent: 'Maria S.', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', date: '10/02/2026 14:32', dur: '8:32', score: 9.2 },
-    { phone: '965 432 109', agent: 'João S.', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', date: '10/02/2026 13:15', dur: '12:15', score: 6.8 },
-    { phone: '934 876 210', agent: 'Ana C.', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', date: '10/02/2026 11:44', dur: '6:44', score: 8.5 },
-    { phone: '918 654 321', agent: 'Pedro L.', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', date: '10/02/2026 10:20', dur: '4:55', score: 5.1 },
+    { phone: '911222333', agent: 'Pedro Oliveira', catColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', date: '26/02/2026, 17:14', dur: '10:21', score: 4.7 },
+    { phone: '978901234', agent: 'Sofia Ferreira', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', date: '26/02/2026, 16:07', dur: '4:52', score: 6.7 },
+    { phone: '933444555', agent: 'Maria Costa', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', date: '26/02/2026, 13:54', dur: '4:11', score: 8.9 },
+    { phone: '944555666', agent: 'João Santos', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', date: '26/02/2026, 13:45', dur: '4:35', score: 6.0 },
   ];
 
   const alerts = [
-    { icon: TrendingUp, iconColor: 'text-red-500', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 4.2 — Chamada com 918 654 321', unread: true },
-    { icon: AlertTriangle, iconColor: 'text-yellow-500', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 965 432 109', unread: true },
-    { icon: CheckCircle, iconColor: 'text-purple-500', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 934 876 210', unread: false },
+    { iconColor: 'text-green-500', badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', label: t('alerts.types.longDuration', 'Duração Longa'), msg: 'Duração excessiva (12 min)' },
+    { iconColor: 'text-green-500', badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Chamada com pontuação baixa (3.8/10)' },
+    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: 'Palavras de risco: "cancelar", "insatisfeito"' },
+    { iconColor: 'text-blue-500', badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', label: t('alerts.types.longDuration', 'Duração Longa'), msg: 'Chamada com duração excessiva (11 minutos)' },
   ];
 
-  const chartPoints = [5.2, 6.1, 5.8, 7.0, 6.5, 7.2, 7.8, 7.5, 8.1, 7.9, 8.3, 7.8];
+  const chartPoints = [6.3, 6.5, 7.3, 6.8, 7.5, 7.2, 7.8, 7.5, 7.0, 7.3, 7.6, 7.2, 7.5, 7.0, 5.5];
+  const chartDates = ['28/01', '30/01', '01/02', '03/02', '05/02', '07/02', '09/02', '11/02', '13/02', '15/02', '17/02', '19/02', '21/02', '23/02', '26/02'];
 
   const topReasons = [
-    { label: t('landing.mock.pricingInquiry', 'Preços'), count: 42 },
-    { label: t('landing.mock.support', 'Suporte'), count: 31 },
-    { label: t('landing.mock.demo', 'Pedido de Demo'), count: 18 },
-    { label: 'Upgrade', count: 12 },
+    { label: 'Comercial', count: 227 },
+    { label: 'Suporte', count: 193 },
   ];
   const maxCount = Math.max(...topReasons.map(r => r.count));
 
@@ -165,12 +162,12 @@ function AdminDashboardView() {
     <div className="h-full flex flex-col gap-3 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard.title', 'Painel')}</h1>
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-gray-500" />
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {(['Today', '7d', '30d', '90d', 'All'] as const).map((r) => (
-              <span key={r} className={`px-3 py-1 text-sm font-medium ${r === '30d' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
+            {[t('dashboard.today', 'Hoje'), t('dashboard.7days', '7 dias'), t('dashboard.30days', '30 dias'), t('dashboard.90days', '90 dias'), t('dashboard.all', 'Todos')].map((r, i) => (
+              <span key={i} className={`px-3 py-1 text-sm font-medium ${i === 2 ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
             ))}
           </div>
         </div>
@@ -228,13 +225,13 @@ function AdminDashboardView() {
             <div className="flex-1 min-h-0 overflow-y-auto p-2">
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className={`flex items-center gap-2 p-2 h-[52px] rounded-lg ${a.unread ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                    <a.icon className={`w-4 h-4 shrink-0 ${a.iconColor}`} />
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${i === 3 ? 'bg-blue-100 dark:bg-blue-900/30' : i === 2 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
+                      <Phone className={`w-4 h-4 ${a.iconColor}`} />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{a.label}</span>
-                      </div>
-                      <p className="text-xs text-gray-900 dark:text-gray-100 line-clamp-1">{a.msg}</p>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${a.badgeColor}`}>{a.label}</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-1">{a.msg}</p>
                     </div>
                   </div>
                 ))}
@@ -257,41 +254,47 @@ function AdminDashboardView() {
                     <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" strokeDasharray="3 3" />
                   </pattern>
                 </defs>
-                <rect x="40" y="10" width="450" height="170" fill="url(#grid)" />
-                <text x="35" y="15" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
-                <text x="35" y="100" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
-                <text x="35" y="185" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
+                <rect x="40" y="10" width="450" height="160" fill="url(#grid)" />
+                <text x="35" y="15" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
+                <text x="35" y="60" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">7</text>
+                <text x="35" y="105" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
+                <text x="35" y="175" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
                 <polyline
                   fill="none"
                   stroke="#16a34a"
                   strokeWidth="2"
                   strokeLinejoin="round"
-                  points={chartPoints.map((p, i) => `${45 + i * (440 / (chartPoints.length - 1))},${180 - (p / 10) * 170}`).join(' ')}
+                  points={chartPoints.map((p, i) => `${50 + i * (430 / (chartPoints.length - 1))},${170 - (p / 10) * 160}`).join(' ')}
                 />
                 {chartPoints.map((p, i) => (
-                  <circle key={i} cx={45 + i * (440 / (chartPoints.length - 1))} cy={180 - (p / 10) * 170} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
+                  <circle key={i} cx={50 + i * (430 / (chartPoints.length - 1))} cy={170 - (p / 10) * 160} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
+                ))}
+                {chartDates.map((d, i) => (
+                  i % 2 === 0 && <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="currentColor" textAnchor="middle" className="text-gray-400 dark:text-gray-500">{d}</text>
                 ))}
               </svg>
             </div>
           </div>
 
-          {/* Top Reasons */}
+          {/* Top Contact Reasons */}
           <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
             <div className="py-2 px-4 shrink-0 flex items-center justify-between">
-              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.topReasons', 'Principais Razões')}</h3>
-              <span className="text-xs text-purple-600 dark:text-purple-400 hover:underline">{t('common.viewAll', 'Ver todos')}</span>
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.topReasons', 'Principais Motivos de Contacto')}</h3>
+              <span className="text-xs text-green-600 dark:text-green-400 hover:underline">{t('common.viewAll', 'Ver Todos')}</span>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 min-h-0">
-              <div className="space-y-4 px-4">
+            <div className="flex-1 overflow-y-auto p-4 min-h-0 flex flex-col justify-center">
+              <div className="space-y-6 px-4">
                 {topReasons.map((r, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
-                    <div className="w-32 truncate text-sm font-medium text-purple-600 dark:text-purple-400 text-left">{r.label}</div>
-                    <div className="flex-1">
-                      <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-500" style={{ width: `${(r.count / maxCount) * 100}%` }} />
+                  <div key={i}>
+                    <div className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-2">{r.label}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(r.count / maxCount) * 100}%` }} />
+                        </div>
                       </div>
+                      <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">{r.count}</div>
                     </div>
-                    <div className="w-10 text-right text-sm font-bold text-gray-700 dark:text-gray-300">{r.count}</div>
                   </div>
                 ))}
               </div>
@@ -782,7 +785,7 @@ function CriteriaView() {
 }
 
 /* ── Reusable user table ── */
-function UserTable({ users, t }: { users: { name: string; initial: string; email: string; phone: string; minutes: number; calls: number; date: string; cat?: string; catColor?: string }[]; t: (key: string, fallback: string) => string }) {
+function UserTable({ users, t }: { users: { name: string; initial: string; email: string; phone: string; date: string; cat?: string; catColor?: string }[]; t: (key: string, fallback: string) => string }) {
   return (
     <table className="w-full text-sm">
       <thead>
@@ -790,18 +793,6 @@ function UserTable({ users, t }: { users: { name: string; initial: string; email
           <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.username', 'Utilizador')}</th>
           <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.category', 'Categoria')}</th>
           <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.phone', 'Telefone')}</th>
-          <th className="text-center px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">
-            <div className="flex items-center justify-center gap-1">
-              {t('users.minutesUsed', 'Minutos')}
-              <ArrowUpDown className="w-3 h-3" />
-            </div>
-          </th>
-          <th className="text-center px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">
-            <div className="flex items-center justify-center gap-1">
-              {t('users.calls', 'Chamadas')}
-              <ArrowUpDown className="w-3 h-3" />
-            </div>
-          </th>
           <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.created', 'Criado')}</th>
         </tr>
       </thead>
@@ -830,8 +821,6 @@ function UserTable({ users, t }: { users: { name: string; initial: string; email
               )}
             </td>
             <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{u.phone}</td>
-            <td className="px-4 py-2.5 text-center text-gray-900 dark:text-gray-100 font-medium">{u.minutes}</td>
-            <td className="px-4 py-2.5 text-center text-gray-900 dark:text-gray-100 font-medium">{u.calls}</td>
             <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400">{u.date}</td>
           </tr>
         ))}
@@ -845,15 +834,15 @@ function UsersView() {
   const { t } = useTranslation();
 
   const admins = [
-    { name: 'Duarte Figueiras', initial: 'D', email: 'duarte@empresa.pt', phone: '+351 912 345 678', minutes: 245, calls: 89, date: '01/01/2026' },
-    { name: 'Sofia Mendes', initial: 'S', email: 'sofia@empresa.pt', phone: '+351 938 765 432', minutes: 178, calls: 62, date: '05/01/2026' },
+    { name: 'Duarte Figueiras', initial: 'D', email: 'duarte@empresa.pt', phone: '+351 912 345 678', date: '01/01/2026' },
+    { name: 'Sofia Mendes', initial: 'S', email: 'sofia@empresa.pt', phone: '+351 938 765 432', date: '05/01/2026' },
   ];
 
   const users = [
-    { name: 'Maria Silva', initial: 'M', email: 'maria@empresa.pt', phone: '+351 965 432 109', minutes: 312, calls: 124, date: '15/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-    { name: 'João Santos', initial: 'J', email: 'joao@empresa.pt', phone: '+351 934 876 210', minutes: 187, calls: 67, date: '20/01/2026', cat: 'Suporte', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-    { name: 'Ana Costa', initial: 'A', email: 'ana@empresa.pt', phone: '+351 918 654 321', minutes: 298, calls: 102, date: '25/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-    { name: 'Pedro Lopes', initial: 'P', email: 'pedro@empresa.pt', phone: '+351 927 111 222', minutes: 156, calls: 53, date: '01/02/2026', cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+    { name: 'Maria Silva', initial: 'M', email: 'maria@empresa.pt', phone: '+351 965 432 109', date: '15/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'João Santos', initial: 'J', email: 'joao@empresa.pt', phone: '+351 934 876 210', date: '20/01/2026', cat: 'Suporte', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    { name: 'Ana Costa', initial: 'A', email: 'ana@empresa.pt', phone: '+351 918 654 321', date: '25/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'Pedro Lopes', initial: 'P', email: 'pedro@empresa.pt', phone: '+351 927 111 222', date: '01/02/2026', cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   ];
 
   return (
