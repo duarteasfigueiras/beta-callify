@@ -33,25 +33,34 @@ router.post('/demo', async (req: AuthenticatedRequest, res: Response) => {
       { display_name: 'Sofia Ferreira', email: 'sofia.ferreira@demo.com', custom_role_name: 'Suporte', categories: ['Suporte'] },
     ];
 
-    // Delete existing demo agents to avoid conflicts
-    await supabase.from('users').delete().eq('company_id', companyId).like('email', '%@demo.com');
+    // Find or create agents — check by username (which contains the email)
+    const agentIds: number[] = [];
+    for (const a of agents) {
+      const { data: existing } = await supabase
+        .from('users').select('id')
+        .eq('company_id', companyId).eq('username', a.email).single();
 
-    const { data: insertedAgents, error: agentErr } = await supabase
-      .from('users')
-      .insert(agents.map(a => ({
-        company_id: companyId, username: a.email, email: a.email,
-        password_hash: passwordHash, role: 'agent',
-        display_name: a.display_name, custom_role_name: a.custom_role_name,
-        categories: a.categories, language_preference: 'pt', theme_preference: 'light',
-      })))
-      .select('id');
+      if (existing) {
+        agentIds.push(existing.id);
+      } else {
+        const { data: created, error: agentErr } = await supabase
+          .from('users')
+          .insert({
+            company_id: companyId, username: a.email, email: a.email,
+            password_hash: passwordHash, role: 'agent',
+            display_name: a.display_name, custom_role_name: a.custom_role_name,
+            categories: a.categories, language_preference: 'pt', theme_preference: 'light',
+          })
+          .select('id').single();
 
-    if (agentErr) {
-      console.error('[Seed] Agent error:', agentErr.message);
-      return res.status(500).json({ error: 'Failed to create agents: ' + agentErr.message });
+        if (agentErr) {
+          console.error(`[Seed] Agent ${a.display_name} error:`, agentErr.message);
+          continue;
+        }
+        agentIds.push(created.id);
+      }
     }
 
-    const agentIds = (insertedAgents || []).map((a: any) => a.id);
     if (agentIds.length === 0) {
       return res.status(500).json({ error: 'No agents created' });
     }
