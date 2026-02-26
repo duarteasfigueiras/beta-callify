@@ -154,8 +154,11 @@ function AdminDashboardView() {
   const chartDates = ['28/01', '30/01', '01/02', '03/02', '05/02', '07/02', '09/02', '11/02', '13/02', '15/02', '17/02', '19/02', '21/02', '23/02', '26/02'];
 
   const topReasons = [
-    { label: 'Comercial', count: 227 },
-    { label: 'Suporte', count: 193 },
+    { label: t('landing.mock.reasonPricing', 'Pedido de Orçamento'), count: 98 },
+    { label: t('landing.mock.reasonSupport', 'Suporte Técnico'), count: 84 },
+    { label: t('landing.mock.reasonCancel', 'Cancelamento'), count: 67 },
+    { label: t('landing.mock.reasonUpgrade', 'Upgrade de Plano'), count: 52 },
+    { label: t('landing.mock.reasonBilling', 'Faturação'), count: 41 },
   ];
   const maxCount = Math.max(...topReasons.map(r => r.count));
 
