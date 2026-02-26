@@ -16,6 +16,8 @@ import {
   LayoutDashboard,
   LogOut,
   Globe,
+  X,
+  Check,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import ScreenshotPreview from '../components/ScreenshotPreview';
@@ -85,39 +87,26 @@ export default function Landing() {
     },
   ];
 
-  const plans = [
-    {
-      name: 'Basic Call Analysis',
-      price: '30',
-      features: [
-        t('landing.pricing.features.aiAnalysis', 'AI CoachCall analysis & scoring'),
-        t('landing.pricing.features.transcription', 'Real-time transcription'),
-        t('landing.pricing.features.basicReports', 'Basic reports'),
-      ],
-      popular: false,
-    },
-    {
-      name: 'Pro Performance Control',
-      price: '40',
-      features: [
-        t('landing.pricing.features.allBasic', 'Everything in Basic'),
-        t('landing.pricing.features.advancedReports', 'Performance reports & analytics'),
-        t('landing.pricing.features.coaching', 'Coaching recommendations'),
-        t('landing.pricing.features.customCriteria', 'Custom evaluation criteria'),
-      ],
-      popular: true,
-    },
-    {
-      name: 'Business',
-      price: '50',
-      features: [
-        t('landing.pricing.features.allPro', 'Everything in Pro'),
-        t('landing.pricing.features.teamManagement', 'Team management'),
-        t('landing.pricing.features.prioritySupport', 'Priority support'),
-        t('landing.pricing.features.allFeatures', 'All features included'),
-      ],
-      popular: false,
-    },
+  const planColumns = [
+    { name: 'Basic Call Analysis', price: '30', popular: false },
+    { name: 'Pro Performance Control', price: '40', popular: true },
+    { name: 'Business', price: '50', popular: false },
+  ];
+
+  const comparisonFeatures: { label: string; basic: boolean; pro: boolean; business: boolean }[] = [
+    { label: t('landing.pricing.grid.transcription', 'Automatic transcription'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.analysis', 'AI analysis & overall score'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.summary', 'Automatic call summary'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.history', 'Call history & tracking'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.callType', 'Call type & flow detection'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.detailedScore', 'Detailed score per criterion'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.feedback', 'Strengths & improvement points'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.reports', 'Reports, filters & PDF export'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.alerts', 'Automatic alerts & risk words'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.coaching', 'Metrics, goals & coaching'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.comparison', 'Agent comparison & ranking'), basic: false, pro: false, business: true },
+    { label: t('landing.pricing.grid.teamAnalytics', 'Team analytics & evolution'), basic: false, pro: false, business: true },
+    { label: t('landing.pricing.grid.prioritySupport', 'Priority support'), basic: false, pro: false, business: true },
   ];
 
   return (
@@ -300,58 +289,80 @@ export default function Landing() {
               {t('landing.pricing.subtitle', 'Choose the plan that fits your team. All plans include core AI analysis features.')}
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {plans.map((plan, index) => (
-              <div
-                key={index}
-                className={`relative bg-white dark:bg-gray-800 rounded-xl p-6 border-2 transition-shadow ${
-                  plan.popular
-                    ? 'border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20'
-                    : 'border-gray-100 dark:border-gray-700 hover:shadow-md'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
-                    {t('landing.pricing.popular', 'Most Popular')}
-                  </div>
-                )}
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {/* Plan headers */}
+          <div className="max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+            <div className="grid grid-cols-4">
+              {/* Empty top-left cell */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700" />
+              {/* Plan columns */}
+              {planColumns.map((plan, index) => (
+                <div
+                  key={index}
+                  className={`relative p-4 text-center border-b border-l border-gray-200 dark:border-gray-700 ${
+                    plan.popular ? 'bg-green-50 dark:bg-green-900/20' : ''
+                  }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-0 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded-b-lg">
+                      {t('landing.pricing.popular', 'Most Popular')}
+                    </div>
+                  )}
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mt-2 mb-1">
                     {plan.name}
                   </h3>
                   <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                      €{plan.price}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">
-                      /{t('landing.pricing.month', 'month')}
-                    </span>
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">€{plan.price}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">/{t('landing.pricing.month', 'month')}</span>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('landing.pricing.perUser', 'per user')}
                   </p>
                 </div>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-start">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/register">
-                  <Button
-                    className={`w-full ${
-                      plan.popular
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
+              ))}
+            </div>
+
+            {/* Feature rows */}
+            {comparisonFeatures.map((feature, index) => (
+              <div key={index} className={`grid grid-cols-4 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-800'}`}>
+                <div className="p-3 pl-5 flex items-center">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{feature.label}</span>
+                </div>
+                {[feature.basic, feature.pro, feature.business].map((included, colIdx) => (
+                  <div
+                    key={colIdx}
+                    className={`p-3 flex items-center justify-center border-l border-gray-200 dark:border-gray-700 ${
+                      colIdx === 1 ? 'bg-green-50/50 dark:bg-green-900/10' : ''
                     }`}
                   >
-                    {t('landing.pricing.choosePlan', 'Choose Plan')}
-                  </Button>
-                </Link>
+                    {included ? (
+                      <Check className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
+
+            {/* CTA buttons row */}
+            <div className="grid grid-cols-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-4" />
+              {planColumns.map((plan, index) => (
+                <div key={index} className={`p-4 border-l border-gray-200 dark:border-gray-700 ${index === 1 ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}>
+                  <Link to="/register">
+                    <Button
+                      className={`w-full ${
+                        plan.popular
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
+                      }`}
+                    >
+                      {t('landing.pricing.choosePlan', 'Choose Plan')}
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
