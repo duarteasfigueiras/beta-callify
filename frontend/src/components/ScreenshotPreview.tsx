@@ -23,6 +23,9 @@ import {
 
 type Tab = 'dashboard-admin' | 'dashboard-user' | 'analysis' | 'reports' | 'criteria' | 'users';
 
+/* Dark card style — inline to bypass CSS variable overrides */
+const cardStyle: React.CSSProperties = { backgroundColor: '#1f2937', border: '1px solid #374151' };
+
 /* ── Sidebar (exact copy of real Layout.tsx) ── */
 function MockSidebar({ activeTab }: { activeTab: Tab }) {
   const { t } = useTranslation();
@@ -176,7 +179,7 @@ function AdminDashboardView() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {stats.map((s, i) => (
-          <div key={i} className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm p-4">
+          <div key={i} className="rounded-lg shadow-sm p-4" style={cardStyle}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{s.label}</p>
@@ -195,12 +198,12 @@ function AdminDashboardView() {
         {/* Row 1 */}
         <div className="grid grid-cols-2 gap-3 min-h-0">
           {/* Recent Calls */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="divide-y" style={{ borderColor: '#374151' }}>
                 {calls.map((c, i) => (
                   <div key={i} className="flex items-center justify-between py-3 px-2">
                     <div className="flex-1 min-w-0">
@@ -218,14 +221,14 @@ function AdminDashboardView() {
           </div>
 
           {/* Alerts */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('alerts.title', 'Alertas')}</h3>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-2">
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: '#111827', border: '1px solid #374151' }}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${i === 3 ? 'bg-blue-100 dark:bg-blue-900/30' : i === 2 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
                       <Phone className={`w-4 h-4 ${a.iconColor}`} />
                     </div>
@@ -243,7 +246,7 @@ function AdminDashboardView() {
         {/* Row 2 */}
         <div className="grid grid-cols-2 gap-3 min-h-0">
           {/* Score Evolution */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
             </div>
@@ -279,7 +282,7 @@ function AdminDashboardView() {
           </div>
 
           {/* Top Contact Reasons */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0 flex items-center justify-between">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.topReasons', 'Principais Motivos de Contacto')}</h3>
               <span className="text-xs text-green-600 dark:text-green-400 hover:underline">{t('common.viewAll', 'Ver Todos')}</span>
@@ -354,7 +357,7 @@ function UserDashboardView() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {stats.map((s, i) => (
-          <div key={i} className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm p-4">
+          <div key={i} className="rounded-lg shadow-sm p-4" style={cardStyle}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{s.label}</p>
@@ -373,7 +376,7 @@ function UserDashboardView() {
         {/* Row 1 */}
         <div className="grid grid-cols-2 gap-3 min-h-0">
           {/* Recent Calls — no agent column, just user's own calls */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
@@ -393,7 +396,7 @@ function UserDashboardView() {
           </div>
 
           {/* Alerts */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('alerts.title', 'Alertas')}</h3>
             </div>
@@ -418,7 +421,7 @@ function UserDashboardView() {
         {/* Row 2 — single chart spanning full width (no Top Reasons for users) */}
         <div className="grid grid-cols-1 gap-3 min-h-0">
           {/* Score Evolution */}
-          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
             </div>
@@ -599,7 +602,7 @@ function ReportsView() {
       {/* Charts */}
       <div className="grid grid-cols-2 gap-4">
         {/* Score by Agent */}
-        <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="rounded-lg shadow-sm" style={cardStyle}>
           <div className="py-2 px-4 flex items-center justify-between">
             <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('landing.mock.scoreByAgent', 'Pontuação por Utilizador')}</h3>
           </div>
@@ -619,7 +622,7 @@ function ReportsView() {
         </div>
 
         {/* Score Evolution */}
-        <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="rounded-lg shadow-sm" style={cardStyle}>
           <div className="py-2 px-4">
             <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
           </div>
@@ -646,7 +649,7 @@ function ReportsView() {
         </div>
 
         {/* Contact Reasons */}
-        <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="rounded-lg shadow-sm" style={cardStyle}>
           <div className="py-2 px-4">
             <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('landing.mock.contactReasons', 'Motivos de Contacto')}</h3>
           </div>
@@ -666,7 +669,7 @@ function ReportsView() {
         </div>
 
         {/* Calls by Period */}
-        <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="rounded-lg shadow-sm" style={cardStyle}>
           <div className="py-2 px-4">
             <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
           </div>
@@ -742,7 +745,7 @@ function CriteriaView() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="rounded-lg shadow-sm overflow-hidden" style={cardStyle}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
@@ -753,7 +756,7 @@ function CriteriaView() {
               <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('criteria.status', 'Estado')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y" style={{ borderColor: '#374151' }}>
             {criteria.map((c, i) => (
               <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                 <td className="px-4 py-3">
@@ -798,7 +801,7 @@ function UserTable({ users, t }: { users: { name: string; initial: string; email
           <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.created', 'Criado')}</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+      <tbody className="divide-y" style={{ borderColor: '#374151' }}>
         {users.map((u, i) => (
           <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
             <td className="px-4 py-2.5">
@@ -856,7 +859,7 @@ function UsersView() {
       </div>
 
       {/* Administrators section */}
-      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="rounded-lg shadow-sm overflow-hidden" style={cardStyle}>
         <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 flex items-center gap-2">
           <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
           <span className="text-sm font-semibold text-green-800 dark:text-green-300">{t('users.administrators', 'Administradores')}</span>
@@ -866,7 +869,7 @@ function UsersView() {
       </div>
 
       {/* Users section */}
-      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="rounded-lg shadow-sm overflow-hidden" style={cardStyle}>
         <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex items-center gap-2">
           <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">{t('users.users', 'Utilizadores')}</span>
