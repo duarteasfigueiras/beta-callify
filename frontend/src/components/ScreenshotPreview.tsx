@@ -942,7 +942,7 @@ export default function ScreenshotPreview() {
             {/* Scaled container */}
             <div className="relative overflow-hidden" style={{ height: 'calc(780px * var(--preview-scale, 0.75))' }}>
               <div
-                className="absolute top-0 left-0 flex bg-gray-50 dark:bg-gray-900"
+                className="absolute top-0 left-0 flex dark bg-gray-900"
                 style={{
                   width: '1440px',
                   height: '780px',
