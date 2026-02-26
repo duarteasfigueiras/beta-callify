@@ -14,38 +14,56 @@ import {
   Moon,
   Globe,
   LogOut,
+  Scale,
+  Tag,
+  Shield,
+  User,
+  Mail,
+  Search,
+  Plus,
+  ArrowUpDown,
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'analysis' | 'reports';
+type Tab = 'dashboard' | 'analysis' | 'reports' | 'criteria' | 'users';
 
 /* ── Sidebar (exact copy of real Layout.tsx) ── */
 function MockSidebar({ activeTab }: { activeTab: Tab }) {
   const { t } = useTranslation();
+
+  const sidebarMap: Record<Tab, string> = {
+    dashboard: 'dashboard',
+    analysis: 'calls',
+    reports: 'reports',
+    criteria: 'criteria',
+    users: 'users',
+  };
+  const activeKey = sidebarMap[activeTab];
+
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard' },
-    { icon: Phone, label: t('nav.calls', 'Chamadas'), active: activeTab === 'analysis' },
-    { icon: BarChart3, label: t('nav.reports', 'Relatórios'), active: activeTab === 'reports' },
-    { icon: ClipboardCheck, label: t('nav.criteria', 'Critérios'), active: false },
-    { icon: Users, label: t('nav.users', 'Utilizadores'), active: false },
-    { icon: Settings, label: t('nav.settings', 'Definições'), active: false },
+    { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: 'calls', icon: Phone, label: t('nav.calls', 'Chamadas') },
+    { key: 'reports', icon: BarChart3, label: t('nav.reports', 'Relatórios') },
+    { key: 'criteria', icon: ClipboardCheck, label: t('nav.criteria', 'Critérios') },
+    { key: 'users', icon: Users, label: t('nav.users', 'Utilizadores') },
+    { key: 'settings', icon: Settings, label: t('nav.settings', 'Definições') },
   ];
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
-      {/* Logo — h-16 like real */}
+      {/* Logo */}
       <div className="flex items-center space-x-2 h-16 px-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-600 text-white">
           <Phone className="w-5 h-5" />
         </div>
         <span className="text-xl font-bold text-green-600">AI CoachCall</span>
       </div>
-      {/* Nav — p-4 space-y-1 like real */}
+      {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item, i) => (
+        {navItems.map((item) => (
           <div
-            key={i}
+            key={item.key}
             className={`flex items-center space-x-3 px-4 py-3 rounded-lg ${
-              item.active
+              item.key === activeKey
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                 : 'text-gray-600 dark:text-gray-400'
             }`}
@@ -75,7 +93,7 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
   );
 }
 
-/* ── Header (exact copy of real Layout header) ── */
+/* ── Header ── */
 function MockHeader() {
   return (
     <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 shrink-0">
@@ -92,7 +110,7 @@ function MockHeader() {
   );
 }
 
-/* ── DASHBOARD VIEW (exact structure of real Dashboard.tsx) ── */
+/* ── DASHBOARD VIEW ── */
 function DashboardView() {
   const { t } = useTranslation();
 
@@ -130,7 +148,7 @@ function DashboardView() {
 
   return (
     <div className="h-full flex flex-col gap-3 overflow-hidden">
-      {/* Header — text-3xl like real */}
+      {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
         <div className="flex items-center gap-2">
@@ -143,7 +161,7 @@ function DashboardView() {
         </div>
       </div>
 
-      {/* Stats — grid-cols-4 like real */}
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-3 shrink-0">
         {stats.map((s, i) => (
           <div key={i} className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm p-4">
@@ -160,7 +178,7 @@ function DashboardView() {
         ))}
       </div>
 
-      {/* Main — grid-rows-2 like real */}
+      {/* Main grid */}
       <div className="flex-1 grid grid-rows-2 gap-3 min-h-0">
         {/* Row 1 */}
         <div className="grid grid-cols-2 gap-3 min-h-0">
@@ -225,11 +243,9 @@ function DashboardView() {
                   </pattern>
                 </defs>
                 <rect x="40" y="10" width="450" height="170" fill="url(#grid)" />
-                {/* Y axis labels */}
                 <text x="35" y="15" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
                 <text x="35" y="100" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
                 <text x="35" y="185" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
-                {/* Line */}
                 <polyline
                   fill="none"
                   stroke="#16a34a"
@@ -272,7 +288,7 @@ function DashboardView() {
   );
 }
 
-/* ── CALL ANALYSIS VIEW (exact structure of real CallDetail.tsx) ── */
+/* ── CALL ANALYSIS VIEW ── */
 function AnalysisView() {
   const { t } = useTranslation();
 
@@ -288,7 +304,7 @@ function AnalysisView() {
 
   return (
     <div className="space-y-6">
-      {/* Header with back button — exact like real */}
+      {/* Header with back button */}
       <div className="flex items-center gap-4">
         <div className="p-2 rounded-lg text-gray-500">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -299,7 +315,7 @@ function AnalysisView() {
         </div>
       </div>
 
-      {/* Metadata cards — grid-cols-4 gap-4 p-4 like real */}
+      {/* Metadata cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: t('calls.date', 'Data'), value: '10/02/2026 14:32' },
@@ -314,7 +330,7 @@ function AnalysisView() {
         ))}
       </div>
 
-      {/* Tabs — like real */}
+      {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         {[t('calls.summary', 'Resumo'), t('calls.evaluation', 'Avaliação'), t('calls.feedback', 'Feedback')].map((tab, i) => (
           <button key={i} className={`px-4 py-2 text-sm font-medium border-b-2 ${i === 0 ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 dark:text-gray-400'}`}>{tab}</button>
@@ -504,6 +520,223 @@ function ReportsView() {
   );
 }
 
+/* ── CRITERIA VIEW ── */
+function CriteriaView() {
+  const { t } = useTranslation();
+
+  const categories = [
+    { key: 'all', label: t('common.all', 'Todos'), color: '' },
+    { key: 'communication', label: t('landing.mock.catCommunication', 'Comunicação'), color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    { key: 'sales', label: t('landing.mock.catSales', 'Vendas'), color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { key: 'compliance', label: t('landing.mock.catCompliance', 'Compliance'), color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+  ];
+
+  const criteria = [
+    { name: t('landing.mock.criteriaGreeting', 'Saudação profissional'), cat: 'Comunicação', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', desc: t('landing.mock.criteriaGreetingDesc', 'Verifica se o agente cumprimenta o cliente de forma profissional'), weight: 3, active: true },
+    { name: t('landing.mock.criteriaNeeds', 'Identificação de necessidades'), cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', desc: t('landing.mock.criteriaNeedsDesc', 'Avalia se o agente faz perguntas para entender as necessidades'), weight: 5, active: true },
+    { name: t('landing.mock.criteriaObjHandling', 'Gestão de objeções'), cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', desc: t('landing.mock.criteriaObjHandlingDesc', 'Avalia como o agente responde a objeções do cliente'), weight: 4, active: true },
+    { name: t('landing.mock.criteriaCompliance', 'Conformidade legal'), cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', desc: t('landing.mock.criteriaComplianceDesc', 'Verifica conformidade com requisitos legais e regulamentares'), weight: 5, active: true },
+    { name: t('landing.mock.criteriaClosing', 'Fecho da chamada'), cat: 'Comunicação', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', desc: t('landing.mock.criteriaClosingDesc', 'Avalia se o agente encerra a chamada de forma adequada'), weight: 2, active: true },
+    { name: t('landing.mock.criteriaEmpathy', 'Empatia e tom'), cat: 'Comunicação', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', desc: t('landing.mock.criteriaEmpathyDesc', 'Avalia o tom e a empatia demonstrada pelo agente'), weight: 4, active: false },
+  ];
+
+  const getWeightColor = (w: number) => {
+    if (w <= 1) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    if (w <= 2) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+    if (w <= 3) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+    return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('criteria.title', 'Critérios de Avaliação')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('criteria.subtitle', 'Configure os critérios usados para avaliar chamadas')}</p>
+        </div>
+        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
+          <Plus className="w-4 h-4" />
+          {t('criteria.addCriteria', 'Adicionar Critério')}
+        </button>
+      </div>
+
+      {/* Category filter tabs */}
+      <div className="flex gap-2">
+        {categories.map((cat, i) => (
+          <button
+            key={cat.key}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              i === 0
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('criteria.name', 'Nome')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('criteria.category', 'Categoria')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 hidden xl:table-cell">{t('criteria.description', 'Descrição')}</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('criteria.weight', 'Peso')}</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('criteria.status', 'Estado')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {criteria.map((c, i) => (
+              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{c.name}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${c.catColor}`}>
+                    <Tag className="w-3 h-3" />
+                    {c.cat}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate hidden xl:table-cell">{c.desc}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${getWeightColor(c.weight)}`}>{c.weight}</span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${c.active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
+                    {c.active ? t('criteria.active', 'Ativo') : t('criteria.inactive', 'Inativo')}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ── USERS VIEW ── */
+function UsersView() {
+  const { t } = useTranslation();
+
+  const users = [
+    { name: 'Duarte Figueiras', initial: 'D', role: 'admin', email: 'duarte@empresa.pt', phone: '+351 912 345 678', minutes: 245, calls: 89, date: '01/01/2026' },
+    { name: 'Maria Silva', initial: 'M', role: 'user', email: 'maria@empresa.pt', phone: '+351 965 432 109', minutes: 312, calls: 124, date: '15/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'João Santos', initial: 'J', role: 'user', email: 'joao@empresa.pt', phone: '+351 934 876 210', minutes: 187, calls: 67, date: '20/01/2026', cat: 'Suporte', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    { name: 'Ana Costa', initial: 'A', role: 'user', email: 'ana@empresa.pt', phone: '+351 918 654 321', minutes: 298, calls: 102, date: '25/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'Pedro Lopes', initial: 'P', role: 'user', email: 'pedro@empresa.pt', phone: '+351 927 111 222', minutes: 156, calls: 53, date: '01/02/2026', cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('nav.users', 'Utilizadores')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('users.subtitle', 'Gerir membros da equipa e os seus acessos')}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium">5/10 {t('nav.users', 'utilizadores')}</span>
+          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
+            <Mail className="w-4 h-4" />
+            {t('users.invite', 'Convidar')}
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder={t('common.search', 'Pesquisar...')}
+          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
+          readOnly
+        />
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.username', 'Utilizador')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.role', 'Cargo')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.category', 'Categoria')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.phone', 'Telefone')}</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center gap-1">
+                  {t('users.minutesUsed', 'Minutos')}
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center gap-1">
+                  {t('users.calls', 'Chamadas')}
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.created', 'Criado')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {users.map((u, i) => (
+              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
+                      u.role === 'admin'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {u.initial}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{u.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    u.role === 'admin'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                  }`}>
+                    {u.role === 'admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                    {u.role === 'admin' ? 'Admin' : t('users.user', 'Utilizador')}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {u.cat ? (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${u.catColor}`}>
+                      <Tag className="w-3 h-3" />
+                      {u.cat}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{u.phone}</td>
+                <td className="px-4 py-3 text-center text-gray-900 dark:text-gray-100 font-medium">{u.minutes}</td>
+                <td className="px-4 py-3 text-center text-gray-900 dark:text-gray-100 font-medium">{u.calls}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{u.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 /* ── Browser Chrome ── */
 function BrowserChrome({ url }: { url: string }) {
   return (
@@ -524,6 +757,8 @@ const urlMap: Record<Tab, string> = {
   dashboard: 'aicoachcall.com/dashboard',
   analysis: 'aicoachcall.com/calls/1247',
   reports: 'aicoachcall.com/reports',
+  criteria: 'aicoachcall.com/criteria',
+  users: 'aicoachcall.com/users',
 };
 
 export default function ScreenshotPreview() {
@@ -534,13 +769,15 @@ export default function ScreenshotPreview() {
     { key: 'dashboard', label: t('landing.screenshots.dashboard', 'Dashboard') },
     { key: 'analysis', label: t('landing.screenshots.callAnalysis', 'Análise de Chamada') },
     { key: 'reports', label: t('landing.screenshots.reports', 'Relatórios') },
+    { key: 'criteria', label: t('landing.screenshots.criteria', 'Critérios') },
+    { key: 'users', label: t('landing.screenshots.users', 'Utilizadores') },
   ];
 
   return (
     <section className="pb-24 px-4 sm:px-6 lg:px-8 -mt-4">
       <div className="max-w-6xl mx-auto">
         {/* Tab Switcher */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex justify-center gap-2 mb-8 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -556,12 +793,12 @@ export default function ScreenshotPreview() {
           ))}
         </div>
 
-        {/* Browser Frame with CSS scale trick */}
+        {/* Browser Frame */}
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-b from-green-500/10 to-transparent rounded-3xl blur-2xl pointer-events-none" />
           <div className="relative rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <BrowserChrome url={urlMap[activeTab]} />
-            {/* Scaled container — render at full size, scale down */}
+            {/* Scaled container */}
             <div className="relative overflow-hidden" style={{ height: '520px' }}>
               <div
                 className="absolute top-0 left-0 flex bg-gray-50 dark:bg-gray-900"
@@ -579,6 +816,8 @@ export default function ScreenshotPreview() {
                     {activeTab === 'dashboard' && <DashboardView />}
                     {activeTab === 'analysis' && <AnalysisView />}
                     {activeTab === 'reports' && <ReportsView />}
+                    {activeTab === 'criteria' && <CriteriaView />}
+                    {activeTab === 'users' && <UsersView />}
                   </main>
                 </div>
               </div>
