@@ -137,10 +137,10 @@ function AdminDashboardView() {
   ];
 
   const calls = [
-    { phone: '911222333', agent: 'Pedro Oliveira', catColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', date: '26/02/2026, 17:14', dur: '10:21', score: 4.7 },
-    { phone: '978901234', agent: 'Sofia Ferreira', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', date: '26/02/2026, 16:07', dur: '4:52', score: 6.7 },
-    { phone: '933444555', agent: 'Maria Costa', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', date: '26/02/2026, 13:54', dur: '4:11', score: 8.9 },
-    { phone: '944555666', agent: 'João Santos', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', date: '26/02/2026, 13:45', dur: '4:35', score: 6.0 },
+    { phone: '916 789 012', agent: 'Pedro Lopes', catColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', date: '26/02/2026, 17:14', dur: '10:21', score: 4.7 },
+    { phone: '923 456 789', agent: 'Ana Costa', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', date: '26/02/2026, 16:07', dur: '4:52', score: 6.7 },
+    { phone: '931 234 567', agent: 'Maria Silva', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', date: '26/02/2026, 13:54', dur: '4:11', score: 8.9 },
+    { phone: '947 890 123', agent: 'João Santos', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', date: '26/02/2026, 13:45', dur: '4:35', score: 6.0 },
   ];
 
   const alerts = [
@@ -326,16 +326,16 @@ function UserDashboardView() {
   ];
 
   const calls = [
-    { phone: '912 345 678', date: '10/02/2026, 14:32', dur: '8:32', score: 9.2 },
-    { phone: '965 432 109', date: '10/02/2026, 13:15', dur: '12:15', score: 7.5 },
-    { phone: '934 876 210', date: '10/02/2026, 11:44', dur: '6:44', score: 8.8 },
-    { phone: '918 654 321', date: '10/02/2026, 10:20', dur: '4:55', score: 6.1 },
+    { phone: '916 789 012', date: '10/02/2026, 14:32', dur: '8:32', score: 9.2 },
+    { phone: '923 456 789', date: '10/02/2026, 13:15', dur: '12:15', score: 7.5 },
+    { phone: '931 234 567', date: '10/02/2026, 11:44', dur: '6:44', score: 8.8 },
+    { phone: '947 890 123', date: '10/02/2026, 10:20', dur: '4:55', score: 6.1 },
   ];
 
   const alerts = [
-    { iconColor: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 918 654 321' },
-    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 965 432 109' },
-    { iconColor: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 934 876 210' },
+    { iconColor: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 947 890 123' },
+    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 923 456 789' },
+    { iconColor: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 931 234 567' },
   ];
 
   const chartPoints = [6.8, 7.2, 7.5, 7.8, 8.0, 7.6, 8.2, 8.5, 8.1, 8.4, 8.6, 8.4];
@@ -488,7 +488,7 @@ function AnalysisView() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('calls.detail', 'Detalhe da Chamada')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">+351 912 345 678</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">+351 916 789 012</p>
         </div>
       </div>
 
