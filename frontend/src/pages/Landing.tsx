@@ -351,11 +351,6 @@ export default function Landing() {
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('landing.pricing.perUser', 'per user')}
-                    {billingAnnual && (
-                      <span className="block text-green-600 dark:text-green-400 font-medium mt-0.5">
-                        €{plan.price * 12}/{t('landing.pricing.year', 'year')} {t('landing.pricing.billedAnnually', 'billed annually')}
-                      </span>
-                    )}
                   </p>
                 </div>
               ))}
