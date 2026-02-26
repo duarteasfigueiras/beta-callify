@@ -205,8 +205,8 @@ export async function requireActiveSubscription(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  // Developer role bypasses subscription check (no company)
-  if (req.user?.role === 'developer') {
+  // Developer and admin bypass subscription check
+  if (req.user?.role === 'developer' || req.user?.role === 'admin_manager') {
     return next();
   }
 

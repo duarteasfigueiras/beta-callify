@@ -51,9 +51,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Developer bypasses subscription check
-  if (user?.role !== 'developer' && subscriptionStatus !== null && subscriptionStatus !== 'active') {
-    return <Navigate to="/choose-plan" replace />;
+  // Admin and developer bypass subscription check
+  if (!user?.role || !isAdminOrDeveloper(user.role)) {
+    if (subscriptionStatus !== null && subscriptionStatus !== 'active') {
+      return <Navigate to="/choose-plan" replace />;
+    }
   }
 
   return <Layout>{children}</Layout>;
@@ -75,9 +77,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Developer bypasses subscription check
-  if (user?.role !== 'developer' && subscriptionStatus !== null && subscriptionStatus !== 'active') {
-    return <Navigate to="/choose-plan" replace />;
+  // Admin and developer bypass subscription check
+  if (!user?.role || !isAdminOrDeveloper(user.role)) {
+    if (subscriptionStatus !== null && subscriptionStatus !== 'active') {
+      return <Navigate to="/choose-plan" replace />;
+    }
   }
 
   // Developer and admin_manager have access
