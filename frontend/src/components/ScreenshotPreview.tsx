@@ -622,110 +622,107 @@ function CriteriaView() {
   );
 }
 
+/* ── Reusable user table ── */
+function UserTable({ users, t }: { users: { name: string; initial: string; email: string; phone: string; minutes: number; calls: number; date: string; cat?: string; catColor?: string }[]; t: (key: string, fallback: string) => string }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+          <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.username', 'Utilizador')}</th>
+          <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.category', 'Categoria')}</th>
+          <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.phone', 'Telefone')}</th>
+          <th className="text-center px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center gap-1">
+              {t('users.minutesUsed', 'Minutos')}
+              <ArrowUpDown className="w-3 h-3" />
+            </div>
+          </th>
+          <th className="text-center px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center gap-1">
+              {t('users.calls', 'Chamadas')}
+              <ArrowUpDown className="w-3 h-3" />
+            </div>
+          </th>
+          <th className="text-left px-4 py-2.5 font-medium text-gray-500 dark:text-gray-400">{t('users.created', 'Criado')}</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        {users.map((u, i) => (
+          <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <td className="px-4 py-2.5">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  {u.initial}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{u.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
+                </div>
+              </div>
+            </td>
+            <td className="px-4 py-2.5">
+              {u.cat ? (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${u.catColor}`}>
+                  <Tag className="w-3 h-3" />
+                  {u.cat}
+                </span>
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
+            </td>
+            <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{u.phone}</td>
+            <td className="px-4 py-2.5 text-center text-gray-900 dark:text-gray-100 font-medium">{u.minutes}</td>
+            <td className="px-4 py-2.5 text-center text-gray-900 dark:text-gray-100 font-medium">{u.calls}</td>
+            <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400">{u.date}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 /* ── USERS VIEW ── */
 function UsersView() {
   const { t } = useTranslation();
 
+  const admins = [
+    { name: 'Duarte Figueiras', initial: 'D', email: 'duarte@empresa.pt', phone: '+351 912 345 678', minutes: 245, calls: 89, date: '01/01/2026' },
+    { name: 'Sofia Mendes', initial: 'S', email: 'sofia@empresa.pt', phone: '+351 938 765 432', minutes: 178, calls: 62, date: '05/01/2026' },
+  ];
+
   const users = [
-    { name: 'Duarte Figueiras', initial: 'D', role: 'admin', email: 'duarte@empresa.pt', phone: '+351 912 345 678', minutes: 245, calls: 89, date: '01/01/2026' },
-    { name: 'Maria Silva', initial: 'M', role: 'user', email: 'maria@empresa.pt', phone: '+351 965 432 109', minutes: 312, calls: 124, date: '15/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-    { name: 'João Santos', initial: 'J', role: 'user', email: 'joao@empresa.pt', phone: '+351 934 876 210', minutes: 187, calls: 67, date: '20/01/2026', cat: 'Suporte', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-    { name: 'Ana Costa', initial: 'A', role: 'user', email: 'ana@empresa.pt', phone: '+351 918 654 321', minutes: 298, calls: 102, date: '25/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-    { name: 'Pedro Lopes', initial: 'P', role: 'user', email: 'pedro@empresa.pt', phone: '+351 927 111 222', minutes: 156, calls: 53, date: '01/02/2026', cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+    { name: 'Maria Silva', initial: 'M', email: 'maria@empresa.pt', phone: '+351 965 432 109', minutes: 312, calls: 124, date: '15/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'João Santos', initial: 'J', email: 'joao@empresa.pt', phone: '+351 934 876 210', minutes: 187, calls: 67, date: '20/01/2026', cat: 'Suporte', catColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    { name: 'Ana Costa', initial: 'A', email: 'ana@empresa.pt', phone: '+351 918 654 321', minutes: 298, calls: 102, date: '25/01/2026', cat: 'Vendas', catColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    { name: 'Pedro Lopes', initial: 'P', email: 'pedro@empresa.pt', phone: '+351 927 111 222', minutes: 156, calls: 53, date: '01/02/2026', cat: 'Compliance', catColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('nav.users', 'Utilizadores')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('users.subtitle', 'Gerir membros da equipa e os seus acessos')}</p>
-        </div>
-        <div className="flex items-center gap-3" />
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('nav.users', 'Utilizadores')}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('users.subtitle', 'Gerir membros da equipa e os seus acessos')}</p>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder={t('common.search', 'Pesquisar...')}
-          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
-          readOnly
-        />
-      </div>
-
-      {/* Table */}
+      {/* Administrators section */}
       <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.username', 'Utilizador')}</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.role', 'Cargo')}</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.category', 'Categoria')}</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.phone', 'Telefone')}</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                <div className="flex items-center justify-center gap-1">
-                  {t('users.minutesUsed', 'Minutos')}
-                  <ArrowUpDown className="w-3 h-3" />
-                </div>
-              </th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                <div className="flex items-center justify-center gap-1">
-                  {t('users.calls', 'Chamadas')}
-                  <ArrowUpDown className="w-3 h-3" />
-                </div>
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users.created', 'Criado')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {users.map((u, i) => (
-              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
-                      u.role === 'admin'
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {u.initial}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{u.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    u.role === 'admin'
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}>
-                    {u.role === 'admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                    {u.role === 'admin' ? 'Admin' : t('users.user', 'Utilizador')}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {u.cat ? (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${u.catColor}`}>
-                      <Tag className="w-3 h-3" />
-                      {u.cat}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{u.phone}</td>
-                <td className="px-4 py-3 text-center text-gray-900 dark:text-gray-100 font-medium">{u.minutes}</td>
-                <td className="px-4 py-3 text-center text-gray-900 dark:text-gray-100 font-medium">{u.calls}</td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{u.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
+          <span className="text-sm font-semibold text-green-800 dark:text-green-300">{t('users.administrators', 'Administradores')}</span>
+          <span className="text-xs text-green-600 dark:text-green-400 ml-1">({admins.length})</span>
+        </div>
+        <UserTable users={admins} t={t} />
+      </div>
+
+      {/* Users section */}
+      <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex items-center gap-2">
+          <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">{t('users.users', 'Utilizadores')}</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">({users.length})</span>
+        </div>
+        <UserTable users={users} t={t} />
       </div>
     </div>
   );
