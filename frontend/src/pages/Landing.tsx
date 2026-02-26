@@ -94,18 +94,13 @@ export default function Landing() {
   ];
 
   const comparisonFeatures: { label: string; basic: boolean; pro: boolean; business: boolean }[] = [
-    { label: t('landing.pricing.grid.transcription', 'Automatic transcription'), basic: true, pro: true, business: true },
-    { label: t('landing.pricing.grid.analysis', 'AI analysis & overall score'), basic: true, pro: true, business: true },
-    { label: t('landing.pricing.grid.summary', 'Automatic call summary'), basic: true, pro: true, business: true },
-    { label: t('landing.pricing.grid.history', 'Call history & tracking'), basic: true, pro: true, business: true },
-    { label: t('landing.pricing.grid.callType', 'Call type & flow detection'), basic: true, pro: true, business: true },
-    { label: t('landing.pricing.grid.detailedScore', 'Detailed score per criterion'), basic: false, pro: true, business: true },
-    { label: t('landing.pricing.grid.feedback', 'Strengths & improvement points'), basic: false, pro: true, business: true },
+    { label: t('landing.pricing.grid.coreAnalysis', 'Transcription, AI analysis & summary'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.callTracking', 'Call history, type & flow detection'), basic: true, pro: true, business: true },
+    { label: t('landing.pricing.grid.detailedFeedback', 'Detailed scoring & feedback per criterion'), basic: false, pro: true, business: true },
     { label: t('landing.pricing.grid.reports', 'Reports, filters & PDF export'), basic: false, pro: true, business: true },
     { label: t('landing.pricing.grid.alerts', 'Automatic alerts & risk words'), basic: false, pro: true, business: true },
     { label: t('landing.pricing.grid.coaching', 'Metrics, goals & coaching'), basic: false, pro: true, business: true },
-    { label: t('landing.pricing.grid.comparison', 'Agent comparison & ranking'), basic: false, pro: false, business: true },
-    { label: t('landing.pricing.grid.teamAnalytics', 'Team analytics & evolution'), basic: false, pro: false, business: true },
+    { label: t('landing.pricing.grid.teamInsights', 'Team comparison, ranking & evolution'), basic: false, pro: false, business: true },
     { label: t('landing.pricing.grid.prioritySupport', 'Priority support'), basic: false, pro: false, business: true },
   ];
 
