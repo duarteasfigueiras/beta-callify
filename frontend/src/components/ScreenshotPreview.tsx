@@ -326,19 +326,20 @@ function UserDashboardView() {
   ];
 
   const calls = [
-    { phone: '912 345 678', date: '10/02/2026 14:32', dur: '8:32', score: 9.2 },
-    { phone: '965 432 109', date: '10/02/2026 13:15', dur: '12:15', score: 7.5 },
-    { phone: '934 876 210', date: '10/02/2026 11:44', dur: '6:44', score: 8.8 },
-    { phone: '918 654 321', date: '10/02/2026 10:20', dur: '4:55', score: 6.1 },
+    { phone: '912 345 678', date: '10/02/2026, 14:32', dur: '8:32', score: 9.2 },
+    { phone: '965 432 109', date: '10/02/2026, 13:15', dur: '12:15', score: 7.5 },
+    { phone: '934 876 210', date: '10/02/2026, 11:44', dur: '6:44', score: 8.8 },
+    { phone: '918 654 321', date: '10/02/2026, 10:20', dur: '4:55', score: 6.1 },
   ];
 
   const alerts = [
-    { icon: TrendingUp, iconColor: 'text-red-500', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 918 654 321', unread: true },
-    { icon: AlertTriangle, iconColor: 'text-yellow-500', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 965 432 109', unread: true },
-    { icon: CheckCircle, iconColor: 'text-purple-500', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 934 876 210', unread: false },
+    { iconColor: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 918 654 321' },
+    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 965 432 109' },
+    { iconColor: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 934 876 210' },
   ];
 
   const chartPoints = [6.8, 7.2, 7.5, 7.8, 8.0, 7.6, 8.2, 8.5, 8.1, 8.4, 8.6, 8.4];
+  const chartDates = ['30/01', '01/02', '02/02', '03/02', '04/02', '05/02', '06/02', '07/02', '08/02', '09/02', '10/02', '10/02'];
 
   const getScoreColor = (s: number) => s >= 8 ? 'text-green-600 dark:text-green-400' : s >= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
 
@@ -346,12 +347,12 @@ function UserDashboardView() {
     <div className="h-full flex flex-col gap-3 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard.title', 'Painel')}</h1>
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-gray-500" />
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {(['Today', '7d', '30d', '90d', 'All'] as const).map((r) => (
-              <span key={r} className={`px-3 py-1 text-sm font-medium ${r === '30d' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #374151' }}>
+            {[t('dashboard.today', 'Hoje'), t('dashboard.7days', '7 dias'), t('dashboard.30days', '30 dias'), t('dashboard.90days', '90 dias'), t('dashboard.all', 'Todos')].map((r, i) => (
+              <span key={i} className={`px-3 py-1 text-sm font-medium ${i === 2 ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
             ))}
           </div>
         </div>
@@ -383,10 +384,10 @@ function UserDashboardView() {
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-2">
-              <div className="space-y-2">
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+              <div className="divide-y" style={{ borderColor: '#374151' }}>
                 {calls.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 h-[52px] bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={i} className="flex items-center justify-between py-3 px-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.phone}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{c.date} • {c.dur}</p>
@@ -406,13 +407,13 @@ function UserDashboardView() {
             <div className="flex-1 min-h-0 overflow-y-auto p-2">
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className={`flex items-center gap-2 p-2 h-[52px] rounded-lg ${a.unread ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                    <a.icon className={`w-4 h-4 shrink-0 ${a.iconColor}`} />
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: '#111827', border: '1px solid #374151' }}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${i === 0 ? 'bg-red-100 dark:bg-red-900/30' : i === 1 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-purple-100 dark:bg-purple-900/30'}`}>
+                      <Phone className={`w-4 h-4 ${a.iconColor}`} />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{a.label}</span>
-                      </div>
-                      <p className="text-xs text-gray-900 dark:text-gray-100 line-clamp-1">{a.msg}</p>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${a.badgeColor}`}>{a.label}</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-1">{a.msg}</p>
                     </div>
                   </div>
                 ))}
@@ -430,24 +431,30 @@ function UserDashboardView() {
             </div>
             <div className="flex-1 p-2 min-h-0">
               <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <pattern id="gridUser" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" strokeDasharray="3 3" />
-                  </pattern>
-                </defs>
-                <rect x="40" y="10" width="450" height="170" fill="url(#gridUser)" />
-                <text x="35" y="15" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
-                <text x="35" y="100" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
-                <text x="35" y="185" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
+                {/* Horizontal grid lines */}
+                <line x1="50" y1="10" x2="480" y2="10" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="50" x2="480" y2="50" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="90" x2="480" y2="90" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="130" x2="480" y2="130" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="170" x2="480" y2="170" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                {/* Y-axis labels */}
+                <text x="35" y="14" fontSize="10" fill="#9ca3af" textAnchor="end">10</text>
+                <text x="35" y="54" fontSize="10" fill="#9ca3af" textAnchor="end">7</text>
+                <text x="35" y="94" fontSize="10" fill="#9ca3af" textAnchor="end">5</text>
+                <text x="35" y="134" fontSize="10" fill="#9ca3af" textAnchor="end">3</text>
+                <text x="35" y="174" fontSize="10" fill="#9ca3af" textAnchor="end">0</text>
                 <polyline
                   fill="none"
                   stroke="#16a34a"
                   strokeWidth="2"
                   strokeLinejoin="round"
-                  points={chartPoints.map((p, i) => `${45 + i * (440 / (chartPoints.length - 1))},${180 - (p / 10) * 170}`).join(' ')}
+                  points={chartPoints.map((p, i) => `${50 + i * (430 / (chartPoints.length - 1))},${170 - (p / 10) * 160}`).join(' ')}
                 />
                 {chartPoints.map((p, i) => (
-                  <circle key={i} cx={45 + i * (440 / (chartPoints.length - 1))} cy={180 - (p / 10) * 170} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
+                  <circle key={i} cx={50 + i * (430 / (chartPoints.length - 1))} cy={170 - (p / 10) * 160} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
+                ))}
+                {chartDates.map((d, i) => (
+                  i % 2 === 0 && <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="#9ca3af" textAnchor="middle">{d}</text>
                 ))}
               </svg>
             </div>
@@ -631,12 +638,12 @@ function ReportsView() {
           </div>
           <div className="p-4 h-56">
             <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-              <defs>
-                <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" strokeDasharray="3 3" />
-                </pattern>
-              </defs>
-              <rect x="40" y="10" width="450" height="170" fill="url(#grid2)" />
+              {/* Horizontal grid lines */}
+              <line x1="50" y1="10" x2="480" y2="10" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="50" x2="480" y2="50" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="90" x2="480" y2="90" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="130" x2="480" y2="130" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="170" x2="480" y2="170" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
               <polyline
                 fill="none"
                 stroke="#16a34a"
