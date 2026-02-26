@@ -24,14 +24,17 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'analysis' | 'reports' | 'criteria' | 'users';
+type Tab = 'dashboard-admin' | 'dashboard-user' | 'analysis' | 'reports' | 'criteria' | 'users';
 
 /* ── Sidebar (exact copy of real Layout.tsx) ── */
 function MockSidebar({ activeTab }: { activeTab: Tab }) {
   const { t } = useTranslation();
 
+  const isUserView = activeTab === 'dashboard-user';
+
   const sidebarMap: Record<Tab, string> = {
-    dashboard: 'dashboard',
+    'dashboard-admin': 'dashboard',
+    'dashboard-user': 'dashboard',
     analysis: 'calls',
     reports: 'reports',
     criteria: 'criteria',
@@ -39,7 +42,7 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
   };
   const activeKey = sidebarMap[activeTab];
 
-  const navItems = [
+  const adminNavItems = [
     { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { key: 'calls', icon: Phone, label: t('nav.calls', 'Chamadas') },
     { key: 'reports', icon: BarChart3, label: t('nav.reports', 'Relatórios') },
@@ -47,6 +50,18 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
     { key: 'users', icon: Users, label: t('nav.users', 'Utilizadores') },
     { key: 'settings', icon: Settings, label: t('nav.settings', 'Definições') },
   ];
+
+  const userNavItems = [
+    { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: 'calls', icon: Phone, label: t('nav.calls', 'Chamadas') },
+    { key: 'settings', icon: Settings, label: t('nav.settings', 'Definições') },
+  ];
+
+  const navItems = isUserView ? userNavItems : adminNavItems;
+
+  const userName = isUserView ? 'Maria S.' : 'Duarte F.';
+  const userInitial = isUserView ? 'M' : 'D';
+  const userRole = isUserView ? t('users.user', 'Utilizador') : 'Admin';
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
@@ -77,11 +92,11 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">
-            D
+            {userInitial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">Duarte F.</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{userName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{userRole}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -110,8 +125,8 @@ function MockHeader() {
   );
 }
 
-/* ── DASHBOARD VIEW ── */
-function DashboardView() {
+/* ── ADMIN DASHBOARD VIEW ── */
+function AdminDashboardView() {
   const { t } = useTranslation();
 
   const stats = [
@@ -280,6 +295,150 @@ function DashboardView() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── USER DASHBOARD VIEW ── */
+function UserDashboardView() {
+  const { t } = useTranslation();
+
+  const stats = [
+    { label: t('dashboard.totalCalls', 'Total de Chamadas'), value: '124', icon: Phone, iconBg: 'bg-green-100 dark:bg-green-900/30', iconColor: 'text-green-600 dark:text-green-400' },
+    { label: t('dashboard.averageScore', 'Pontuação Média'), value: '8.4', icon: TrendingUp, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: t('dashboard.alertsCount', 'Alertas'), value: '3', icon: AlertTriangle, iconBg: 'bg-amber-100 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400' },
+    { label: t('dashboard.callsWithNextStep', 'Com Próximo Passo'), value: '82%', icon: CheckCircle, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400' },
+  ];
+
+  const calls = [
+    { phone: '912 345 678', date: '10/02/2026 14:32', dur: '8:32', score: 9.2 },
+    { phone: '965 432 109', date: '10/02/2026 13:15', dur: '12:15', score: 7.5 },
+    { phone: '934 876 210', date: '10/02/2026 11:44', dur: '6:44', score: 8.8 },
+    { phone: '918 654 321', date: '10/02/2026 10:20', dur: '4:55', score: 6.1 },
+  ];
+
+  const alerts = [
+    { icon: TrendingUp, iconColor: 'text-red-500', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 918 654 321', unread: true },
+    { icon: AlertTriangle, iconColor: 'text-yellow-500', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 965 432 109', unread: true },
+    { icon: CheckCircle, iconColor: 'text-purple-500', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 934 876 210', unread: false },
+  ];
+
+  const chartPoints = [6.8, 7.2, 7.5, 7.8, 8.0, 7.6, 8.2, 8.5, 8.1, 8.4, 8.6, 8.4];
+
+  const getScoreColor = (s: number) => s >= 8 ? 'text-green-600 dark:text-green-400' : s >= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+
+  return (
+    <div className="h-full flex flex-col gap-3 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-gray-500" />
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {(['Today', '7d', '30d', '90d', 'All'] as const).map((r) => (
+              <span key={r} className={`px-3 py-1 text-sm font-medium ${r === '30d' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        {stats.map((s, i) => (
+          <div key={i} className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{s.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{s.value}</p>
+              </div>
+              <div className={`p-2 rounded-full ${s.iconBg}`}>
+                <s.icon className={`w-5 h-5 ${s.iconColor}`} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main grid */}
+      <div className="flex-1 grid grid-rows-2 gap-3 min-h-0">
+        {/* Row 1 */}
+        <div className="grid grid-cols-2 gap-3 min-h-0">
+          {/* Recent Calls — no agent column, just user's own calls */}
+          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+            <div className="py-2 px-4 shrink-0">
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-2">
+              <div className="space-y-2">
+                {calls.map((c, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 h-[52px] bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.phone}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.date} • {c.dur}</p>
+                    </div>
+                    <div className={`text-lg font-bold ${getScoreColor(c.score)}`}>{c.score.toFixed(1)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Alerts */}
+          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+            <div className="py-2 px-4 shrink-0">
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('alerts.title', 'Alertas')}</h3>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-2">
+              <div className="space-y-2">
+                {alerts.map((a, i) => (
+                  <div key={i} className={`flex items-center gap-2 p-2 h-[52px] rounded-lg ${a.unread ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <a.icon className={`w-4 h-4 shrink-0 ${a.iconColor}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{a.label}</span>
+                      </div>
+                      <p className="text-xs text-gray-900 dark:text-gray-100 line-clamp-1">{a.msg}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2 — single chart spanning full width (no Top Reasons for users) */}
+        <div className="grid grid-cols-1 gap-3 min-h-0">
+          {/* Score Evolution */}
+          <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm flex flex-col min-h-0">
+            <div className="py-2 px-4 shrink-0">
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
+            </div>
+            <div className="flex-1 p-2 min-h-0">
+              <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <pattern id="gridUser" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" strokeDasharray="3 3" />
+                  </pattern>
+                </defs>
+                <rect x="40" y="10" width="450" height="170" fill="url(#gridUser)" />
+                <text x="35" y="15" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
+                <text x="35" y="100" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
+                <text x="35" y="185" fontSize="11" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
+                <polyline
+                  fill="none"
+                  stroke="#16a34a"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  points={chartPoints.map((p, i) => `${45 + i * (440 / (chartPoints.length - 1))},${180 - (p / 10) * 170}`).join(' ')}
+                />
+                {chartPoints.map((p, i) => (
+                  <circle key={i} cx={45 + i * (440 / (chartPoints.length - 1))} cy={180 - (p / 10) * 170} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
+                ))}
+              </svg>
             </div>
           </div>
         </div>
@@ -745,7 +904,8 @@ function BrowserChrome({ url }: { url: string }) {
 }
 
 const urlMap: Record<Tab, string> = {
-  dashboard: 'aicoachcall.com/dashboard',
+  'dashboard-admin': 'aicoachcall.com/dashboard',
+  'dashboard-user': 'aicoachcall.com/dashboard',
   analysis: 'aicoachcall.com/calls/1247',
   reports: 'aicoachcall.com/reports',
   criteria: 'aicoachcall.com/criteria',
@@ -754,10 +914,11 @@ const urlMap: Record<Tab, string> = {
 
 export default function ScreenshotPreview() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('dashboard-admin');
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'dashboard', label: t('landing.screenshots.dashboard', 'Dashboard') },
+    { key: 'dashboard-admin', label: t('landing.screenshots.dashboardAdmin', 'Dashboard Admin') },
+    { key: 'dashboard-user', label: t('landing.screenshots.dashboardUser', 'Dashboard Utilizador') },
     { key: 'analysis', label: t('landing.screenshots.callAnalysis', 'Análise de Chamada') },
     { key: 'reports', label: t('landing.screenshots.reports', 'Relatórios') },
     { key: 'criteria', label: t('landing.screenshots.criteria', 'Critérios') },
@@ -804,7 +965,8 @@ export default function ScreenshotPreview() {
                 <div className="flex-1 flex flex-col min-w-0">
                   <MockHeader />
                   <main className="flex-1 p-4 lg:p-6 overflow-hidden">
-                    {activeTab === 'dashboard' && <DashboardView />}
+                    {activeTab === 'dashboard-admin' && <AdminDashboardView />}
+                    {activeTab === 'dashboard-user' && <UserDashboardView />}
                     {activeTab === 'analysis' && <AnalysisView />}
                     {activeTab === 'reports' && <ReportsView />}
                     {activeTab === 'criteria' && <CriteriaView />}

@@ -761,7 +761,8 @@ const resources = {
           contact: 'Contact',
         },
         screenshots: {
-          dashboard: 'Dashboard',
+          dashboardAdmin: 'Admin Dashboard',
+          dashboardUser: 'User Dashboard',
           callAnalysis: 'Call Analysis',
           reports: 'Reports',
           criteria: 'Criteria',
@@ -1946,7 +1947,8 @@ const resources = {
           contact: 'Contacto',
         },
         screenshots: {
-          dashboard: 'Dashboard',
+          dashboardAdmin: 'Dashboard Admin',
+          dashboardUser: 'Dashboard Utilizador',
           callAnalysis: 'Análise de Chamada',
           reports: 'Relatórios',
           criteria: 'Critérios',
