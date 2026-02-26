@@ -88,22 +88,6 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
           </div>
         ))}
       </nav>
-      {/* User */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-semibold">
-            {userInitial}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{userRole}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg">
-          <LogOut className="w-4 h-4" />
-          <span>{t('auth.logout', 'Logout')}</span>
-        </div>
-      </div>
     </aside>
   );
 }
