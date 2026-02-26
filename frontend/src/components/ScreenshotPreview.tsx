@@ -199,10 +199,10 @@ function AdminDashboardView() {
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-2">
-              <div className="space-y-2">
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {calls.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 h-[52px] bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={i} className="flex items-center justify-between py-3 px-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.phone}</p>
@@ -225,7 +225,7 @@ function AdminDashboardView() {
             <div className="flex-1 min-h-0 overflow-y-auto p-2">
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${i === 3 ? 'bg-blue-100 dark:bg-blue-900/30' : i === 2 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
                       <Phone className={`w-4 h-4 ${a.iconColor}`} />
                     </div>
@@ -249,16 +249,18 @@ function AdminDashboardView() {
             </div>
             <div className="flex-1 p-2 min-h-0">
               <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" strokeDasharray="3 3" />
-                  </pattern>
-                </defs>
-                <rect x="40" y="10" width="450" height="160" fill="url(#grid)" />
-                <text x="35" y="15" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">10</text>
-                <text x="35" y="60" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">7</text>
-                <text x="35" y="105" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">5</text>
-                <text x="35" y="175" fontSize="10" fill="currentColor" textAnchor="end" className="text-gray-500 dark:text-gray-400">0</text>
+                {/* Horizontal grid lines */}
+                <line x1="50" y1="10" x2="480" y2="10" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="50" x2="480" y2="50" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="90" x2="480" y2="90" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="130" x2="480" y2="130" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                <line x1="50" y1="170" x2="480" y2="170" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+                {/* Y-axis labels */}
+                <text x="35" y="14" fontSize="10" fill="#9ca3af" textAnchor="end">10</text>
+                <text x="35" y="54" fontSize="10" fill="#9ca3af" textAnchor="end">7</text>
+                <text x="35" y="94" fontSize="10" fill="#9ca3af" textAnchor="end">5</text>
+                <text x="35" y="134" fontSize="10" fill="#9ca3af" textAnchor="end">3</text>
+                <text x="35" y="174" fontSize="10" fill="#9ca3af" textAnchor="end">0</text>
                 <polyline
                   fill="none"
                   stroke="#16a34a"
@@ -270,7 +272,7 @@ function AdminDashboardView() {
                   <circle key={i} cx={50 + i * (430 / (chartPoints.length - 1))} cy={170 - (p / 10) * 160} r="3" fill="#16a34a" strokeWidth="2" stroke="#16a34a" />
                 ))}
                 {chartDates.map((d, i) => (
-                  i % 2 === 0 && <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="currentColor" textAnchor="middle" className="text-gray-400 dark:text-gray-500">{d}</text>
+                  i % 2 === 0 && <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="#9ca3af" textAnchor="middle">{d}</text>
                 ))}
               </svg>
             </div>
