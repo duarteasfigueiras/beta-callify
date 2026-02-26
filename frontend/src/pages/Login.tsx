@@ -53,6 +53,9 @@ export default function Login() {
         const retryAfter = response?.retryAfterSeconds || 900;
         setBlockedUntil(Date.now() + retryAfter * 1000);
         setError(t('auth.tooManyAttempts', 'Too many login attempts. Please try again in {{minutes}} minutes.').replace('{{minutes}}', Math.ceil(retryAfter / 60).toString()));
+      } else if (!err?.response) {
+        // Network error (server down, DNS failure, etc.)
+        setError(t('auth.networkError', 'Unable to connect to server. Please check your internet connection and try again.'));
       } else {
         setError(t('auth.invalidCredentials'));
         if (response?.remainingAttempts !== undefined) {
