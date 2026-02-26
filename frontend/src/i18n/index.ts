@@ -710,7 +710,7 @@ const resources = {
         steps: {
           connect: {
             title: 'Connect Your Calls',
-            description: 'Integrate with your telephony provider or upload call recordings. Setup takes minutes.',
+            description: 'Integrate with your telephony provider or upload call recordings.',
           },
           analyze: {
             title: 'AI CoachCall Analyzes Everything',
@@ -1839,7 +1839,7 @@ const resources = {
         steps: {
           connect: {
             title: 'Conecte as Suas Chamadas',
-            description: 'Integre com o seu fornecedor de telefonia ou carregue gravações. A configuração demora minutos.',
+            description: 'Integre com o seu fornecedor de telefonia ou carregue gravações.',
           },
           analyze: {
             title: 'O AI CoachCall Analisa Tudo',

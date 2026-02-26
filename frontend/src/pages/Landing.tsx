@@ -72,7 +72,7 @@ export default function Landing() {
       number: '01',
       icon: Headphones,
       title: t('landing.steps.connect.title', 'Connect Your Calls'),
-      description: t('landing.steps.connect.description', 'Integrate with your telephony provider or upload call recordings. Setup takes minutes.'),
+      description: t('landing.steps.connect.description', 'Integrate with your telephony provider or upload call recordings.'),
     },
     {
       number: '02',
