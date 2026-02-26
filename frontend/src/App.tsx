@@ -16,6 +16,7 @@ import Transcription from './pages/Transcription';
 import Criteria from './pages/Criteria';
 import Users from './pages/Users';
 import Register from './pages/Register';
+import Contact from './pages/Contact';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
@@ -181,6 +182,8 @@ function AppRoutes() {
       />
       {/* Register is always accessible - user can register even if logged in */}
       <Route path="/register" element={<Register />} />
+      {/* Contact form - public */}
+      <Route path="/contact" element={<Contact />} />
       {/* Legal pages - always accessible */}
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />

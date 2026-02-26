@@ -160,9 +160,9 @@ export default function Landing() {
                       {t('auth.login', 'Login')}
                     </Button>
                   </Link>
-                  <Link to="/register">
+                  <Link to="/contact">
                     <Button className="bg-green-600 hover:bg-green-700 text-white">
-                      {t('landing.nav.getStarted', 'Get Started')}
+                      {t('landing.nav.getStarted', 'Request Demo')}
                     </Button>
                   </Link>
                 </>
@@ -199,9 +199,9 @@ export default function Landing() {
             {t('landing.hero.subtitle', 'AI CoachCall analyzes your team\'s calls in real-time, providing scores, transcriptions, and actionable coaching recommendations to improve performance.')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/register">
+            <Link to="/contact">
               <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg h-auto">
-                {t('landing.hero.cta', 'Start Free Trial')}
+                {t('landing.hero.cta', 'Request Demo')}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
@@ -385,7 +385,7 @@ export default function Landing() {
               <div className="p-4" />
               {planColumns.map((plan, index) => (
                 <div key={index} className={`p-4 border-l border-gray-200 dark:border-gray-700 ${index === 1 ? 'bg-green-50/50 dark:bg-green-900/10' : ''}`}>
-                  <Link to="/register">
+                  <Link to="/contact">
                     <Button
                       className={`w-full ${
                         plan.popular
@@ -393,7 +393,7 @@ export default function Landing() {
                           : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
                       }`}
                     >
-                      {t('landing.pricing.choosePlan', 'Choose Plan')}
+                      {t('landing.pricing.choosePlan', 'Request Demo')}
                     </Button>
                   </Link>
                 </div>
@@ -411,11 +411,11 @@ export default function Landing() {
                 {t('landing.pricing.enterprise.description', 'CRM integration, carrier-independent calls, custom features, and dedicated support tailored to your business.')}
               </p>
             </div>
-            <a href="mailto:support@aicoachcall.com">
+            <Link to="/contact">
               <Button variant="outline" className="whitespace-nowrap border-green-600 text-green-600 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-900/20 px-6">
                 {t('landing.pricing.enterprise.cta', 'Contact Us')}
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -429,9 +429,9 @@ export default function Landing() {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
             {t('landing.cta.subtitle', 'Join teams that are already using AI to coach and improve their call performance every day.')}
           </p>
-          <Link to="/register">
+          <Link to="/contact">
             <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg h-auto">
-              {t('landing.cta.button', 'Get Started Now')}
+              {t('landing.cta.button', 'Request Demo')}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>

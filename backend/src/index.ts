@@ -25,6 +25,7 @@ import webhooksRoutes from './routes/webhooks';
 import n8nRoutes from './routes/n8n';
 import categoriesRoutes from './routes/categories';
 import stripeRoutes from './routes/stripe';
+import contactRoutes from './routes/contact';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -143,6 +144,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);  // SECURITY: Prevent invitation token brute-force
 app.use('/api/auth/recover-password', authLimiter);
 // Routes exempt from subscription check
+app.use('/api/contact', contactRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/webhooks', webhooksRoutes);
