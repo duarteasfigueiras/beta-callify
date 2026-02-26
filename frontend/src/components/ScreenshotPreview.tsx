@@ -422,8 +422,8 @@ function UserDashboardView() {
           </div>
         </div>
 
-        {/* Row 2 — single chart spanning full width (no Top Reasons for users) */}
-        <div className="grid grid-cols-1 gap-3 min-h-0">
+        {/* Row 2 */}
+        <div className="grid grid-cols-2 gap-3 min-h-0">
           {/* Score Evolution */}
           <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
             <div className="py-2 px-4 shrink-0">
@@ -457,6 +457,35 @@ function UserDashboardView() {
                   i % 2 === 0 && <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="#9ca3af" textAnchor="middle">{d}</text>
                 ))}
               </svg>
+            </div>
+          </div>
+
+          {/* Daily Goals */}
+          <div className="rounded-lg shadow-sm flex flex-col min-h-0" style={cardStyle}>
+            <div className="py-2 px-4 shrink-0">
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.dailyGoals', 'Objetivos Diários')}</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 min-h-0 flex flex-col justify-center">
+              <div className="space-y-5 px-2">
+                {[
+                  { label: t('dashboard.goalCalls', 'Chamadas Realizadas'), current: 8, target: 10, color: 'bg-green-500' },
+                  { label: t('dashboard.goalScore', 'Pontuação Média'), current: 8.4, target: 10, color: 'bg-blue-500', suffix: '/10' },
+                  { label: t('dashboard.goalDuration', 'Duração Média'), current: 7, target: 10, color: 'bg-amber-500', suffix: ' min' },
+                  { label: t('dashboard.goalNextStep', 'Com Próximo Passo'), current: 82, target: 100, color: 'bg-purple-500', suffix: '%' },
+                ].map((g, i) => (
+                  <div key={i}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-300">{g.label}</span>
+                      <span className="text-sm font-bold text-gray-200">
+                        {g.suffix ? `${g.current}${g.suffix}` : `${g.current}/${g.target}`}
+                      </span>
+                    </div>
+                    <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
+                      <div className={`h-full rounded-full ${g.color}`} style={{ width: `${(g.current / g.target) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
