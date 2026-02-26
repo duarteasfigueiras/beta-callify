@@ -326,16 +326,16 @@ function UserDashboardView() {
   ];
 
   const calls = [
-    { phone: '916 789 012', date: '10/02/2026, 14:32', dur: '8:32', score: 9.2 },
-    { phone: '923 456 789', date: '10/02/2026, 13:15', dur: '12:15', score: 7.5 },
-    { phone: '931 234 567', date: '10/02/2026, 11:44', dur: '6:44', score: 8.8 },
-    { phone: '947 890 123', date: '10/02/2026, 10:20', dur: '4:55', score: 6.1 },
+    { phone: '952 345 678', date: '10/02/2026, 14:32', dur: '8:32', score: 9.2 },
+    { phone: '961 567 890', date: '10/02/2026, 13:15', dur: '12:15', score: 7.5 },
+    { phone: '938 012 345', date: '10/02/2026, 11:44', dur: '6:44', score: 8.8 },
+    { phone: '942 678 901', date: '10/02/2026, 10:20', dur: '4:55', score: 6.1 },
   ];
 
   const alerts = [
-    { iconColor: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 947 890 123' },
-    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 923 456 789' },
-    { iconColor: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 931 234 567' },
+    { iconColor: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', label: t('alerts.types.lowScore', 'Pontuação Baixa'), msg: 'Score 6.1 — Chamada com 942 678 901' },
+    { iconColor: 'text-amber-500', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', label: t('alerts.types.riskWords', 'Palavras de Risco'), msg: '"cancelar" detectado — 961 567 890' },
+    { iconColor: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', label: t('alerts.types.noNextStep', 'Sem Próximo Passo'), msg: 'Chamada sem próximo passo — 938 012 345' },
   ];
 
   const chartPoints = [6.8, 7.2, 7.5, 7.8, 8.0, 7.6, 8.2, 8.5, 8.1, 8.4, 8.6, 8.4];
@@ -488,7 +488,7 @@ function AnalysisView() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('calls.detail', 'Detalhe da Chamada')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">+351 916 789 012</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">+351 952 345 678</p>
         </div>
       </div>
 
