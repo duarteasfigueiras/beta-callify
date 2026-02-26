@@ -87,9 +87,8 @@ export default function Landing() {
 
   const plans = [
     {
-      name: 'Starter',
-      price: '25',
-      minutes: '200',
+      name: 'Basic Call Analysis',
+      price: '30',
       features: [
         t('landing.pricing.features.aiAnalysis', 'AI CoachCall analysis & scoring'),
         t('landing.pricing.features.transcription', 'Real-time transcription'),
@@ -98,33 +97,22 @@ export default function Landing() {
       popular: false,
     },
     {
-      name: 'Medium',
-      price: '50',
-      minutes: '500',
+      name: 'Pro Performance Control',
+      price: '40',
       features: [
-        t('landing.pricing.features.allStarter', 'Everything in Starter'),
+        t('landing.pricing.features.allBasic', 'Everything in Basic'),
         t('landing.pricing.features.advancedReports', 'Performance reports & analytics'),
         t('landing.pricing.features.coaching', 'Coaching recommendations'),
-      ],
-      popular: false,
-    },
-    {
-      name: 'Pro',
-      price: '75',
-      minutes: '1 000',
-      features: [
-        t('landing.pricing.features.allMedium', 'Everything in Medium'),
         t('landing.pricing.features.customCriteria', 'Custom evaluation criteria'),
-        t('landing.pricing.features.teamManagement', 'Team management'),
       ],
       popular: true,
     },
     {
-      name: 'Master',
-      price: '99',
-      minutes: t('landing.pricing.unlimited', 'Unlimited'),
+      name: 'Business',
+      price: '50',
       features: [
         t('landing.pricing.features.allPro', 'Everything in Pro'),
+        t('landing.pricing.features.teamManagement', 'Team management'),
         t('landing.pricing.features.prioritySupport', 'Priority support'),
         t('landing.pricing.features.allFeatures', 'All features included'),
       ],
@@ -312,7 +300,7 @@ export default function Landing() {
               {t('landing.pricing.subtitle', 'Choose the plan that fits your team. All plans include core AI analysis features.')}
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {plans.map((plan, index) => (
               <div
                 key={index}
@@ -340,7 +328,7 @@ export default function Landing() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {plan.minutes} {t('landing.pricing.minutes', 'minutes')}
+                    {t('landing.pricing.perUser', 'per user')}
                   </p>
                 </div>
                 <ul className="space-y-3 mb-6">
