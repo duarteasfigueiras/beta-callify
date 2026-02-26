@@ -250,13 +250,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshSubscription = useCallback(async () => {
+    // Admin and developer always have active status
+    if (state.user?.role === 'developer' || state.user?.role === 'admin_manager') {
+      setSubscriptionStatus('active');
+      return;
+    }
     try {
       const sub = await stripeApi.getSubscriptionStatus();
       setSubscriptionStatus(sub.status);
     } catch {
       setSubscriptionStatus('none');
     }
-  }, []);
+  }, [state.user?.role]);
 
   return (
     <AuthContext.Provider value={{ ...state, login, logout, refreshUser, subscriptionStatus, refreshSubscription }}>

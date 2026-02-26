@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { stripeApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isAdminOrDeveloper } from '../types';
 import { Button } from '../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,13 @@ export default function ChoosePlan() {
   const [subscribingPlan, setSubscribingPlan] = useState<string | null>(null);
   const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
   const [isActivating, setIsActivating] = useState(false);
+
+  // Admin and developer don't need to choose a plan — redirect to dashboard
+  useEffect(() => {
+    if (user?.role && isAdminOrDeveloper(user.role)) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   // Check if returning from Stripe checkout (session_id in URL)
   useEffect(() => {
