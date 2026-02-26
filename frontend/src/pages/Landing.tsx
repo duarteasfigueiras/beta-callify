@@ -34,8 +34,8 @@ export default function Landing() {
   const features = [
     {
       icon: Brain,
-      title: t('landing.features.ai.title', 'AI-Powered Analysis'),
-      description: t('landing.features.ai.description', 'Every call is automatically analyzed by AI that evaluates performance, identifies patterns, and suggests improvements.'),
+      title: t('landing.features.ai.title', 'AI CoachCall Analysis'),
+      description: t('landing.features.ai.description', 'Every call is automatically analyzed by AI CoachCall, which evaluates performance, identifies patterns, and suggests improvements.'),
     },
     {
       icon: FileText,
@@ -74,8 +74,8 @@ export default function Landing() {
     {
       number: '02',
       icon: Brain,
-      title: t('landing.steps.analyze.title', 'AI Analyzes Everything'),
-      description: t('landing.steps.analyze.description', 'Our AI transcribes, scores, and extracts insights from every conversation automatically.'),
+      title: t('landing.steps.analyze.title', 'AI CoachCall Analyzes Everything'),
+      description: t('landing.steps.analyze.description', 'AI CoachCall transcribes, scores, and extracts insights from every conversation automatically.'),
     },
     {
       number: '03',
@@ -91,7 +91,7 @@ export default function Landing() {
       price: '25',
       minutes: '200',
       features: [
-        t('landing.pricing.features.aiAnalysis', 'AI call analysis & scoring'),
+        t('landing.pricing.features.aiAnalysis', 'AI CoachCall analysis & scoring'),
         t('landing.pricing.features.transcription', 'Real-time transcription'),
         t('landing.pricing.features.basicReports', 'Basic reports'),
       ],
@@ -207,7 +207,7 @@ export default function Landing() {
           <div className="inline-flex items-center px-4 py-1.5 mb-6 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
             <Star className="w-4 h-4 text-green-600 mr-2" />
             <span className="text-sm font-medium text-green-700 dark:text-green-400">
-              {t('landing.hero.badge', 'AI-Powered Call Quality Platform')}
+              {t('landing.hero.badge', 'AI CoachCall — Call Analysis Platform')}
             </span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-6">

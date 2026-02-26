@@ -665,9 +665,9 @@ const resources = {
           getStarted: 'Get Started',
         },
         hero: {
-          badge: 'AI-Powered Call Analysis Platform',
+          badge: 'AI CoachCall — Call Analysis Platform',
           title: 'Analyze Every Call With',
-          titleHighlight: 'Artificial Intelligence',
+          titleHighlight: 'AI CoachCall',
           subtitle: 'AI CoachCall is a call analysis platform that automatically transcribes, scores, and extracts insights from every conversation — helping your team identify what works and what needs improvement.',
           cta: 'Start Free Trial',
           secondary: 'See How It Works',
@@ -679,8 +679,8 @@ const resources = {
           title: 'Complete Call Analysis Tools',
           subtitle: 'Everything you need to monitor, analyze, and improve the quality of your team\'s calls.',
           ai: {
-            title: 'AI-Powered Analysis',
-            description: 'Every call is automatically analyzed by AI that evaluates performance, identifies patterns, and suggests improvements.',
+            title: 'AI CoachCall Analysis',
+            description: 'Every call is automatically analyzed by AI CoachCall, which evaluates performance, identifies patterns, and suggests improvements.',
           },
           transcription: {
             title: 'Real-Time Transcription',
@@ -713,8 +713,8 @@ const resources = {
             description: 'Integrate with your telephony provider or upload call recordings. Setup takes minutes.',
           },
           analyze: {
-            title: 'AI Analyzes Everything',
-            description: 'Our AI transcribes, scores, and extracts insights from every conversation automatically.',
+            title: 'AI CoachCall Analyzes Everything',
+            description: 'AI CoachCall transcribes, scores, and extracts insights from every conversation automatically.',
           },
           improve: {
             title: 'Improve Performance',
@@ -723,14 +723,14 @@ const resources = {
         },
         pricing: {
           title: 'Simple, Transparent Pricing',
-          subtitle: 'Choose the plan that fits your team. All plans include core AI analysis features.',
+          subtitle: 'Choose the plan that fits your team. All plans include core AI CoachCall features.',
           popular: 'Most Popular',
           month: 'month',
           minutes: 'minutes',
           unlimited: 'Unlimited',
           choosePlan: 'Choose Plan',
           features: {
-            aiAnalysis: 'AI call analysis & scoring',
+            aiAnalysis: 'AI CoachCall analysis & scoring',
             transcription: 'Real-time transcription',
             basicReports: 'Basic reports',
             allStarter: 'Everything in Starter',
@@ -746,7 +746,7 @@ const resources = {
         },
         cta: {
           title: 'Ready to Improve Your Call Quality?',
-          subtitle: 'Join teams that are already using AI to analyze calls and improve their performance every day.',
+          subtitle: 'Join teams that are already using AI CoachCall to analyze calls and improve their performance every day.',
           button: 'Get Started Now',
         },
         footer: {
@@ -1794,9 +1794,9 @@ const resources = {
           getStarted: 'Começar',
         },
         hero: {
-          badge: 'Plataforma de Análise de Chamadas com IA',
+          badge: 'AI CoachCall — Plataforma de Análise de Chamadas',
           title: 'Analise Cada Chamada Com',
-          titleHighlight: 'Inteligência Artificial',
+          titleHighlight: 'AI CoachCall',
           subtitle: 'O AI CoachCall é uma plataforma de análise de chamadas que transcreve, pontua e extrai insights de cada conversa — ajudando a sua equipa a identificar o que funciona e o que precisa de melhorar.',
           cta: 'Começa Já',
           secondary: 'Ver Como Funciona',
@@ -1808,8 +1808,8 @@ const resources = {
           title: 'Ferramentas Completas de Análise de Chamadas',
           subtitle: 'Tudo o que precisa para monitorizar, analisar e melhorar a qualidade das chamadas da sua equipa.',
           ai: {
-            title: 'Análise com IA',
-            description: 'Cada chamada é automaticamente analisada por IA que avalia o desempenho, identifica padrões e sugere melhorias.',
+            title: 'Análise com AI CoachCall',
+            description: 'Cada chamada é automaticamente analisada pelo AI CoachCall que avalia o desempenho, identifica padrões e sugere melhorias.',
           },
           transcription: {
             title: 'Transcrição em Tempo Real',
@@ -1842,8 +1842,8 @@ const resources = {
             description: 'Integre com o seu fornecedor de telefonia ou carregue gravações. A configuração demora minutos.',
           },
           analyze: {
-            title: 'A IA Analisa Tudo',
-            description: 'A nossa IA transcreve, pontua e extrai insights de cada conversa automaticamente.',
+            title: 'O AI CoachCall Analisa Tudo',
+            description: 'O AI CoachCall transcreve, pontua e extrai insights de cada conversa automaticamente.',
           },
           improve: {
             title: 'Melhore o Desempenho',
@@ -1852,14 +1852,14 @@ const resources = {
         },
         pricing: {
           title: 'Preços Simples e Transparentes',
-          subtitle: 'Escolha o plano ideal para a sua equipa. Todos os planos incluem análise com IA.',
+          subtitle: 'Escolha o plano ideal para a sua equipa. Todos os planos incluem análise com AI CoachCall.',
           popular: 'Mais Popular',
           month: 'mês',
           minutes: 'minutos',
           unlimited: 'Ilimitados',
           choosePlan: 'Escolher Plano',
           features: {
-            aiAnalysis: 'Análise de chamadas com IA e pontuação',
+            aiAnalysis: 'Análise de chamadas com AI CoachCall',
             transcription: 'Transcrição em tempo real',
             basicReports: 'Relatórios básicos',
             allStarter: 'Tudo do Starter',
@@ -1875,7 +1875,7 @@ const resources = {
         },
         cta: {
           title: 'Pronto Para Melhorar a Qualidade das Chamadas?',
-          subtitle: 'Junte-se a equipas que já usam IA para analisar chamadas e melhorar o desempenho todos os dias.',
+          subtitle: 'Junte-se a equipas que já usam o AI CoachCall para analisar chamadas e melhorar o desempenho todos os dias.',
           button: 'Começar Agora',
         },
         footer: {
