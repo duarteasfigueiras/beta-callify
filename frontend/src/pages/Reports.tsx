@@ -269,8 +269,8 @@ export default function Reports() {
     csvContent += `${t('reports.avgScore', 'Avg. Score')},${avgScore}\n\n`;
 
     // Score by Agent
-    csvContent += `${t('reports.scoreByAgent', 'Score by Agent')}\n`;
-    csvContent += `${t('calls.agent', 'Agent')},${t('reports.avgScore', 'Avg. Score')},${t('reports.totalCalls', 'Total Calls')}\n`;
+    csvContent += `${t('reports.scoreByAgent', 'Score by User')}\n`;
+    csvContent += `${t('calls.agent', 'User')},${t('reports.avgScore', 'Avg. Score')},${t('reports.totalCalls', 'Total Calls')}\n`;
     scoreByAgent.forEach(agent => {
       csvContent += `${escapeCsv(agent.agent_username)},${agent.average_score},${agent.total_calls}\n`;
     });
@@ -283,8 +283,8 @@ export default function Reports() {
     csvContent += `${t('calls.meetings', 'Meetings')},${callsByType.meeting}\n\n`;
 
     // Calls by Agent
-    csvContent += `${t('reports.callsByAgent', 'Calls by Agent')}\n`;
-    csvContent += `${t('calls.agent', 'Agent')},${t('reports.totalCalls', 'Total Calls')}\n`;
+    csvContent += `${t('reports.callsByAgent', 'Calls by User')}\n`;
+    csvContent += `${t('calls.agent', 'User')},${t('reports.totalCalls', 'Total Calls')}\n`;
     callsByAgent.forEach(item => {
       csvContent += `${escapeCsv(item.agent)},${item.count}\n`;
     });
@@ -377,11 +377,11 @@ export default function Reports() {
           </div>
         </div>
 
-        <h2>${t('reports.scoreByAgent', 'Score by Agent')}</h2>
+        <h2>${t('reports.scoreByAgent', 'Score by User')}</h2>
         <table>
           <thead>
             <tr>
-              <th>${t('calls.agent', 'Agent')}</th>
+              <th>${t('calls.agent', 'User')}</th>
               <th>${t('reports.avgScore', 'Avg. Score')}</th>
               <th>${t('reports.totalCalls', 'Total Calls')}</th>
             </tr>
@@ -412,11 +412,11 @@ export default function Reports() {
           </tbody>
         </table>
 
-        <h2>${t('reports.callsByAgent', 'Calls by Agent')}</h2>
+        <h2>${t('reports.callsByAgent', 'Calls by User')}</h2>
         <table>
           <thead>
             <tr>
-              <th>${t('calls.agent', 'Agent')}</th>
+              <th>${t('calls.agent', 'User')}</th>
               <th>${t('reports.totalCalls', 'Total Calls')}</th>
             </tr>
           </thead>

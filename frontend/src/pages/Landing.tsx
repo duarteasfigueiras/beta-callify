@@ -58,7 +58,7 @@ export default function Landing() {
     {
       icon: Users,
       title: t('landing.features.team.title', 'Team Management'),
-      description: t('landing.features.team.description', 'Manage agents, track individual performance, and identify coaching opportunities across your team.'),
+      description: t('landing.features.team.description', 'Manage users, track individual performance, and identify coaching opportunities across your team.'),
     },
     {
       icon: Zap,

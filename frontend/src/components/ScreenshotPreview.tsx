@@ -304,7 +304,7 @@ function AnalysisView() {
         {[
           { label: t('calls.date', 'Data'), value: '10/02/2026 14:32' },
           { label: t('calls.duration', 'Duração'), value: '8:32' },
-          { label: t('calls.agent', 'Agente'), value: 'Maria Silva' },
+          { label: t('calls.agent', 'Utilizador'), value: 'Maria Silva' },
           { label: t('calls.score', 'Pontuação'), value: '8.5', color: 'text-green-600 bg-green-100 dark:bg-green-900/30' },
         ].map((m, i) => (
           <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -328,7 +328,7 @@ function AnalysisView() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('calls.summaryTitle', 'Resumo')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              {t('landing.mock.summaryText', 'O cliente ligou para saber mais sobre os planos premium. O agente explicou claramente as opções e preços disponíveis. O cliente mostrou interesse no plano Pro e agendou uma chamada de follow-up.')}
+              {t('landing.mock.summaryText', 'O cliente ligou para saber mais sobre os planos premium. O utilizador explicou claramente as opções e preços disponíveis. O cliente mostrou interesse no plano Pro e agendou uma chamada de follow-up.')}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -412,7 +412,7 @@ function ReportsView() {
               <span key={r} className={`px-3 py-1 text-sm font-medium ${r === '30d' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>{r}</span>
             ))}
           </div>
-          <span className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">{t('reports.allAgents', 'Todos os agentes')}</span>
+          <span className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">{t('reports.allAgents', 'Todos os utilizadores')}</span>
         </div>
       </div>
 
@@ -421,7 +421,7 @@ function ReportsView() {
         {/* Score by Agent */}
         <div className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="py-2 px-4 flex items-center justify-between">
-            <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('landing.mock.scoreByAgent', 'Pontuação por Agente')}</h3>
+            <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('landing.mock.scoreByAgent', 'Pontuação por Utilizador')}</h3>
           </div>
           <div className="p-4 space-y-4">
             {agents.map((a, i) => (
