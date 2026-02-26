@@ -48,7 +48,6 @@ const CSRF_EXEMPT_EXACT_PATHS = [
   '/api/auth/reset-password',
   // SECURITY: logout requires CSRF token to prevent forced-logout attacks
   '/api/health',
-  '/api/seed/demo', // Temporary: seed endpoint (remove after use)
 ];
 
 // Prefix paths for external service webhooks (server-to-server, no cookies/CSRF possible)
