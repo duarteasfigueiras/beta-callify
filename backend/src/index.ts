@@ -26,7 +26,6 @@ import n8nRoutes from './routes/n8n';
 import categoriesRoutes from './routes/categories';
 import stripeRoutes from './routes/stripe';
 import contactRoutes from './routes/contact';
-import cleanupRoutes from './routes/cleanup';
 
 // Import database initialization
 import { initDatabase, seedDatabase } from './db/init';
@@ -146,7 +145,6 @@ app.use('/api/auth/register', authLimiter);  // SECURITY: Prevent invitation tok
 app.use('/api/auth/recover-password', authLimiter);
 // Routes exempt from subscription check
 app.use('/api/contact', contactRoutes);
-app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/webhooks', webhooksRoutes);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users as UsersIcon, UserPlus, Trash2, Shield, User as UserIcon, Copy, Link, RefreshCw, AlertCircle, Building2, ChevronDown, ChevronRight, Phone, Edit2, Tag, Plus, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersApi, categoriesApi, dashboardApi, callsApi, Category, ColorOption } from '../services/api';
+import { usersApi, categoriesApi, Category, ColorOption } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { User, UserRole, isDeveloper } from '../types';
 import toast from 'react-hot-toast';
@@ -83,7 +83,6 @@ export default function Users() {
   const [isEditingCategory, setIsEditingCategory] = useState(false);
 
   // Usage data per user (minutes + calls)
-  const [userUsageData, setUserUsageData] = useState<Record<number, { totalCalls: number; totalMinutes: number }>>({});
 
   const isDev = currentUser?.role ? isDeveloper(currentUser.role) : false;
 
@@ -91,7 +90,6 @@ export default function Users() {
     fetchUsers();
     fetchCategories();
     fetchColorOptions();
-    fetchUsageData();
   }, []);
 
   // Fetch company invite limit for admin users (separate effect to handle currentUser loading)
@@ -154,50 +152,6 @@ export default function Users() {
     }
   };
 
-  const fetchUsageData = async () => {
-    try {
-      const [scoreData, callsData] = await Promise.all([
-        dashboardApi.getScoreByAgent(),
-        callsApi.getAll({ limit: 10000 }),
-      ]);
-
-      const usage: Record<number, { totalCalls: number; totalMinutes: number }> = {};
-
-      // Get total_calls from score by agent
-      if (Array.isArray(scoreData)) {
-        scoreData.forEach((agent: any) => {
-          if (agent.agent_id) {
-            usage[agent.agent_id] = {
-              totalCalls: agent.total_calls || 0,
-              totalMinutes: 0,
-            };
-          }
-        });
-      }
-
-      // Aggregate duration_seconds per agent from calls
-      const calls = callsData?.calls || callsData || [];
-      if (Array.isArray(calls)) {
-        calls.forEach((call: any) => {
-          if (call.agent_id) {
-            if (!usage[call.agent_id]) {
-              usage[call.agent_id] = { totalCalls: 0, totalMinutes: 0 };
-            }
-            usage[call.agent_id].totalMinutes += (call.duration_seconds || 0) / 60;
-          }
-        });
-      }
-
-      // Round minutes
-      Object.keys(usage).forEach((id) => {
-        usage[Number(id)].totalMinutes = Math.round(usage[Number(id)].totalMinutes);
-      });
-
-      setUserUsageData(usage);
-    } catch (error) {
-      console.error('Error fetching usage data:', error);
-    }
-  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(currentUser?.language_preference === 'pt' ? 'pt-PT' : 'en-US', {
@@ -708,12 +662,6 @@ export default function Users() {
                                     <td className="py-3 px-4">
                                       {getRoleBadge(user.role, user.custom_role_name, user.categories)}
                                     </td>
-                                    <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                                      {userUsageData[user.id]?.totalMinutes ?? 0} min
-                                    </td>
-                                    <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                                      {userUsageData[user.id]?.totalCalls ?? 0}
-                                    </td>
                                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                                       {formatDate(user.created_at)}
                                     </td>
@@ -772,12 +720,6 @@ export default function Users() {
                                     </td>
                                     <td className="py-3 px-4">
                                       {getRoleBadge(user.role, user.custom_role_name, user.categories)}
-                                    </td>
-                                    <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                                      {userUsageData[user.id]?.totalMinutes ?? 0} min
-                                    </td>
-                                    <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                                      {userUsageData[user.id]?.totalCalls ?? 0}
                                     </td>
                                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                                       {formatDate(user.created_at)}
@@ -1230,12 +1172,6 @@ export default function Users() {
                     <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
                       {t('users.phone', 'Phone')}
                     </th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
-                      {t('users.minutesUsed', 'Minutes Used')}
-                    </th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
-                      {t('users.numberOfCalls', 'Calls')}
-                    </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
                       {t('users.createdAt', 'Created')}
                     </th>
@@ -1289,12 +1225,6 @@ export default function Users() {
                             <Edit2 className="w-3 h-3" />
                           </button>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                        {userUsageData[user.id]?.totalMinutes ?? 0} min
-                      </td>
-                      <td className="py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                        {userUsageData[user.id]?.totalCalls ?? 0}
                       </td>
                       <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                         {formatDate(user.created_at)}
