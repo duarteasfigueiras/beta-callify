@@ -205,10 +205,10 @@ function AdminDashboardView() {
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-              <div className="divide-y" style={{ borderColor: '#374151' }}>
+            <div className="flex-1 min-h-0 overflow-y-auto p-2">
+              <div className="space-y-2">
                 {calls.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 px-2">
+                  <div key={i} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#111827', border: '1px solid #374151' }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.phone}</p>
@@ -384,10 +384,10 @@ function UserDashboardView() {
             <div className="py-2 px-4 shrink-0">
               <h3 className="text-2xl font-semibold leading-none tracking-tight">{t('dashboard.recentCalls', 'Chamadas Recentes')}</h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-              <div className="divide-y" style={{ borderColor: '#374151' }}>
+            <div className="flex-1 min-h-0 overflow-y-auto p-2">
+              <div className="space-y-2">
                 {calls.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 px-2">
+                  <div key={i} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#111827', border: '1px solid #374151' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.phone}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{c.date} • {c.dur}</p>
