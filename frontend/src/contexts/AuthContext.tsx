@@ -110,16 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated: true,
             isLoading: false,
           });
-          // Fetch subscription status
-          if (freshUser.role !== 'developer') {
+          // Fetch subscription status (admin and developer bypass)
+          if (freshUser.role === 'developer' || freshUser.role === 'admin_manager') {
+            setSubscriptionStatus('active');
+          } else {
             try {
               const sub = await stripeApi.getSubscriptionStatus();
               setSubscriptionStatus(sub.status);
             } catch {
               setSubscriptionStatus('none');
             }
-          } else {
-            setSubscriptionStatus('active');
           }
         }).catch(() => {
           // Token expired or invalid - clear auth
@@ -203,16 +203,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
     });
 
-    // Fetch subscription status after login
-    if (user.role !== 'developer') {
+    // Fetch subscription status after login (admin and developer bypass)
+    if (user.role === 'developer' || user.role === 'admin_manager') {
+      setSubscriptionStatus('active');
+    } else {
       try {
         const sub = await stripeApi.getSubscriptionStatus();
         setSubscriptionStatus(sub.status);
       } catch {
         setSubscriptionStatus('none');
       }
-    } else {
-      setSubscriptionStatus('active');
     }
   }, []);
 
