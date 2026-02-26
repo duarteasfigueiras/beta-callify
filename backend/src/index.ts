@@ -154,11 +154,12 @@ app.use('/api/n8n', n8nRoutes);
 // Users route has selective subscription check inside (GET /me exempt)
 app.use('/api/users', usersRoutes);
 // Routes that require active subscription
-app.use('/api/calls', requireActiveSubscription, callsRoutes);
-app.use('/api/criteria', requireActiveSubscription, criteriaRoutes);
-app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
-app.use('/api/alerts', requireActiveSubscription, alertsRoutes);
-app.use('/api/categories', requireActiveSubscription, categoriesRoutes);
+// IMPORTANT: authenticateToken MUST run before requireActiveSubscription so req.user is set
+app.use('/api/calls', authenticateToken, requireActiveSubscription, callsRoutes);
+app.use('/api/criteria', authenticateToken, requireActiveSubscription, criteriaRoutes);
+app.use('/api/dashboard', authenticateToken, requireActiveSubscription, dashboardRoutes);
+app.use('/api/alerts', authenticateToken, requireActiveSubscription, alertsRoutes);
+app.use('/api/categories', authenticateToken, requireActiveSubscription, categoriesRoutes);
 
 // SECURITY: security.txt for vulnerability disclosure (RFC 9116)
 app.get('/.well-known/security.txt', (req, res) => {

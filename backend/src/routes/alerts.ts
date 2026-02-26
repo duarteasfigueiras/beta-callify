@@ -1,12 +1,9 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
-
-// All routes require authentication
-router.use(authenticateToken);
 
 // Get all alerts for the company
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {

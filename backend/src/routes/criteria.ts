@@ -1,15 +1,12 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper, UserCategory } from '../types';
 
 const router = Router();
 
 // Valid user categories
 const VALID_CATEGORIES: UserCategory[] = ['comercial', 'suporte', 'tecnico', 'supervisor', 'all'];
-
-// All routes require authentication
-router.use(authenticateToken);
 
 // ============================================
 // ALERT SETTINGS ROUTES (must be before /:id)

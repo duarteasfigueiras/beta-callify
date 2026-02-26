@@ -1,12 +1,9 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper } from '../types';
 
 const router = Router();
-
-// All routes require authentication
-router.use(authenticateToken);
 
 // Predefined colors for categories
 // - bg/text: pastel colors for badges (subtle)

@@ -1,12 +1,9 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
-import { authenticateToken, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { AuthenticatedRequest, requireRole } from '../middleware/auth';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
-
-// All routes require authentication
-router.use(authenticateToken);
 
 // Seed sample calls (admin only) - for testing
 router.post('/seed', requireRole('admin_manager'), async (req: AuthenticatedRequest, res: Response) => {

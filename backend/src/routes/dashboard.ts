@@ -1,12 +1,9 @@
 import { Router, Response } from 'express';
 import { supabase } from '../db/supabase';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
 import { isDeveloper, isAdminOrDeveloper } from '../types';
 
 const router = Router();
-
-// All routes require authentication
-router.use(authenticateToken);
 
 // Get dashboard overview stats
 router.get('/overview', async (req: AuthenticatedRequest, res: Response) => {
