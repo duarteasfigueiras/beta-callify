@@ -728,6 +728,10 @@ const resources = {
           month: 'month',
           choosePlan: 'Choose Plan',
           perUser: 'per user',
+          monthly: 'Monthly',
+          annual: 'Annual',
+          billedAnnually: 'billed annually',
+          saveYear: 'Save €{{amount}}/year',
           grid: {
             coreAnalysis: 'Transcription, AI analysis & summary',
             callTracking: 'Call history, type & flow detection',
@@ -1852,6 +1856,10 @@ const resources = {
           month: 'mês',
           choosePlan: 'Escolher Plano',
           perUser: 'por utilizador',
+          monthly: 'Mensal',
+          annual: 'Anual',
+          billedAnnually: 'faturado anualmente',
+          saveYear: 'Poupe €{{amount}}/ano',
           grid: {
             coreAnalysis: 'Transcrição, análise IA e resumo',
             callTracking: 'Histórico, tipo e fluxo da chamada',

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -87,11 +88,17 @@ export default function Landing() {
     },
   ];
 
+  const [billingAnnual, setBillingAnnual] = useState(false);
+  const discount = 5;
+
   const planColumns = [
-    { name: 'Basic Call Analysis', price: '30', popular: false },
-    { name: 'Pro Performance Control', price: '40', popular: true },
-    { name: 'Business', price: '50', popular: false },
-  ];
+    { name: 'Basic Call Analysis', monthly: 30, popular: false },
+    { name: 'Pro Performance Control', monthly: 40, popular: true },
+    { name: 'Business', monthly: 50, popular: false },
+  ].map(p => ({
+    ...p,
+    price: billingAnnual ? p.monthly - discount : p.monthly,
+  }));
 
   const comparisonFeatures: { label: string; basic: boolean; pro: boolean; business: boolean }[] = [
     { label: t('landing.pricing.grid.coreAnalysis', 'Transcription, AI analysis & summary'), basic: true, pro: true, business: true },
@@ -284,6 +291,28 @@ export default function Landing() {
               {t('landing.pricing.subtitle', 'Choose the plan that fits your team. All plans include core AI analysis features.')}
             </p>
           </div>
+
+          {/* Billing toggle */}
+          <div className="flex items-center justify-center gap-3 mb-10">
+            <span className={`text-sm font-medium ${!billingAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+              {t('landing.pricing.monthly', 'Monthly')}
+            </span>
+            <button
+              onClick={() => setBillingAnnual(!billingAnnual)}
+              className={`relative w-14 h-7 rounded-full transition-colors ${billingAnnual ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${billingAnnual ? 'translate-x-7' : ''}`} />
+            </button>
+            <span className={`text-sm font-medium ${billingAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+              {t('landing.pricing.annual', 'Annual')}
+            </span>
+            {billingAnnual && (
+              <span className="ml-2 px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
+                {t('landing.pricing.saveYear', 'Save €{{amount}}/year', { amount: discount * 12 })}
+              </span>
+            )}
+          </div>
+
           {/* Plan headers */}
           <div className="max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div className="grid grid-cols-4">
@@ -305,12 +334,17 @@ export default function Landing() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mt-2 mb-1">
                     {plan.name}
                   </h3>
-                  <div className="flex items-baseline justify-center">
+                  <div className="flex items-baseline justify-center gap-1">
+                    {billingAnnual && (
+                      <span className="text-lg text-gray-400 line-through">€{plan.monthly}</span>
+                    )}
                     <span className="text-3xl font-bold text-gray-900 dark:text-white">€{plan.price}</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">/{t('landing.pricing.month', 'month')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">/{t('landing.pricing.month', 'month')}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t('landing.pricing.perUser', 'per user')}
+                    {billingAnnual
+                      ? t('landing.pricing.billedAnnually', 'billed annually')
+                      : t('landing.pricing.perUser', 'per user')}
                   </p>
                 </div>
               ))}
