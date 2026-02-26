@@ -292,25 +292,33 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Billing toggle */}
-          <div className="flex items-center justify-center gap-3 mb-10">
-            <span className={`text-sm font-medium ${!billingAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-              {t('landing.pricing.monthly', 'Monthly')}
-            </span>
-            <button
-              onClick={() => setBillingAnnual(!billingAnnual)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${billingAnnual ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${billingAnnual ? 'translate-x-7' : ''}`} />
-            </button>
-            <span className={`text-sm font-medium ${billingAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-              {t('landing.pricing.annual', 'Annual')}
-            </span>
-            {billingAnnual && (
-              <span className="ml-2 px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                {t('landing.pricing.saveYear', 'Save €{{amount}}/year', { amount: discount * 12 })}
-              </span>
-            )}
+          {/* Billing toggle — segmented control */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 p-1">
+              <button
+                onClick={() => setBillingAnnual(false)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                  !billingAnnual
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                {t('landing.pricing.monthly', 'Monthly')}
+              </button>
+              <button
+                onClick={() => setBillingAnnual(true)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                  billingAnnual
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                {t('landing.pricing.annual', 'Annual')}
+                <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[11px] font-semibold whitespace-nowrap">
+                  -{discount}€/{t('landing.pricing.month', 'month')}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Plan headers */}
@@ -336,15 +344,18 @@ export default function Landing() {
                   </h3>
                   <div className="flex items-baseline justify-center gap-1">
                     {billingAnnual && (
-                      <span className="text-lg text-gray-400 line-through">€{plan.monthly}</span>
+                      <span className="text-base text-gray-400 dark:text-gray-500 line-through">€{plan.monthly}</span>
                     )}
                     <span className="text-3xl font-bold text-gray-900 dark:text-white">€{plan.price}</span>
                     <span className="text-gray-500 dark:text-gray-400 text-sm">/{t('landing.pricing.month', 'month')}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {billingAnnual
-                      ? t('landing.pricing.billedAnnually', 'billed annually')
-                      : t('landing.pricing.perUser', 'per user')}
+                    {t('landing.pricing.perUser', 'per user')}
+                    {billingAnnual && (
+                      <span className="block text-green-600 dark:text-green-400 font-medium mt-0.5">
+                        €{plan.price * 12}/{t('landing.pricing.year', 'year')} {t('landing.pricing.billedAnnually', 'billed annually')}
+                      </span>
+                    )}
                   </p>
                 </div>
               ))}

@@ -731,6 +731,7 @@ const resources = {
           monthly: 'Monthly',
           annual: 'Annual',
           billedAnnually: 'billed annually',
+          year: 'year',
           saveYear: 'Save €{{amount}}/year',
           grid: {
             coreAnalysis: 'Transcription, AI analysis & summary',
@@ -1859,6 +1860,7 @@ const resources = {
           monthly: 'Mensal',
           annual: 'Anual',
           billedAnnually: 'faturado anualmente',
+          year: 'ano',
           saveYear: 'Poupe €{{amount}}/ano',
           grid: {
             coreAnalysis: 'Transcrição, análise IA e resumo',
