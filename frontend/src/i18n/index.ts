@@ -744,6 +744,11 @@ const resources = {
             bestPractices: 'Best practices suggestions',
             prioritySupport: 'Priority support',
           },
+          enterprise: {
+            title: 'Enterprise',
+            description: 'CRM integration, carrier-independent calls, custom features, and dedicated support tailored to your business.',
+            cta: 'Contact Us',
+          },
         },
         cta: {
           title: 'Ready to Improve Your Call Quality?',
@@ -1873,6 +1878,11 @@ const resources = {
             teamInsights: 'Comparação de equipa, ranking e evolução',
             bestPractices: 'Sugestão de melhores práticas',
             prioritySupport: 'Suporte prioritário',
+          },
+          enterprise: {
+            title: 'Enterprise',
+            description: 'Integração com CRM, chamadas independentes de operadora, funcionalidades à medida e suporte dedicado para o seu negócio.',
+            cta: 'Contacte-nos',
           },
         },
         cta: {

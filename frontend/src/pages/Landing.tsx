@@ -400,6 +400,23 @@ export default function Landing() {
               ))}
             </div>
           </div>
+
+          {/* Enterprise — sob consulta */}
+          <div className="max-w-5xl mx-auto mt-8 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {t('landing.pricing.enterprise.title', 'Enterprise')}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                {t('landing.pricing.enterprise.description', 'CRM integration, carrier-independent calls, custom features, and dedicated support tailored to your business.')}
+              </p>
+            </div>
+            <a href="mailto:support@aicoachcall.com">
+              <Button variant="outline" className="whitespace-nowrap border-green-600 text-green-600 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-900/20 px-6">
+                {t('landing.pricing.enterprise.cta', 'Contact Us')}
+              </Button>
+            </a>
+          </div>
         </div>
       </section>
 
