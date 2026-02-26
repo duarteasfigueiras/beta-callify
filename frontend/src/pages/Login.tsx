@@ -22,8 +22,8 @@ export default function Login() {
   // Get the intended destination from location state (set by ProtectedRoute)
   const state = location.state as LocationState;
   // SECURITY: Validate redirect path to prevent open redirect attacks
-  const rawFrom = state?.from?.pathname || '/';
-  const from = rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : '/';
+  const rawFrom = state?.from?.pathname || '/dashboard';
+  const from = rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

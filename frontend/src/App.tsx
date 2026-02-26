@@ -153,6 +153,10 @@ function AuthOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 function HomeRoute() {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <Landing />;
 }
 
