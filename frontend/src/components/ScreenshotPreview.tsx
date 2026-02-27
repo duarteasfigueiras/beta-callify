@@ -890,10 +890,11 @@ function ReportsView() {
           <BarChart3 className="w-4 h-4 text-blue-400" />
           <h3 className="text-base font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
         </div>
-        <div className="px-3 pb-3 flex items-end gap-1" style={{ height: 100 }}>
-          {dailyCalls.map((h, i) => (
-            <div key={i} className="flex-1 rounded-t bg-blue-500" style={{ height: `${Math.max((h / maxDaily) * 100, 4)}%`, minHeight: 3 }} />
-          ))}
+        <div className="px-3 pb-3 flex items-end gap-px" style={{ height: 100 }}>
+          {dailyCalls.map((h, i) => {
+            const barH = Math.max(Math.round((h / maxDaily) * 80), 4);
+            return <div key={i} className="flex-1 rounded-t bg-blue-500" style={{ height: barH }} />;
+          })}
         </div>
         <div className="px-3 pb-1.5 flex justify-between">
           <span className="text-xs text-gray-500">28/01</span>
