@@ -739,8 +739,11 @@ function ReportsView() {
   const maxCalls = Math.max(...agentCalls.map(a => a.count));
 
   const reasons = [
-    { label: t('landing.mock.reasonCommercial', 'Comercial'), count: 335 },
-    { label: t('landing.mock.reasonSupport', 'Suporte'), count: 275 },
+    { label: t('landing.mock.reasonPricing', 'Pedido de Orçamento'), count: 98 },
+    { label: t('landing.mock.reasonSupport', 'Suporte Técnico'), count: 84 },
+    { label: t('landing.mock.reasonCancel', 'Cancelamento'), count: 67 },
+    { label: t('landing.mock.reasonUpgrade', 'Upgrade de Plano'), count: 52 },
+    { label: t('landing.mock.reasonBilling', 'Faturação'), count: 41 },
   ];
   const maxReasons = Math.max(...reasons.map(r => r.count));
 
@@ -851,30 +854,30 @@ function ReportsView() {
             <TrendingUp className="w-4 h-4 text-gray-400" />
             <h3 className="text-base font-semibold">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
           </div>
-          <div className="p-3 h-48">
-            <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-              <line x1="50" y1="10" x2="480" y2="10" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50" y1="50" x2="480" y2="50" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50" y1="90" x2="480" y2="90" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50" y1="130" x2="480" y2="130" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50" y1="170" x2="480" y2="170" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
-              <text x="35" y="14" fontSize="10" fill="#9ca3af" textAnchor="end">10</text>
-              <text x="35" y="54" fontSize="10" fill="#9ca3af" textAnchor="end">7</text>
-              <text x="35" y="94" fontSize="10" fill="#9ca3af" textAnchor="end">5</text>
-              <text x="35" y="134" fontSize="10" fill="#9ca3af" textAnchor="end">3</text>
-              <text x="35" y="174" fontSize="10" fill="#9ca3af" textAnchor="end">0</text>
+          <div className="p-3" style={{ height: 180 }}>
+            <svg viewBox="0 0 500 220" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+              <line x1="50" y1="20" x2="480" y2="20" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="56" x2="480" y2="56" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="92" x2="480" y2="92" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="128" x2="480" y2="128" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line x1="50" y1="164" x2="480" y2="164" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
+              <text x="35" y="24" fontSize="10" fill="#9ca3af" textAnchor="end">10</text>
+              <text x="35" y="60" fontSize="10" fill="#9ca3af" textAnchor="end">7</text>
+              <text x="35" y="96" fontSize="10" fill="#9ca3af" textAnchor="end">5</text>
+              <text x="35" y="132" fontSize="10" fill="#9ca3af" textAnchor="end">3</text>
+              <text x="35" y="168" fontSize="10" fill="#9ca3af" textAnchor="end">0</text>
               <polyline
                 fill="none"
                 stroke="#16a34a"
                 strokeWidth="2"
                 strokeLinejoin="round"
-                points={chartPoints.map((p, i) => `${50 + i * (430 / (chartPoints.length - 1))},${170 - (p / 10) * 160}`).join(' ')}
+                points={chartPoints.map((p, i) => `${50 + i * (430 / (chartPoints.length - 1))},${164 - (p / 10) * 144}`).join(' ')}
               />
               {chartPoints.map((p, i) => (
-                <circle key={i} cx={50 + i * (430 / (chartPoints.length - 1))} cy={170 - (p / 10) * 160} r="3" fill="#16a34a" />
+                <circle key={i} cx={50 + i * (430 / (chartPoints.length - 1))} cy={164 - (p / 10) * 144} r="3" fill="#16a34a" />
               ))}
               {chartDates.map((d, i) => (
-                <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="192" fontSize="8" fill="#9ca3af" textAnchor="middle">{d}</text>
+                <text key={i} x={50 + i * (430 / (chartDates.length - 1))} y="195" fontSize="9" fill="#9ca3af" textAnchor="middle">{d}</text>
               ))}
             </svg>
           </div>
@@ -887,11 +890,9 @@ function ReportsView() {
           <BarChart3 className="w-4 h-4 text-blue-400" />
           <h3 className="text-base font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
         </div>
-        <div className="px-3 pb-3 h-32 flex items-end gap-1">
+        <div className="px-3 pb-3 flex items-end gap-1" style={{ height: 100 }}>
           {dailyCalls.map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center">
-              <div className="w-full rounded-t bg-blue-500" style={{ height: `${(h / maxDaily) * 100}%` }} />
-            </div>
+            <div key={i} className="flex-1 rounded-t bg-blue-500" style={{ height: `${Math.max((h / maxDaily) * 100, 4)}%`, minHeight: 3 }} />
           ))}
         </div>
         <div className="px-3 pb-1.5 flex justify-between">
@@ -970,10 +971,10 @@ function ReportsView() {
             </div>
             <span className="text-xs text-green-600 dark:text-green-400">{t('common.viewAll', 'Ver Todos')}</span>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-2.5">
             {reasons.map((r, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-purple-400">{r.label}</div>
+                <div className="w-36 text-sm font-medium text-purple-400 truncate">{r.label}</div>
                 <div className="flex-1 h-3 bg-gray-700 rounded-full overflow-hidden">
                   <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(r.count / maxReasons) * 100}%` }} />
                 </div>
