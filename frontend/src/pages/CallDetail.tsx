@@ -613,14 +613,14 @@ export default function CallDetail() {
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             {skill.name}
                           </span>
-                          <span className={`text-sm font-bold ${getSkillTextColor(skill.score)}`}>
-                            {skill.score.toFixed(1)}
+                          <span className={`text-sm font-bold ${getSkillTextColor(skill.score ?? 0)}`}>
+                            {(skill.score ?? 0).toFixed(1)}
                           </span>
                         </div>
                         <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div
-                            className={`h-full ${getSkillColor(skill.score)} transition-all duration-500`}
-                            style={{ width: `${(skill.score / 10) * 100}%` }}
+                            className={`h-full ${getSkillColor(skill.score ?? 0)} transition-all duration-500`}
+                            style={{ width: `${((skill.score ?? 0) / 10) * 100}%` }}
                           />
                         </div>
                         {skill.description && (
@@ -647,16 +647,16 @@ export default function CallDetail() {
                       <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                         {t('calls.yourScore', 'A Tua Pontuação')}
                       </p>
-                      <p className={`text-3xl font-bold ${getSkillTextColor(topPerformerComparison.agent_score)}`}>
-                        {topPerformerComparison.agent_score.toFixed(1)}
+                      <p className={`text-3xl font-bold ${getSkillTextColor(topPerformerComparison.agent_score ?? 0)}`}>
+                        {(topPerformerComparison.agent_score ?? 0).toFixed(1)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                         {t('calls.gap', 'Diferença')}
                       </p>
-                      <p className={`text-2xl font-bold ${topPerformerComparison.gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {topPerformerComparison.gap >= 0 ? '+' : ''}{topPerformerComparison.gap.toFixed(1)}
+                      <p className={`text-2xl font-bold ${(topPerformerComparison.gap ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {(topPerformerComparison.gap ?? 0) >= 0 ? '+' : ''}{(topPerformerComparison.gap ?? 0).toFixed(1)}
                       </p>
                     </div>
                     <div className="text-center">
@@ -664,7 +664,7 @@ export default function CallDetail() {
                         {t('calls.topPerformer', 'Top Performer')}
                       </p>
                       <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
-                        {topPerformerComparison.top_performer_score.toFixed(1)}
+                        {(topPerformerComparison.top_performer_score ?? 0).toFixed(1)}
                       </p>
                     </div>
                   </div>
