@@ -66,8 +66,8 @@ function MockSidebar({ activeTab }: { activeTab: Tab }) {
 
   const navItems = isUserView ? userNavItems : adminNavItems;
 
-  const userName = isUserView ? 'Maria S.' : 'admin@aicoachcall.com';
-  const userInitial = isUserView ? 'M' : 'A';
+  const userName = isUserView ? 'Maria S.' : 'Duarte Figueiras';
+  const userInitial = isUserView ? 'M' : 'D';
   const userRole = isUserView ? t('users.user', 'Utilizador') : 'Admin/Gestor';
 
   return (
@@ -577,7 +577,7 @@ function AnalysisView() {
 
         {/* What Went Well — with timestamps */}
         <div>
-          <h4 className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">{t('calls.whatWentWell', 'O Que o Utilizador Fez Bem')}</h4>
+          <h4 className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">{t('calls.whatWentWell', 'O Que Pedro Oliveira Fez Bem')}</h4>
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
             <ul className="space-y-2">
               {[
@@ -596,7 +596,7 @@ function AnalysisView() {
 
         {/* What Went Wrong — with timestamps */}
         <div>
-          <h4 className="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">{t('calls.whatWentWrong', 'O Que o Utilizador Deve Melhorar')}</h4>
+          <h4 className="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">{t('calls.whatWentWrong', 'O Que Pedro Oliveira Deve Melhorar')}</h4>
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
             <ul className="space-y-2">
               {[
@@ -678,7 +678,7 @@ function AnalysisView() {
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('calls.gap', 'Diferença')}</p>
-                <p className="text-2xl font-bold text-green-600">+0.0</p>
+                <p className="text-2xl font-bold text-red-600">-2.9</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('calls.topPerformer', 'Top Performer')}</p>
@@ -775,12 +775,12 @@ function ReportsView() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto space-y-4 pr-1">
+    <div className="h-full overflow-y-auto space-y-3 pr-1">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('nav.reports', 'Relatórios')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('reports.subtitle', 'Analise o desempenho da equipa e tendências')}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('nav.reports', 'Relatórios')}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('reports.subtitle', 'Analise o desempenho da equipa e tendências')}</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300">
@@ -800,16 +800,16 @@ function ReportsView() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {stats.map((s, i) => (
-          <div key={i} className="rounded-lg shadow-sm p-4" style={cardStyle}>
+          <div key={i} className="rounded-lg shadow-sm p-3" style={cardStyle}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{s.label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{s.value}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{s.value}</p>
               </div>
-              <div className={`p-2 rounded-full ${s.iconBg}`}>
-                <s.icon className={`w-5 h-5 ${s.iconColor}`} />
+              <div className={`p-1.5 rounded-full ${s.iconBg}`}>
+                <s.icon className={`w-4 h-4 ${s.iconColor}`} />
               </div>
             </div>
           </div>
@@ -817,25 +817,25 @@ function ReportsView() {
       </div>
 
       {/* Score by Agent + Score Evolution */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg shadow-sm" style={cardStyle}>
-          <div className="py-2 px-4 flex items-center justify-between">
+          <div className="py-1.5 px-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-gray-400" />
-              <h3 className="text-lg font-semibold">{t('landing.mock.scoreByAgent', 'Pontuação por Utilizador')}</h3>
+              <Users className="w-4 h-4 text-gray-400" />
+              <h3 className="text-base font-semibold">{t('landing.mock.scoreByAgent', 'Pontuação por Utilizador')}</h3>
             </div>
-            <span className="text-xs px-2 py-1 bg-green-600 text-white rounded-lg">{t('reports.best', 'Melhores')}</span>
+            <span className="text-xs px-2 py-0.5 bg-green-600 text-white rounded-lg">{t('reports.best', 'Melhores')}</span>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="px-3 pb-3 space-y-2">
             {agentScores.map((a, i) => (
               <div key={i}>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-0.5">
                   <span className="text-sm font-medium text-gray-300">{a.name}</span>
                   <span className="text-xs text-gray-500">{a.calls} {t('reports.calls', 'chamadas')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-2.5 bg-gray-700 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(a.score / 10) * 100}%` }} />
                     </div>
                   </div>
@@ -847,11 +847,11 @@ function ReportsView() {
         </div>
 
         <div className="rounded-lg shadow-sm" style={cardStyle}>
-          <div className="py-2 px-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-gray-400" />
-            <h3 className="text-lg font-semibold">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
+          <div className="py-1.5 px-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-gray-400" />
+            <h3 className="text-base font-semibold">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
           </div>
-          <div className="p-4 h-56">
+          <div className="p-3 h-48">
             <svg viewBox="0 0 500 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
               <line x1="50" y1="10" x2="480" y2="10" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
               <line x1="50" y1="50" x2="480" y2="50" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
@@ -883,18 +883,18 @@ function ReportsView() {
 
       {/* Calls by Period */}
       <div className="rounded-lg shadow-sm" style={cardStyle}>
-        <div className="py-2 px-4 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
+        <div className="py-1.5 px-3 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-blue-400" />
+          <h3 className="text-base font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
         </div>
-        <div className="p-4 h-40 flex items-end gap-1">
+        <div className="px-3 pb-3 h-32 flex items-end gap-1">
           {dailyCalls.map((h, i) => (
             <div key={i} className="flex-1 flex flex-col items-center">
               <div className="w-full rounded-t bg-blue-500" style={{ height: `${(h / maxDaily) * 100}%` }} />
             </div>
           ))}
         </div>
-        <div className="px-4 pb-2 flex justify-between">
+        <div className="px-3 pb-1.5 flex justify-between">
           <span className="text-xs text-gray-500">28/01</span>
           <span className="text-xs text-gray-500">26/02</span>
         </div>
