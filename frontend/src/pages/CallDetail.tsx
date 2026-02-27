@@ -93,6 +93,7 @@ export default function CallDetail() {
   const { user } = useAuth();
   const [call, setCall] = useState<CallData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'evaluation' | 'feedback'>('summary');
@@ -107,15 +108,15 @@ export default function CallDetail() {
   const fetchCall = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get(`/calls/${id}`);
       setCall(response.data);
     } catch (error: any) {
       console.error('Error fetching call:', error);
       if (error.response?.status === 404) {
-        toast.error(t('calls.notFound', 'Call not found'));
-        navigate('/calls');
+        setError(t('calls.notFound', 'Call not found'));
       } else {
-        toast.error(t('common.error', 'An error occurred'));
+        setError(error.response?.data?.error || error.message || t('common.error', 'An error occurred'));
       }
     } finally {
       setLoading(false);
@@ -203,16 +204,29 @@ export default function CallDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('common.loading', 'Loading...')}</p>
+        </div>
       </div>
     );
   }
 
-  if (!call) {
+  if (error || !call) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 dark:text-gray-400">{t('calls.notFound', 'Call not found')}</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full text-center">
+          <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            {error || t('calls.notFound', 'Call not found')}
+          </p>
+          <button
+            onClick={() => navigate('/calls')}
+            className="mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+          >
+            {t('calls.backToList', 'Back to Calls')}
+          </button>
+        </div>
       </div>
     );
   }
