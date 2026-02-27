@@ -469,9 +469,9 @@ function UserDashboardView() {
               <div className="space-y-5 px-2">
                 {[
                   { label: t('dashboard.goalCalls', 'Chamadas Realizadas'), current: 8, target: 10, color: 'bg-green-500' },
-                  { label: t('dashboard.goalScore', 'Pontuação Média'), current: 8.4, target: 10, color: 'bg-blue-500', suffix: '/10' },
-                  { label: t('dashboard.goalDuration', 'Duração Média'), current: 7, target: 10, color: 'bg-amber-500', suffix: ' min' },
-                  { label: t('dashboard.goalNextStep', 'Com Próximo Passo'), current: 82, target: 100, color: 'bg-purple-500', suffix: '%' },
+                  { label: t('dashboard.goalHighScore', 'Chamadas ≥ 8 pts'), current: 6, target: 8, color: 'bg-blue-500' },
+                  { label: t('dashboard.goalResolution', 'Taxa de Resolução'), current: 68, target: 100, color: 'bg-amber-500', suffix: '%' },
+                  { label: t('dashboard.goalNextStep', 'Com Próximo Passo'), current: 75, target: 100, color: 'bg-purple-500', suffix: '%' },
                 ].map((g, i) => (
                   <div key={i}>
                     <div className="flex items-center justify-between mb-2">
