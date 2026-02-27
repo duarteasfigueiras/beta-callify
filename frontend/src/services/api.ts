@@ -69,27 +69,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 402 - subscription required or minutes exceeded
-    // Admin and developer bypass — they manage subscriptions, never get redirected
+    // Handle 402 - subscription required or minutes exceeded (disabled for now)
     if (error.response?.status === 402) {
-      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-      let userRole: string | null = null;
-      try { userRole = storedUser ? JSON.parse(storedUser).role : null; } catch {}
-
-      if (userRole !== 'developer' && userRole !== 'admin_manager') {
-        const errorCode = error.response?.data?.error;
-        if (errorCode === 'minutes_exceeded') {
-          if (!window.location.pathname.startsWith('/minutes-exceeded') &&
-              !window.location.pathname.startsWith('/settings')) {
-            window.location.href = '/minutes-exceeded';
-          }
-        } else {
-          if (!window.location.pathname.startsWith('/choose-plan') &&
-              !window.location.pathname.startsWith('/settings')) {
-            window.location.href = '/choose-plan';
-          }
-        }
-      }
       return Promise.reject(error);
     }
 
