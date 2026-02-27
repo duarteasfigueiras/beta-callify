@@ -890,11 +890,23 @@ function ReportsView() {
           <BarChart3 className="w-4 h-4 text-blue-400" />
           <h3 className="text-base font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
         </div>
-        <div className="px-3 pb-3 flex items-end gap-px" style={{ height: 100 }}>
-          {dailyCalls.map((h, i) => {
-            const barH = Math.max(Math.round((h / maxDaily) * 80), 4);
-            return <div key={i} className="flex-1 rounded-t bg-blue-500" style={{ height: barH }} />;
-          })}
+        <div className="px-3 pb-1" style={{ height: 110 }}>
+          <svg viewBox={`0 0 ${dailyCalls.length * 16} 100`} className="w-full h-full" preserveAspectRatio="none">
+            {dailyCalls.map((h, i) => {
+              const barHeight = Math.max((h / maxDaily) * 80, 3);
+              return (
+                <rect
+                  key={i}
+                  x={i * 16 + 2}
+                  y={90 - barHeight}
+                  width={12}
+                  height={barHeight}
+                  rx={2}
+                  fill="#3b82f6"
+                />
+              );
+            })}
+          </svg>
         </div>
         <div className="px-3 pb-1.5 flex justify-between">
           <span className="text-xs text-gray-500">28/01</span>
