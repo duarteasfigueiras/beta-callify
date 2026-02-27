@@ -499,17 +499,18 @@ function AnalysisView() {
   const { t } = useTranslation();
 
   const skills = [
-    { name: t('landing.mock.greeting', 'Saudação'), score: 9.5 },
-    { name: t('landing.mock.objHandling', 'Gestão de Objeções'), score: 6.8 },
-    { name: t('landing.mock.closing', 'Fecho'), score: 8.2 },
-    { name: t('landing.mock.empathy', 'Empatia'), score: 9.0 },
+    { name: t('landing.mock.criteriaGreeting', 'Saudação profissional'), score: 5.7 },
+    { name: t('landing.mock.criteriaNeeds', 'Identificação de necessidades'), score: 6.7 },
+    { name: t('landing.mock.criteriaClosing', 'Fecho da chamada'), score: 6.0 },
+    { name: t('landing.mock.criteriaEmpathy', 'Empatia e tom'), score: 7.0 },
+    { name: t('landing.mock.criteriaObjHandling', 'Gestão de objeções'), score: 5.4 },
   ];
 
   const getSkillColor = (s: number) => s >= 8 ? 'bg-green-500' : s >= 6 ? 'bg-yellow-500' : 'bg-red-500';
   const getSkillTextColor = (s: number) => s >= 8 ? 'text-green-600 dark:text-green-400' : s >= 6 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto space-y-4 pr-1">
       {/* Header with back button */}
       <div className="flex items-center gap-4">
         <div className="p-2 rounded-lg text-gray-500">
@@ -517,83 +518,192 @@ function AnalysisView() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('calls.detail', 'Detalhe da Chamada')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">+351 965 432 109</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">+351 933 444 555</p>
         </div>
       </div>
 
       {/* Metadata cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { label: t('calls.date', 'Data'), value: '10/02/2026 14:32' },
-          { label: t('calls.duration', 'Duração'), value: '8:32' },
-          { label: t('calls.agent', 'Utilizador'), value: 'Maria Silva' },
-          { label: t('calls.score', 'Pontuação'), value: '8.5', color: 'text-green-600 bg-green-100 dark:bg-green-900/30' },
+          { label: t('calls.date', 'Data'), value: '26/02/2026, 13:06' },
+          { label: t('calls.duration', 'Duração'), value: '3:03' },
+          { label: t('calls.agent', 'Utilizador'), value: 'Pedro Oliveira' },
+          { label: t('calls.score', 'Pontuação'), value: '6.0', scoreColor: 'text-yellow-600 dark:text-yellow-400' },
         ].map((m, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{m.label}</p>
-            <p className={`text-lg font-semibold mt-1 ${m.color ? m.color.split(' ')[0] : 'text-gray-900 dark:text-white'}`}>{m.value}</p>
+            <p className={`text-lg font-semibold mt-1 ${m.scoreColor || 'text-gray-900 dark:text-white'}`}>{m.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Overall Score */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('calls.overallScore', 'Pontuação Global')}</h3>
+        <div className="text-3xl font-bold px-5 py-2 rounded-xl text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30">6.0</div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
         {[t('calls.summary', 'Resumo'), t('calls.evaluation', 'Avaliação'), t('calls.feedback', 'Feedback')].map((tab, i) => (
-          <button key={i} className={`px-4 py-2 text-sm font-medium border-b-2 ${i === 0 ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 dark:text-gray-400'}`}>{tab}</button>
+          <button key={i} className={`py-2 px-1 text-sm font-medium border-b-2 ${i === 0 ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 dark:text-gray-400'}`}>{tab}</button>
         ))}
       </div>
 
-      {/* Content */}
-      <div className="grid grid-cols-5 gap-6">
-        {/* Left — summary */}
-        <div className="col-span-3 space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('calls.summaryTitle', 'Resumo')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              {t('landing.mock.summaryText', 'O cliente ligou para saber mais sobre os planos premium. O utilizador explicou claramente as opções e preços disponíveis. O cliente mostrou interesse no plano Pro e agendou uma chamada de follow-up.')}
-            </p>
+      {/* Tab Content — single column like real CallDetail */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-5">
+        {/* Summary */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('calls.summary', 'Resumo')}</h4>
+          <p className="text-sm text-gray-900 dark:text-white leading-relaxed">
+            {t('landing.mock.summaryText', 'Chamada de suporte sobre configuração. Guiado passo a passo mas processo foi demorado.')}
+          </p>
+        </div>
+
+        {/* Next Step */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('calls.nextStep', 'Próximo Passo')}</h4>
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+            <p className="text-sm text-green-800 dark:text-green-200">{t('landing.mock.nextStepText', 'Escalar para equipa técnica de nível 2')}</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-              <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">{t('calls.whatWentWell', 'O Que Correu Bem')}</h4>
-              <ul className="text-sm text-green-600 dark:text-green-300 space-y-1.5">
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span>{t('landing.mock.well1', 'Saudação profissional e calorosa')}</li>
-                <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span>{t('landing.mock.well2', 'Explicação clara do produto')}</li>
-              </ul>
+        </div>
+
+        {/* What Went Well — with timestamps */}
+        <div>
+          <h4 className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">{t('calls.whatWentWell', 'O Que o Utilizador Fez Bem')}</h4>
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+            <ul className="space-y-2">
+              {[
+                { text: t('landing.mock.well1', 'Resolução rápida do problema'), ts: '01:00' },
+                { text: t('landing.mock.well2', 'Cliente satisfeito com a resposta'), ts: '02:15' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-green-800 dark:text-green-200">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                  <span className="flex-1">{item.text}</span>
+                  <span className="text-xs bg-green-200 dark:bg-green-800 px-2 py-0.5 rounded flex-shrink-0">{item.ts}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* What Went Wrong — with timestamps */}
+        <div>
+          <h4 className="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">{t('calls.whatWentWrong', 'O Que o Utilizador Deve Melhorar')}</h4>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <ul className="space-y-2">
+              {[
+                { text: t('landing.mock.wrong1', 'Tempo de espera elevado'), ts: '01:30' },
+                { text: t('landing.mock.wrong2', 'Resolução não imediata'), ts: '02:45' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-red-800 dark:text-red-200">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                  <span className="flex-1">{item.text}</span>
+                  <span className="text-xs bg-red-200 dark:bg-red-800 px-2 py-0.5 rounded flex-shrink-0">{item.ts}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Recommended Phrases */}
+        <div>
+          <h4 className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">{t('calls.recommendedPhrases', 'Frases Recomendadas')}</h4>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <ul className="space-y-2">
+              {[
+                t('landing.mock.phrase1', '"Como posso ajudá-lo hoje?"'),
+                t('landing.mock.phrase2', '"Compreendo perfeitamente a sua situação"'),
+                t('landing.mock.phrase3', '"Vou resolver isso imediatamente"'),
+              ].map((phrase, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                  <span className="italic">{phrase}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Response Improvement Example */}
+        <div>
+          <h4 className="text-sm font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2">{t('calls.responseImprovement', 'Exemplo de Resposta a Melhorar')}</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">{t('calls.before', 'Antes')}</p>
+              <p className="text-sm text-red-800 dark:text-red-200 italic">{t('landing.mock.beforeText', '"Não sei se conseguimos fazer isso."')}</p>
             </div>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-              <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">{t('calls.whatWentWrong', 'O Que Pode Melhorar')}</h4>
-              <ul className="text-sm text-red-600 dark:text-red-300 space-y-1.5">
-                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">✗</span>{t('landing.mock.wrong1', 'Não fez perguntas de descoberta')}</li>
-                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">✗</span>{t('landing.mock.wrong2', 'Oportunidade de upsell perdida')}</li>
-              </ul>
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">{t('calls.after', 'Depois')}</p>
+              <p className="text-sm text-green-800 dark:text-green-200 italic">{t('landing.mock.afterText', '"Vou verificar essa possibilidade e entro em contacto consigo com uma resposta concreta até amanhã."')}</p>
             </div>
           </div>
         </div>
 
-        {/* Right — skills */}
-        <div className="col-span-2 space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('landing.mock.skills', 'Pontuação por Competência')}</h3>
-            {skills.map((skill, i) => (
-              <div key={i} className="mb-4 last:mb-0">
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="text-gray-600 dark:text-gray-400">{skill.name}</span>
-                  <span className={`font-bold ${getSkillTextColor(skill.score)}`}>{skill.score.toFixed(1)}</span>
+        {/* Skill Evolution */}
+        <div>
+          <h4 className="text-sm font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">{t('calls.skillEvolution', 'Evolução por Skill')}</h4>
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3">
+            <div className="space-y-3">
+              {skills.map((skill, i) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{skill.name}</span>
+                    <span className={`text-sm font-bold ${getSkillTextColor(skill.score)}`}>{skill.score.toFixed(1)}</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full ${getSkillColor(skill.score)} rounded-full`} style={{ width: `${(skill.score / 10) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${getSkillColor(skill.score)}`} style={{ width: `${skill.score * 10}%` }} />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <h4 className="text-sm font-semibold text-green-800 dark:text-green-400 mb-1">
-              {t('landing.mock.aiRecommendation', 'Recomendação da IA')}
-            </h4>
-            <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-              {t('landing.mock.recommendationText', 'Ótima chamada! Foque-se em fazer perguntas mais abertas para entender melhor as necessidades do cliente.')}
-            </p>
+        </div>
+
+        {/* Top Performer Comparison */}
+        <div>
+          <h4 className="text-sm font-medium text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-2">{t('calls.topPerformerComparison', 'Comparação com Top Performer')}</h4>
+          <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+            <div className="flex items-center justify-center gap-8">
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('calls.yourScore', 'A Tua Pontuação')}</p>
+                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">6.0</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('calls.gap', 'Diferença')}</p>
+                <p className="text-2xl font-bold text-green-600">+0.0</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{t('calls.topPerformer', 'Top Performer')}</p>
+                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">8.9</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Reasons */}
+        <div>
+          <h4 className="text-sm font-medium text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-2">{t('calls.contactReasons', 'Motivos de Contacto')}</h4>
+          <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3">
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2 text-sm text-teal-800 dark:text-teal-200">
+                <span className="w-2 h-2 bg-teal-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                <span>{t('landing.mock.contactReason1', 'Problema de configuração do sistema')}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Objections */}
+        <div>
+          <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-2">{t('calls.objections', 'Objeções do Cliente')}</h4>
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2 text-sm text-orange-800 dark:text-orange-200">
+                <span className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                <span>{t('landing.mock.objection1', 'Processo demasiado complexo para o utilizador')}</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
