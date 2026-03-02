@@ -73,8 +73,8 @@ router.post('/', async (req, res) => {
     `;
 
     if (resend) {
+      // Send notification email to admin
       try {
-        // Send notification email to admin
         await resend.emails.send({
           from: fromEmail,
           to: adminEmail,
@@ -82,19 +82,23 @@ router.post('/', async (req, res) => {
           html: htmlContent,
           replyTo: email,
         });
+        console.log(`[Contact] Admin notification sent for: ${email} (${company})`);
+      } catch (emailError) {
+        console.error('[Contact] Failed to send admin email:', emailError);
+        return res.status(500).json({ error: 'Failed to send request. Please try again.' });
+      }
 
-        // Send confirmation email to user
+      // Send confirmation email to user (non-blocking — don't fail the request)
+      try {
         await resend.emails.send({
           from: fromEmail,
           to: email,
           subject: 'Pedido de Demonstração Confirmado — AI CoachCall',
           html: confirmationHtml,
         });
-
-        console.log(`[Contact] Demo request + confirmation emails sent for: ${email} (${company})`);
-      } catch (emailError) {
-        console.error('[Contact] Failed to send email:', emailError);
-        return res.status(500).json({ error: 'Failed to send request. Please try again.' });
+        console.log(`[Contact] Confirmation email sent to: ${email}`);
+      } catch (confirmError) {
+        console.error('[Contact] Failed to send confirmation email (non-critical):', confirmError);
       }
     } else {
       console.log(`[Contact] Demo request received (no Resend configured):`, { firstName, lastName, email, phone, company, numUsers, carrier, usesCrm, whichCrm });
