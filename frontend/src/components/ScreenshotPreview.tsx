@@ -820,8 +820,8 @@ function ReportsView() {
       </div>
 
       {/* Score by Agent + Score Evolution */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg shadow-sm" style={cardStyle}>
+      <div className="grid grid-cols-2 gap-3 items-stretch">
+        <div className="rounded-lg shadow-sm flex flex-col" style={cardStyle}>
           <div className="py-1.5 px-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-400" />
@@ -849,12 +849,12 @@ function ReportsView() {
           </div>
         </div>
 
-        <div className="rounded-lg shadow-sm" style={cardStyle}>
-          <div className="py-1.5 px-3 flex items-center gap-2">
+        <div className="rounded-lg shadow-sm flex flex-col" style={cardStyle}>
+          <div className="py-1.5 px-3 flex items-center gap-2 shrink-0">
             <TrendingUp className="w-4 h-4 text-gray-400" />
             <h3 className="text-base font-semibold">{t('dashboard.scoreEvolution', 'Evolução da Pontuação')}</h3>
           </div>
-          <div className="p-3" style={{ height: 180 }}>
+          <div className="flex-1 p-3 min-h-0">
             <svg viewBox="0 0 500 220" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
               <line x1="50" y1="20" x2="480" y2="20" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
               <line x1="50" y1="56" x2="480" y2="56" stroke="#4b5563" strokeWidth="0.5" strokeDasharray="4 4" />
@@ -886,29 +886,29 @@ function ReportsView() {
 
       {/* Calls by Period */}
       <div className="rounded-lg shadow-sm" style={cardStyle}>
-        <div className="py-1.5 px-3 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-blue-400" />
+        <div className="py-2 px-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-blue-400" />
           <h3 className="text-base font-semibold">{t('reports.callsByPeriod', 'Chamadas por Período')}</h3>
         </div>
-        <div className="px-3 pb-1" style={{ height: 110 }}>
-          <svg viewBox={`0 0 ${dailyCalls.length * 16} 100`} className="w-full h-full" preserveAspectRatio="none">
+        <div className="px-4 pb-2" style={{ height: 180 }}>
+          <svg viewBox={`0 0 ${dailyCalls.length * 22} 160`} className="w-full h-full" preserveAspectRatio="none">
             {dailyCalls.map((h, i) => {
-              const barHeight = Math.max((h / maxDaily) * 80, 3);
+              const barHeight = Math.max((h / maxDaily) * 140, 4);
               return (
                 <rect
                   key={i}
-                  x={i * 16 + 2}
-                  y={90 - barHeight}
-                  width={12}
+                  x={i * 22 + 2}
+                  y={150 - barHeight}
+                  width={18}
                   height={barHeight}
-                  rx={2}
+                  rx={3}
                   fill="#3b82f6"
                 />
               );
             })}
           </svg>
         </div>
-        <div className="px-3 pb-1.5 flex justify-between">
+        <div className="px-4 pb-2 flex justify-between">
           <span className="text-xs text-gray-500">28/01</span>
           <span className="text-xs text-gray-500">26/02</span>
         </div>
