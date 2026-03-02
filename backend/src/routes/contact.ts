@@ -42,8 +42,39 @@ router.post('/', async (req, res) => {
       </div>
     `;
 
+    // Confirmation email HTML for the user
+    const confirmationHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <div style="text-align: center; padding: 32px 0 16px;">
+          <h1 style="color: #16a34a; font-size: 24px; margin: 0;">AI CoachCall</h1>
+        </div>
+        <div style="padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px; margin: 0 16px;">
+          <h2 style="color: #111827; font-size: 20px; margin-top: 0;">Pedido de Demonstração Confirmado</h2>
+          <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+            Olá <strong>${firstName}</strong>,
+          </p>
+          <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+            O seu pedido de demonstração foi recebido com sucesso. A nossa equipa irá analisar o seu pedido e entraremos em contacto consigo em breve.
+          </p>
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="color: #166534; font-size: 14px; margin: 0 0 8px;"><strong>Resumo do pedido:</strong></p>
+            <p style="color: #166534; font-size: 14px; margin: 4px 0;">Nome: ${firstName} ${lastName}</p>
+            <p style="color: #166534; font-size: 14px; margin: 4px 0;">Empresa: ${company}</p>
+            <p style="color: #166534; font-size: 14px; margin: 4px 0;">Email: ${email}</p>
+          </div>
+          <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">
+            Se tiver alguma questão, não hesite em responder a este email.
+          </p>
+        </div>
+        <div style="text-align: center; padding: 24px; color: #9ca3af; font-size: 12px;">
+          © ${new Date().getFullYear()} AI CoachCall. Todos os direitos reservados.
+        </div>
+      </div>
+    `;
+
     if (resend) {
       try {
+        // Send notification email to admin
         await resend.emails.send({
           from: fromEmail,
           to: adminEmail,
@@ -51,7 +82,16 @@ router.post('/', async (req, res) => {
           html: htmlContent,
           replyTo: email,
         });
-        console.log(`[Contact] Demo request email sent for: ${email} (${company})`);
+
+        // Send confirmation email to user
+        await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject: 'Pedido de Demonstração Confirmado — AI CoachCall',
+          html: confirmationHtml,
+        });
+
+        console.log(`[Contact] Demo request + confirmation emails sent for: ${email} (${company})`);
       } catch (emailError) {
         console.error('[Contact] Failed to send email:', emailError);
         return res.status(500).json({ error: 'Failed to send request. Please try again.' });

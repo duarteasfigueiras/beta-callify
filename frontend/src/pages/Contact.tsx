@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Phone, User, Mail, Building2, Users, Headphones, Send } from 'lucide-react';
+import { Phone, User, Mail, Building2, Users, Headphones, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -102,20 +102,20 @@ export default function Contact() {
           <CardHeader>
             <div className="flex justify-center mb-4">
               <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
-                <Send className="w-8 h-8" />
+                <CheckCircle className="w-8 h-8" />
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-green-600">
-              {t('contact.successTitle', 'Request Sent!')}
+              {t('contact.successTitle', 'Pedido Confirmado!')}
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              {t('contact.successMessage', 'Thank you for your interest! We will contact you shortly.')}
+              {t('contact.successMessage', 'O seu pedido de demonstração foi recebido com sucesso. Enviámos um email de confirmação para o seu endereço. Entraremos em contacto consigo em breve.')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link to="/">
               <Button className="bg-green-600 hover:bg-green-700 text-white">
-                {t('contact.backToHome', 'Back to Home')}
+                {t('contact.backToHome', 'Voltar à Página Inicial')}
               </Button>
             </Link>
           </CardContent>
