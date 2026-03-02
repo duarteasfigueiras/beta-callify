@@ -1064,19 +1064,19 @@ function CriteriaView() {
 
   const criteria = [
     // Todos (comuns a todas as categorias)
-    { name: t('landing.mock.criteriaGreeting', 'Saudação profissional'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaGreetingDesc', 'Verifica se o agente cumprimenta o cliente de forma profissional'), weight: 3, active: true },
-    { name: t('landing.mock.criteriaClosing', 'Fecho da chamada'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaClosingDesc', 'Avalia se o agente encerra a chamada de forma adequada'), weight: 3, active: true },
-    { name: t('landing.mock.criteriaEmpathy', 'Empatia e tom'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaEmpathyDesc', 'Avalia o tom e a empatia demonstrada pelo agente'), weight: 4, active: true },
+    { name: t('landing.mock.criteriaGreeting', 'Saudação profissional'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaGreetingDesc', 'Verifica se o utilizador cumprimenta o cliente de forma profissional'), weight: 3, active: true },
+    { name: t('landing.mock.criteriaClosing', 'Fecho da chamada'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaClosingDesc', 'Avalia se o utilizador encerra a chamada de forma adequada'), weight: 3, active: true },
+    { name: t('landing.mock.criteriaEmpathy', 'Empatia e tom'), cat: t('common.all', 'Todos'), catColor: allColor, desc: t('landing.mock.criteriaEmpathyDesc', 'Avalia o tom e a empatia demonstrada pelo utilizador'), weight: 4, active: true },
     // Comunicação
-    { name: t('landing.mock.criteriaActiveListening', 'Escuta ativa'), cat: t('landing.mock.catCommunication', 'Comunicação'), catColor: commColor, desc: t('landing.mock.criteriaActiveListeningDesc', 'Avalia se o agente ouve atentamente e reformula as questões do cliente'), weight: 4, active: true },
-    { name: t('landing.mock.criteriaClarity', 'Clareza na explicação'), cat: t('landing.mock.catCommunication', 'Comunicação'), catColor: commColor, desc: t('landing.mock.criteriaClarityDesc', 'Verifica se o agente comunica de forma clara e sem jargão técnico'), weight: 3, active: true },
+    { name: t('landing.mock.criteriaActiveListening', 'Escuta ativa'), cat: t('landing.mock.catCommunication', 'Comunicação'), catColor: commColor, desc: t('landing.mock.criteriaActiveListeningDesc', 'Avalia se o utilizador ouve atentamente e reformula as questões do cliente'), weight: 4, active: true },
+    { name: t('landing.mock.criteriaClarity', 'Clareza na explicação'), cat: t('landing.mock.catCommunication', 'Comunicação'), catColor: commColor, desc: t('landing.mock.criteriaClarityDesc', 'Verifica se o utilizador comunica de forma clara e sem jargão técnico'), weight: 3, active: true },
     // Vendas
-    { name: t('landing.mock.criteriaNeeds', 'Identificação de necessidades'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaNeedsDesc', 'Avalia se o agente faz perguntas para entender as necessidades'), weight: 5, active: true },
-    { name: t('landing.mock.criteriaObjHandling', 'Gestão de objeções'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaObjHandlingDesc', 'Avalia como o agente responde a objeções do cliente'), weight: 4, active: true },
-    { name: t('landing.mock.criteriaUpsell', 'Proposta de valor'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaUpsellDesc', 'Verifica se o agente apresenta soluções adequadas ao perfil do cliente'), weight: 4, active: false },
+    { name: t('landing.mock.criteriaNeeds', 'Identificação de necessidades'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaNeedsDesc', 'Avalia se o utilizador faz perguntas para entender as necessidades'), weight: 5, active: true },
+    { name: t('landing.mock.criteriaObjHandling', 'Gestão de objeções'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaObjHandlingDesc', 'Avalia como o utilizador responde a objeções do cliente'), weight: 4, active: true },
+    { name: t('landing.mock.criteriaUpsell', 'Proposta de valor'), cat: t('landing.mock.catSales', 'Vendas'), catColor: salesColor, desc: t('landing.mock.criteriaUpsellDesc', 'Verifica se o utilizador apresenta soluções adequadas ao perfil do cliente'), weight: 4, active: false },
     // Compliance
     { name: t('landing.mock.criteriaCompliance', 'Conformidade legal'), cat: t('landing.mock.catCompliance', 'Compliance'), catColor: compColor, desc: t('landing.mock.criteriaComplianceDesc', 'Verifica conformidade com requisitos legais e regulamentares'), weight: 5, active: true },
-    { name: t('landing.mock.criteriaDataProtection', 'Proteção de dados'), cat: t('landing.mock.catCompliance', 'Compliance'), catColor: compColor, desc: t('landing.mock.criteriaDataProtectionDesc', 'Avalia se o agente segue os procedimentos de proteção de dados (RGPD)'), weight: 5, active: true },
+    { name: t('landing.mock.criteriaDataProtection', 'Proteção de dados'), cat: t('landing.mock.catCompliance', 'Compliance'), catColor: compColor, desc: t('landing.mock.criteriaDataProtectionDesc', 'Avalia se o utilizador segue os procedimentos de proteção de dados (RGPD)'), weight: 5, active: true },
   ];
 
   const getWeightColor = (w: number) => {
