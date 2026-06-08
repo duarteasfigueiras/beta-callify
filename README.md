@@ -4,9 +4,9 @@ Callify is a comprehensive call qualification platform that records phone calls,
 
 ## Features
 
-- **Call Recording & Processing**: Automatically receive and process calls via Twilio/Telnyx webhooks
-- **AI-Powered Transcription**: Convert audio to text with timestamps using OpenAI Whisper
-- **Intelligent Analysis**: GPT-4 powered analysis including summary, key questions, objections, and recommendations
+- **Call Recording & Processing**: Recordings are ingested from the telephony provider (production: Vodafone One Net; legacy/dev: Twilio/Telnyx webhooks)
+- **AI-Powered Transcription**: Audio is transcribed to text (OpenAI Whisper), orchestrated by an external **n8n** workflow that pushes results into the API
+- **Intelligent Analysis**: GPT-4 powered analysis (summary, key questions, objections, recommendations), also produced by the n8n workflow
 - **Customizable Evaluation Criteria**: Define weighted criteria for call scoring
 - **Role-Based Access Control**: Admin/Manager and Agent roles with appropriate permissions
 - **Multi-Tenant Architecture**: Complete data isolation between companies
@@ -28,17 +28,19 @@ Callify is a comprehensive call qualification platform that records phone calls,
 
 ### Backend
 - Node.js with Express
-- TypeScript
-- SQLite (via better-sqlite3)
-- JWT authentication
-- OpenAI integration (Whisper + GPT-4)
+- TypeScript (run with tsx)
+- Supabase (PostgreSQL) via @supabase/supabase-js
+- JWT authentication (httpOnly cookies)
+- AI transcription/analysis orchestrated externally via n8n (Whisper + GPT-4 run in the n8n workflow)
+- Deployed on Railway
 
 ## Prerequisites
 
 - Node.js 18+ installed
 - npm or yarn package manager
-- OpenAI API key for transcription and analysis
-- Twilio/Telnyx account configured (for production telephony)
+- A Supabase project (URL + service role key)
+- An n8n instance for the AI transcription/analysis workflow
+- Telephony: Vodafone One Net (production) — Twilio/Telnyx supported as legacy/dev
 
 ## Quick Start
 
@@ -198,8 +200,10 @@ callify/
 | NODE_ENV | Environment mode | development |
 | JWT_SECRET | Secret key for JWT | (required) |
 | JWT_EXPIRES_IN | Token expiration | 7d |
-| DATABASE_PATH | SQLite database path | ./data/callify.db |
-| OPENAI_API_KEY | OpenAI API key | (required for AI features) |
+| SUPABASE_URL | Supabase project URL | (required) |
+| SUPABASE_SERVICE_ROLE_KEY | Supabase service role key | (required in production) |
+| N8N_API_KEY | Protects the /api/n8n integration endpoints | (required in production) |
+| OPENAI_API_KEY | OpenAI API key (used by the n8n workflow) | (optional in the API) |
 | RETENTION_DAYS | Max days to keep recordings | 60 |
 | LOW_SCORE_THRESHOLD | Alert threshold for low scores | 5.0 |
 | LONG_CALL_THRESHOLD_SECONDS | Alert threshold for long calls | 1800 |
