@@ -179,23 +179,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// TEMP: diagnostic outbound (egress) IP check — used to confirm Railway Static Outbound IPs
-// for Vodafone One Net API whitelisting. REMOVE after verification.
-app.get('/api/whoami', async (req, res) => {
-  try {
-    const [v4, v6] = await Promise.allSettled([
-      fetch('https://api.ipify.org?format=json').then((r) => r.json()),
-      fetch('https://api6.ipify.org?format=json').then((r) => r.json()),
-    ]);
-    res.json({
-      ipv4: v4.status === 'fulfilled' ? (v4.value as { ip: string }).ip : null,
-      ipv6: v6.status === 'fulfilled' ? (v6.value as { ip: string }).ip : null,
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to resolve outbound IP', detail: String(error) });
-  }
-});
-
 // Retention policy endpoint
 app.get('/api/retention-policy', (req, res) => {
   res.json(getRetentionPolicy());
