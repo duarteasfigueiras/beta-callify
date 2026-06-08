@@ -1612,6 +1612,9 @@ router.get('/health', (req: Request, res: Response) => {
  * Cleanup call summaries - remove "[Utilizador não identificado pelo telefone]" text
  */
 router.post('/cleanup-summaries', async (_req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   try {
     // Find calls with the legacy text
     const { data: calls, error: findError } = await supabase
@@ -2288,6 +2291,9 @@ router.post('/generate-test-users-and-calls', async (req: Request, res: Response
  * This will update all calls to match the correct agent based on phone_number
  */
 router.post('/fix-call-agents', async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   try {
     console.log('[n8n] Starting to fix call agents by phone number...');
 
